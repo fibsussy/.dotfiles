@@ -8,6 +8,7 @@ sudo pacman -S stow
 git clone https://github.com/NoahPsight/.dotfiles ~/.dotfiles
 gpg --decrypt gpg_key.asc.gpg > gpg_key.asc
 gpg --import gpg_key.asc
+git-crypt unlock
 pushd ~/.dotfiles; stow -R .; popd
 ```
 
