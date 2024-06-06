@@ -1,10 +1,10 @@
 # Fib's configs
 
 ## Guide
-- Get ArchLinux lol
+- Get ArchLinux 🤷 or run the equivalent commands
 - run these commands:
 ```
-sudo pacman -S stow
+sudo pacman -S stow git-crypt gnupg
 git clone https://github.com/NoahPsight/.dotfiles ~/.dotfiles
 gpg --decrypt gpg_key.asc.gpg > gpg_key.asc
 gpg --import gpg_key.asc
