@@ -1,0 +1,52 @@
+[user]
+    name = NoahPsight
+    email = 120606151+NoahPsight@users.noreply.github.com
+
+[init]
+    defaultBranch = main
+
+[core]
+    editor = nvim
+    filemode = false
+    autocrlf = input
+
+[safe]
+    directory = *
+
+[push]
+    autoSetupRemote = true
+
+[rerere]
+    enabled = true
+
+[alias]
+  to-ssh = "!sh -c ' \
+    git remote set-url origin $(git remote get-url origin | \
+    sed \"s|https://github.com/|git@github.com:|\"); \
+    git remote get-url origin \
+    '"
+  to-https = "!sh -c ' \
+    git remote set-url origin $(git remote get-url origin | \
+    sed \"s|git@github.com:|https://github.com/|\"); \
+    git remote get-url origin \
+    '"
+  nuke = "!f() { \
+    confirmed=false; \
+    for arg in \"$@\"; do \
+      if [[ \"$arg\" == '--noconfirm' ]]; then \
+        confirmed=true; \
+        break; \
+      fi; \
+    done; \
+    if [[ \"$confirmed\" == 'false' ]]; then \
+      read -p 'Are you sure you want to NUKE all of your local changes? [y/N] ' yn; \
+      if [[ \"$yn\" =~ ^[Yy]$ ]]; then \
+        confirmed=true; \
+      fi; \
+    fi; \
+    if [[ \"$confirmed\" == 'true' ]]; then \
+      git fetch origin && \
+      git reset --hard origin/$(git branch --show-current) && \
+      git clean -df; \
+    fi \
+    }; f"

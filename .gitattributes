@@ -1,0 +1,23 @@
+* filter=git-crypt diff=git-crypt
+
+.gitattributes !filter !diff
+.gitignore !filter !diff
+**/.gitattributes !filter !diff
+**/.gitignore !filter !diff
+gpg_key.asc.gpg !filter !diff
+README.md !filter !diff
+
+.zshrc !filter !diff
+.zshenv !filter !diff
+
+Scripts/ !filter !diff
+
+.config/nvim/** !filter !diff
+.config/git/** !filter !diff
+.config/tmux/** !filter !diff
+.config/kitty/** !filter !diff
+.config/rustfmt/** !filter !diff
+.config/waybar/** !filter !diff
+.config/gammastep/** !filter !diff
+.config/fontconfig/** !filter !diff
+.config/neofetch/** !filter !diff
