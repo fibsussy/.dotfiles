@@ -30,6 +30,7 @@ end
 M.nomap("n", "<C-n>")
 M.nomap("n", "<leader>e")
 M.nomap("n", "<leader>gt")
+M.map("n", "<C-r>", require("theme").update_theme, { desc = "Reload" })
 M.map("n", "J", "mzJ`z", { desc = "General: Join lines and restore cursor position" })
 M.map("n", "<C-d>", "<C-d>zz", { desc = "General: Scroll down half a page and recenter" })
 M.map("n", "<C-u>", "<C-u>zz", { desc = "General: Scroll up half a page and recenter" })
