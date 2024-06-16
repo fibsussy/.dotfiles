@@ -74,7 +74,7 @@ load_pyenv() {
     eval "$(pyenv virtualenv-init -)" >/dev/null 2>&1
   fi
 }
-read -r pid < <(load_pyenv)
+(load_pyenv &)
 log_time "after pyenv initialization"
 
 # Install zinit if not already installed
@@ -123,15 +123,9 @@ load_nvm() {
   [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
   [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
 }
-
-# Override nvm command to initialize on first use
 nvm() {
   unset -f nvm
   load_nvm
   nvm "$@"
 }
-
 log_time "after nvm initialization setup"
-
-# Wait for background processes to finish
-wait
