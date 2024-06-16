@@ -1,17 +1,31 @@
-paru() {
-    command paru --noconfirm "$@"
-    command paru -Qqen > ~/packages.txt
+# Function to log elapsed time
+ENABLE_TIMING=false
+log_time() {
+  if $ENABLE_TIMING; then
+    local step=$1
+    local current_time=$(date +%s%N)
+    local elapsed=$(( (current_time - START_TIME) / 1000000 ))  # in milliseconds
+    echo "Time taken until $step: ${elapsed} ms"
+    START_TIME=$current_time
+  fi
 }
+START_TIME=$(date +%s%N)
+
+# Functions
+paru() {
+  command paru --noconfirm "$@"
+  command paru -Qqen > ~/packages.txt
+}
+log_time "after paru function"
+
+# Aliases
 alias paruclean="sudo pacman -Rsn $(pacman -Qdtq)"
-
 alias brb="clear && figlet BRB | lolcat"
-
-alias  l='eza -l  --icons'
+alias l='eza -l  --icons'
 alias ls='eza -1  --icons'
 alias ll='eza -la --icons'
 alias ld='eza -lD --icons'
 alias cat='bat'
-eval "$(zoxide init zsh)"
 alias cd="z"
 alias v="/bin/nvim"
 alias vi="/bin/nvim"
@@ -19,19 +33,20 @@ alias vim="/bin/nvim"
 alias emacs="/bin/nvim"
 alias nightlight="pkill gammastep; gammastep -O 3000 & disown"
 alias nightlight_off="pkill gammastep;"
-
 alias stow.="pushd ~/.dotfiles/; stow -D .; stow .; popd"
-
 alias bgrng='~/Scripts/bgrng.sh'
 alias clip="xclip -selection clipboard"
+log_time "after aliases"
 
+# Function to create directory and touch a file
 mkdir_and_touch() {
   mkdir -pv "$(dirname "$1")"
   touch "$1"
 }
 alias touch="mkdir_and_touch"
+log_time "after mkdir_and_touch function"
 
-
+# Environment Variables
 export XDG_CONFIG_HOME="$HOME/.config"
 export XDG_CACHE_HOME="$HOME/.cache"
 export XDG_DATA_HOME="$HOME/.local/share"
@@ -47,55 +62,76 @@ export PATH="$PYENV_ROOT/bin:$PATH"
 
 export PYENV_ROOT="$HOME/.pyenv"
 export PYENV_VIRTUALENV_DISABLE_PROMPT=1
-eval "$(pyenv init -)"
-eval "$(pyenv virtualenv-init -)"
-
 
 export LANG=en_US.UTF-8
-if [[ -n $SSH_CONNECTION ]]; then
-  export EDITOR='vim'
-else
-  export EDITOR='nvim'
-fi
+export EDITOR='nvim'
+[[ -n $SSH_CONNECTION ]] && export EDITOR='vim'
+log_time "after environment variables"
 
+load_pyenv() {
+  if command -v pyenv 1>/dev/null 2>&1; then
+    eval "$(pyenv init -)" >/dev/null 2>&1
+    eval "$(pyenv virtualenv-init -)" >/dev/null 2>&1
+  fi
+}
+read -r pid < <(load_pyenv)
+log_time "after pyenv initialization"
+
+# Install zinit if not already installed
 if [[ ! -f $HOME/.local/share/zinit/zinit.git/zinit.zsh ]]; then
-    print -P "%F{33} %F{220}Installing %F{33}ZDHARMA-CONTINUUM%F{220} Initiative Plugin Manager (%F{33}zdharma-continuum/zinit%F{220})…%f"
-    command mkdir -p "$HOME/.local/share/zinit" && command chmod g-rwX "$HOME/.local/share/zinit"
-    command git clone https://github.com/zdharma-continuum/zinit "$HOME/.local/share/zinit/zinit.git" && \
-        print -P "%F{33} %F{34}Installation successful.%f%b" || \
-        print -P "%F{160} The clone has failed.%f%b"
+  echo "Installing ZDHARMA-CONTINUUM Initiative Plugin Manager (zdharma-continuum/zinit)…"
+  mkdir -p "$HOME/.local/share/zinit" && chmod g-rwX "$HOME/.local/share/zinit"
+  git clone https://github.com/zdharma-continuum/zinit "$HOME/.local/share/zinit/zinit.git" && \
+      echo "Installation successful." || \
+      echo "The clone has failed."
 fi
+log_time "after zinit installation check"
+
+# Initialize zinit
 source "$HOME/.local/share/zinit/zinit.git/zinit.zsh"
 autoload -Uz _zinit
 (( ${+_comps} )) && _comps[zinit]=_zinit
+log_time "after zinit initialization"
 
-zinit light zdharma-continuum/zinit-annex-as-monitor
-zinit light zdharma-continuum/zinit-annex-bin-gem-node
-zinit light zdharma-continuum/zinit-annex-patch-dl
-zinit light zdharma-continuum/zinit-annex-rust
-# zinit light Aloxaf/fzf-tab
-zinit light zsh-users/zsh-autosuggestions
+# Load zinit plugins asynchronously
+zinit light-mode for \
+  zdharma-continuum/zinit-annex-as-monitor \
+  zdharma-continuum/zinit-annex-bin-gem-node \
+  zdharma-continuum/zinit-annex-patch-dl \
+  zdharma-continuum/zinit-annex-rust \
+  zsh-users/zsh-autosuggestions
+log_time "after zinit plugins load"
+
+# Initialize zinit completion
 zicompinit; zicdreplay
+log_time "after zinit completion initialization"
 
-
+# Load environment variables from .env files if they exist
 set -a
-if [[ -f .env ]]; then
-  source ./.env
-fi
-if [[ -f ./.env.development ]]; then
-  source ./.env.development
-fi
+[[ -f .env ]] && source ./.env
+[[ -f ./.env.development ]] && source ./.env.development
 set +a
+log_time "after loading .env files"
 
-# source /usr/share/nvm/init-nvm.sh
-
-# bun
-# [ -s "/home/fib/.bun/_bun" ] && source "/home/fib/.bun/_bun"
-# export BUN_INSTALL="$HOME/.bun"
-# export PATH="$BUN_INSTALL/bin:$PATH"
-
+# Initialize starship prompt
 eval "$(starship init zsh)"
+log_time "after starship initialization"
 
-export NVM_DIR="$HOME/.config/nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
-[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+# Lazy load nvm
+load_nvm() {
+  export NVM_DIR="$HOME/.config/nvm"
+  [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+  [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+}
+
+# Override nvm command to initialize on first use
+nvm() {
+  unset -f nvm
+  load_nvm
+  nvm "$@"
+}
+
+log_time "after nvm initialization setup"
+
+# Wait for background processes to finish
+wait
