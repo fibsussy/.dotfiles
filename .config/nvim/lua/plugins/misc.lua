@@ -1,7 +1,7 @@
 return {
   {
     "johmsalas/text-case.nvim",
-    lazy = false,
+    event = "BufRead",
     dependencies = { "nvim-telescope/telescope.nvim" },
     config = function()
       require("textcase").setup {}
@@ -12,5 +12,9 @@ return {
       map("n", "ga.", "<cmd>TextCaseOpenTelescope<CR>", { desc = "Telescope" })
       map("v", "ga.", "<cmd>TextCaseOpenTelescope<CR>", { desc = "Telescope" })
     end,
+  },
+  {
+    "djoshea/vim-autoread",
+    event = "BufRead",
   },
 }
