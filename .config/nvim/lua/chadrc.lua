@@ -12,8 +12,6 @@ local theme = require("theme")
 vim.api.nvim_set_hl(0, "@comment", { link = "Comment" })
 vim.api.nvim_set_hl(0, "LspInlayHint", { fg = theme.theme.base03 })
 
-require "sets"
-
 M.ui = {
   theme = "ashes",
   changed_themes = { ashes = { base_16 = theme.theme } },
@@ -26,4 +24,3 @@ M.ui = {
 
 
 return M
-
