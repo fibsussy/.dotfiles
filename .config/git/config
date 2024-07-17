@@ -46,6 +46,6 @@
     fi; \
     if [[ \"$confirmed\" == 'true' ]]; then \
       git fetch origin && \
-      git reset --hard origin/$(git branch --show-current) && \
+      git reset --hard origin/$(git branch --show-current); \
     fi \
     }; f"
