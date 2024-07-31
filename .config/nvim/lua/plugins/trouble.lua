@@ -1,14 +1,16 @@
 return {
   "folke/trouble.nvim",
-  dependencies = { "nvim-tree/nvim-web-devicons" },
+ dependencies = { "nvim-tree/nvim-web-devicons" },
+  event = "BufRead",
   init = function()
     local map = require("mappings").map
+    local nomap = require("mappings").nomap
     local t = require("trouble")
-    map("n", "<leader>xx", t.toggle, { desc = "Toggle Trouble" })
-    map("n", "<leader>xw", function() t.toggle("workspace_diagnostics") end, { desc = "Toggle Workspace Diagnostics" })
-    map("n", "<leader>xd", function() t.toggle("document_diagnostics") end, { desc = "Toggle Document Diagnostics" })
-    map("n", "<leader>xq", function() t.toggle("quickfix") end, { desc = "Toggle Quickfix" })
-    map("n", "<leader>xl", function() t.toggle("loclist") end, { desc = "Toggle Location List" })
-    map("n", "gR", function() t.toggle("lsp_references") end, { desc = "LSP References" })
+    map("n", "<leader>xx", function() t.toggle("diagnostics") end, { desc = "Diagnostics (Trouble)" })
+    map("n", "<leader>xX", function() t.toggle("diagnostics", { filter = { buf = 0 } }) end, { desc = "Buffer Diagnostics (Trouble)" })
+    map("n", "<leader>cs", function() t.toggle("symbols", { focus = false }) end, { desc = "Symbols (Trouble)" })
+    map("n", "<leader>cl", function() t.toggle("lsp", { focus = false, win = { position = "right" } }) end, { desc = "LSP Definitions / references / ... (Trouble)" })
+    map("n", "<leader>xL", function() t.toggle("loclist") end, { desc = "Location List (Trouble)" })
+    map("n", "<leader>xQ", function() t.toggle("qflist") end, { desc = "Quickfix List (Trouble)" })
   end,
 }

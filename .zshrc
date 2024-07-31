@@ -33,7 +33,13 @@ alias nightlight_off="pkill gammastep;"
 alias stow.="pushd ~/.dotfiles/; stow -D .; stow .; popd"
 alias bgrng='~/Scripts/bgrng.sh'
 alias clip="xclip -selection clipboard"
+code() {
+    tmux send-keys "nvim ." "C-m"
+    tmux split-window -h
+    tmux select-pane "-L"
+}
 log_time "aliases"
+
 
 # Function to create directory and touch a file
 mkdir_and_touch() {
@@ -52,8 +58,7 @@ export XDG_DATA_DIRS="/usr/local/share:/usr/share"
 export XDG_CONFIG_DIRS="/etc/xdg"
 
 export RUSTUP_HOME="$XDG_DATA_HOME"/rustup
-export RUSTFLAGS='-W clippy::pedantic -W clippy::nursery'
-# export RUSTFLAGS='-W clippy::pedantic -W clippy::nursery -W clippy::unwrap_used -W clippy::expect_used'
+export RUSTFLAGS='-W clippy::pedantic -W clippy::nursery -A clippy::unreadable_literal -A clippy::struct_excessive_bools'
 
 export PATH=$PATH:/home/fib/.cargo/bin
 export PATH="$PYENV_ROOT/bin:$PATH"
@@ -68,6 +73,7 @@ log_time "environment variables"
 
 load_pyenv() {
   if command -v pyenv 1>/dev/null 2>&1; then
+    eval "$(pyenv init --path)" >/dev/null 2>&1
     eval "$(pyenv init -)" >/dev/null 2>&1
     eval "$(pyenv virtualenv-init -)" >/dev/null 2>&1
   fi

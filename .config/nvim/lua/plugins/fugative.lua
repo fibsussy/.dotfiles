@@ -11,5 +11,12 @@ return {
     map("n", "<leader>gP", "<cmd> Git push --force-with-lease <CR>", { desc = "Git Push (force with lease)" })
     map("n", "<leader>gr", "<cmd> Git rebase -i --root <CR>", { desc = "Git Rebase Interactive (root)" })
     map("n", "<leader>gc", "<cmd> Telescope git_branches <CR>", { desc = "Git Checkout" })
+
+
+    vim.api.nvim_create_autocmd("BufEnter", {
+        pattern = "fugitive://*",
+        command = "Git"
+    })
+
   end,
 }

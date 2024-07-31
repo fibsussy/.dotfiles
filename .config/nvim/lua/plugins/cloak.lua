@@ -1,6 +1,6 @@
 return {
   "laytan/cloak.nvim",
-  ft = { "sh" },
+  ft = { "sh", ".env" },
   opts = {
     enabled = true,
     cloak_character = "*",

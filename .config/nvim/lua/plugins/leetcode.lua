@@ -26,5 +26,6 @@ return {
     map("n", "<leader>lm", "<cmd> Leet menu <CR>", { desc = ":Leet menu" })
     map("n", "<leader>lo", "<cmd> Leet open <CR>", { desc = ":Leet open" })
     map("n", "<leader>ld", "<cmd> Leet desc <CR>", { desc = ":Leet desc" })
+    map("n", "<leader>le", "<cmd> Leet exit <CR>", { desc = ":Leet exit" })
   end,
 }

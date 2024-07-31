@@ -27,6 +27,8 @@ function M.init()
   end
 end
 
+M.nomap("n", "<leader>x")
+M.map("n", "<leader>q", "<cmd> bd! <cr>", { desc = "Close Buffer" })
 M.nomap("n", "<C-n>")
 M.nomap("n", "<leader>e")
 M.nomap("n", "<leader>gt")
