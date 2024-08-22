@@ -28,16 +28,26 @@ alias cat='bat'
 alias z="zoxide"
 alias cd="zoxide"
 alias v="/bin/nvim"
-alias nightlight="pkill gammastep; gammastep -O 3000 & disown"
+alias nightlight="pkill gammastep; gammastep & disown"
 alias nightlight_off="pkill gammastep;"
 alias stow.="pushd ~/.dotfiles/; stow -D .; stow .; popd"
 alias bgrng='~/Scripts/bgrng.sh'
 alias clip="xclip -selection clipboard"
+
+download() {
+    if [[ $1 =~ ^https?://(www\.)?(youtube\.com|youtu\.be)/ ]]; then
+        yt-dlp "$@"
+    else
+        gallery-dl -D . --cookies-from-browser firefox "$@"
+    fi
+}
+
 code() {
     tmux send-keys "nvim ." "C-m"
     tmux split-window -h
-    tmux select-pane "-L"
+    # tmux select-pane "-L"
 }
+
 log_time "aliases"
 
 
@@ -78,7 +88,9 @@ load_pyenv() {
     eval "$(pyenv virtualenv-init -)" >/dev/null 2>&1
   fi
 }
-(load_pyenv &)
+if [[ -f .python-version ]]; then
+    load_pyenv
+fi
 log_time "pyenv initialization"
 
 # Install zinit if not already installed
