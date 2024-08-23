@@ -30,7 +30,7 @@ alias cd="zoxide"
 alias v="/bin/nvim"
 alias nightlight="pkill gammastep; gammastep & disown"
 alias nightlight_off="pkill gammastep;"
-alias stow.="pushd ~/.dotfiles/; stow -D .; stow .; popd"
+alias stow.="pushd ~/.dotfiles/; stow -D .; stow . --adopt; popd"
 alias bgrng='~/Scripts/bgrng.sh'
 alias clip="xclip -selection clipboard"
 
