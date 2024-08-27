@@ -13,7 +13,7 @@ vim.api.nvim_set_hl(0, "@comment", { link = "Comment" })
 vim.api.nvim_set_hl(0, "LspInlayHint", { fg = theme.theme.base03 })
 
 M.ui = {
-    theme = "aquarium",
+    theme = "ashes",
     changed_themes = { ashes = { base_16 = theme.theme } },
     transparency = true,
     hl_override = {
