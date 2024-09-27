@@ -8,16 +8,10 @@ return {
     map("n", "<leader>gL", "<cmd> GlLog <CR>", { desc = "Git Advanced Log" })
     map("n", "<leader>gf", "<cmd> Git fetch <CR>", { desc = "Git Fetch" })
     map("n", "<leader>gp", "<cmd> Git pull <CR>", { desc = "Git Pull" })
-    map("n", "<leader>gP", "<cmd> Git push --force-with-lease <CR>", { desc = "Git Push (force with lease)" })
+    map("n", "<leader>gP", "<cmd> Git push <CR>", { desc = "Git Push" })
     map("n", "<leader>gir", "<cmd> Git rebase -i --root <CR>", { desc = "Git Rebase Interactive (root)" })
     map("n", "<leader>git", "<cmd> Git rebase -i HEAD~10 <CR>", { desc = "Git Rebase Interactive (last 10 commits)" })
     map("n", "<leader>gc", "<cmd> Telescope git_branches <CR>", { desc = "Git Checkout" })
-
-
-    vim.api.nvim_create_autocmd("BufEnter", {
-        pattern = "fugitive://*",
-        command = "Git"
-    })
 
   end,
 }

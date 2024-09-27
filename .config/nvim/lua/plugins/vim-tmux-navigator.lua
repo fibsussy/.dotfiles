@@ -1,6 +1,8 @@
 return {
   "numToStr/Navigator.nvim",
-  config = {},
+  config = function()
+    require('Navigator').setup()
+  end,
   lazy = false,
   init = function()
     local map = require("mappings").map
