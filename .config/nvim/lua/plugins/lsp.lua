@@ -7,7 +7,7 @@ local servers = {
   { "omnisharp",     {} },
   { "jdtls",         {} },
   {
-    "tsserver",
+    "ts_ls",
     {
       settings = { completions = { completeFunctionCalls = true } },
     },
