@@ -25,8 +25,6 @@ alias ls='eza -1  --icons'
 alias ll='eza -la --icons'
 alias ld='eza -lD --icons'
 alias cat='bat'
-alias z="zoxide"
-alias cd="zoxide"
 alias v="/bin/nvim"
 alias nightlight="pkill gammastep; gammastep & disown"
 alias nightlight_off="pkill gammastep;"
@@ -148,3 +146,4 @@ log_time "nvm initialization setup"
 
 source <(fzf --zsh)
 log_time "fzf source"
+pactl list sources short
