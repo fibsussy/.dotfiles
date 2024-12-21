@@ -1,4 +1,4 @@
-# Function to log elapsed time
+# Log time setup
 log_time() {
   if false; then
     local step=$1
@@ -9,6 +9,18 @@ log_time() {
   fi
 }
 START_TIME=$(date +%s%N)
+
+
+# Force tmux
+if command -v tmux >/dev/null 2>&1 && [ ! "$TMUX" ]; then
+    if tmux has-session -t '\~' 2>/dev/null; then
+        tmux attach-session -t '\~'
+    else
+        tmux new-session -s '~' -c '~'
+    fi
+    exit 0
+fi
+log_time "force tmux"
 
 # Functions
 paru() {
@@ -42,6 +54,7 @@ download() {
     fi
 }
 
+alias c="code"
 code() {
     tmux send-keys "nvim ." "C-m"
     tmux split-window -h
