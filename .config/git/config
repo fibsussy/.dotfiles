@@ -1,6 +1,5 @@
-[user]
-    name = NoahPsight
-    email = 120606151+NoahPsight@users.noreply.github.com
+[include]
+    path = ./identity
 
 [init]
     defaultBranch = main
@@ -9,6 +8,7 @@
     editor = nvim
     filemode = false
     autocrlf = input
+    sparseCheckout = true
 
 [safe]
     directory = *
@@ -49,5 +49,3 @@
       git reset --hard origin/$(git branch --show-current); \
     fi \
     }; f"
-[maintenance]
-	repo = /run/media/fib/ExternalSSD/code/csj/psightenginebackenddjango
