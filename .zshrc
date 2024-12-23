@@ -22,6 +22,8 @@ if command -v tmux >/dev/null 2>&1 && [ ! "$TMUX" ]; then
 fi
 log_time "force tmux"
 
+eval $(keychain --quiet --eval --agents ssh)  
+
 # Functions
 paru() {
   command paru --noconfirm "$@"
