@@ -22,7 +22,24 @@ if command -v tmux >/dev/null 2>&1 && [ ! "$TMUX" ]; then
 fi
 log_time "force tmux"
 
-eval $(keychain --quiet --eval --agents ssh)  
+
+export SSH_ENV="$HOME/.ssh-agent-vars"
+start_ssh_agent() {
+    eval $(ssh-agent -s)
+    echo "export SSH_AUTH_SOCK=$SSH_AUTH_SOCK" > "$SSH_ENV"
+    echo "export SSH_AGENT_PID=$SSH_AGENT_PID" >> "$SSH_ENV"
+    chmod 600 "$SSH_ENV"
+}
+if [ -f "$SSH_ENV" ]; then
+    source "$SSH_ENV" > /dev/null
+    if ! kill -0 "$SSH_AGENT_PID" 2>/dev/null; then
+        start_ssh_agent
+    fi
+else
+    start_ssh_agent
+fi
+ssh-add -l > /dev/null 2>&1 || ssh-add $(find ~/.ssh/* | grep ".*\.pub$" | sed 's/\.pub$//') > /dev/null 2>&1
+
 
 # Functions
 paru() {
