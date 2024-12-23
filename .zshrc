@@ -178,4 +178,3 @@ log_time "nvm initialization setup"
 
 source <(fzf --zsh)
 log_time "fzf source"
-pactl list sources short
