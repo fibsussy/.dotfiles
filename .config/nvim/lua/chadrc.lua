@@ -9,11 +9,10 @@ vim.api.nvim_create_autocmd("TextYankPost", {
 })
 
 vim.api.nvim_set_hl(0, "@comment", { link = "Comment" })
--- vim.api.nvim_set_hl(0, "LspInlayHint", { fg = theme.theme.base03 })
+vim.api.nvim_set_hl(0, "LspInlayHint", { link = "Comment" })
 
 M.ui = {
-    theme = "ashes",
-    -- changed_themes = { ashes = { base_16 = theme.theme } },
+    theme = "catppuccin",
     transparency = true,
     hl_override = {
         LineNr = { fg = "#6b7273" },

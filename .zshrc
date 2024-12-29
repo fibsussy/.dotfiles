@@ -178,3 +178,8 @@ log_time "nvm initialization setup"
 
 source <(fzf --zsh)
 log_time "fzf source"
+
+autoload -Uz compinit
+zstyle ':completion:*' menu select
+fpath+=~/.zfunc
+
