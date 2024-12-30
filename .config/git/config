@@ -19,7 +19,38 @@
 [rerere]
     enabled = true
 
+
 [alias]
+  edit-remote = "!sh -c ' \
+    current=$(git remote get-url origin); \
+    read -e -p \"Edit remote URL: \" -i \"$current\" new_url; \
+    git remote set-url origin \"$new_url\"; \
+    echo \"Remote URL updated to: $(git remote get-url origin)\" \
+    '"
+
+  set-ssh-extension = "!sh -c ' \
+    echo \"Choose an option for the remote extension:\"; \
+    echo \"  1) work\"; \
+    echo \"  2) personal\"; \
+    echo \"  3) none\"; \
+    read -p \"Enter the number [1-3]: \" choice; \
+    case \"$choice\" in \
+      1) ext=work ;; \
+      2) ext=personal ;; \
+      3) ext=none ;; \
+      *) echo \"Invalid option. Please enter 1, 2, or 3.\"; exit 1 ;; \
+    esac; \
+    current=$(git remote get-url origin); \
+    case \"$ext\" in \
+      work) new_url=$(echo \"$current\" | sed \"s|git@github.com[^:]*:|git@github.com-work:|\");; \
+      personal) new_url=$(echo \"$current\" | sed \"s|git@github.com[^:]*:|git@github.com-personal:|\");; \
+      none) new_url=$(echo \"$current\" | sed \"s|git@github.com[^:]*:|git@github.com:|\");; \
+    esac; \
+    git remote set-url origin \"$new_url\"; \
+    echo \"Remote URL updated to: $(git remote get-url origin)\"; \
+    '"
+
+
   to-ssh = "!sh -c ' \
     git remote set-url origin $(git remote get-url origin | \
     sed \"s|https://github.com/|git@github.com:|\"); \
