@@ -1,5 +1,6 @@
 [include]
     path = ./identity
+    path = ./alias
 
 [init]
     defaultBranch = main
@@ -14,7 +15,14 @@
     directory = *
 
 [push]
-	autoSetupRemote = true
+    autoSetupRemote = true
+    default = current
+
+[pull]
+    rebase = false
+
+[branch]
+    autoSetupMerge = always
 
 [rerere]
     enabled = true
@@ -61,6 +69,7 @@
     sed \"s|git@github.com:|https://github.com/|\"); \
     git remote get-url origin \
     '"
+  set-upstream = !git branch --set-upstream-to=origin/$(git symbolic-ref --short HEAD)
   nuke = "!f() { \
     confirmed=false; \
     for arg in \"$@\"; do \
@@ -80,4 +89,3 @@
       git reset --hard origin/$(git branch --show-current); \
     fi \
     }; f"
-	set-upstream = !git branch --set-upstream-to=origin/$(git symbolic-ref --short HEAD)
