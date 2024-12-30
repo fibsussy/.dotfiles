@@ -14,7 +14,7 @@
     directory = *
 
 [push]
-    autoSetupRemote = true
+	autoSetupRemote = true
 
 [rerere]
     enabled = true
@@ -80,3 +80,4 @@
       git reset --hard origin/$(git branch --show-current); \
     fi \
     }; f"
+	set-upstream = !git branch --set-upstream-to=origin/$(git symbolic-ref --short HEAD)
