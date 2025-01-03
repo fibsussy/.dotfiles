@@ -25,7 +25,7 @@ log_time "force tmux"
 
 export SSH_ENV="$HOME/.ssh-agent-vars"
 start_ssh_agent() {
-    eval $(ssh-agent -s)
+    eval $(ssh-agent -s) 2>/dev/null
     echo "export SSH_AUTH_SOCK=$SSH_AUTH_SOCK" > "$SSH_ENV"
     echo "export SSH_AGENT_PID=$SSH_AGENT_PID" >> "$SSH_ENV"
     chmod 600 "$SSH_ENV"
