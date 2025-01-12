@@ -32,7 +32,7 @@ log_time "force tmux"
 
 export SSH_ENV="$HOME/.ssh-agent-vars"
 start_ssh_agent() {
-    eval $(ssh-agent -s) 2>/dev/null
+    eval $(ssh-agent -s > /dev/null 2>&1)
     echo "export SSH_AUTH_SOCK=$SSH_AUTH_SOCK" > "$SSH_ENV"
     echo "export SSH_AGENT_PID=$SSH_AGENT_PID" >> "$SSH_ENV"
     chmod 600 "$SSH_ENV"
@@ -46,6 +46,7 @@ else
     start_ssh_agent
 fi
 ssh-add -l > /dev/null 2>&1 || ssh-add $(find ~/.ssh/* | grep ".*\.pub$" | sed 's/\.pub$//') > /dev/null 2>&1
+log_time "ssh agent"
 
 
 # Functions
