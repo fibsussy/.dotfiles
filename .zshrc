@@ -12,12 +12,19 @@ START_TIME=$(date +%s%N)
 
 
 # Force tmux
-if command -v tmux >/dev/null 2>&1 && [ ! "$TMUX" ]; then
+if \
+    command -v tmux >/dev/null 2>&1 \
+    && [ -n "$ALACRITTY_WINDOW_ID" ] \
+    && [ ! "$TMUX" ] \
+    ; then
     if tmux has-session -t '\~' 2>/dev/null; then
         tmux attach-session -t '\~'
     else
         tmux new-session -s '~' -c '~'
     fi
+    while tmux has-session 2>/dev/null; do
+        tmux attach
+    done
     exit 0
 fi
 log_time "force tmux"
