@@ -69,7 +69,7 @@
     sed \"s|git@github.com:|https://github.com/|\"); \
     git remote get-url origin \
     '"
-  set-upstream = !git branch --set-upstream-to=origin/$(git symbolic-ref --short HEAD)
+	set-upstream = !git push -u origin $(git symbolic-ref --short HEAD) || git branch --set-upstream-to=origin/$(git symbolic-ref --short HEAD)
   nuke = "!f() { \
     confirmed=false; \
     for arg in \"$@\"; do \
