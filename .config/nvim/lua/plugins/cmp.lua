@@ -6,10 +6,7 @@ return {
     end,
     opts = function()
         local cmp = require "cmp"
-        local opts = require "nvchad.configs.cmp"
-
-        opts.mapping["<Up>"] = cmp.mapping.select_prev_item()
-        opts.mapping["<Down>"] = cmp.mapping.select_next_item()
+        local opts = {}
 
         local entry_filter = function(entry, ctx)
             local blacklist = { "color_eyre::owo_colors" }

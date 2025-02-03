@@ -5,8 +5,8 @@ return {
     dependencies = "neovim/nvim-lspconfig",
     opts = {
       server = {
-        on_attach = require("nvchad.configs.lspconfig").on_attach,
-        capabilities = require("nvchad.configs.lspconfig").capabilities,
+        --on_attach = require("nvchad.configs.lspconfig").on_attach,
+        --capabilities = require("nvchad.configs.lspconfig").capabilities,
       },
       tools = {
         inlay_hints = {

@@ -72,8 +72,8 @@ return {
       },
     },
     init = function()
-      local map = require("mappings").map
-      local nomap = require("mappings").nomap
+      local map = require("core.mappings").map
+      local nomap = require("core.mappings").nomap
       nomap("n", "<leader>fm")
       map("n", "<leader>fm", function()
         require("conform").format()
@@ -82,6 +82,7 @@ return {
       end, { desc = "Format and Save File" })
     end,
   },
+  "williamboman/mason.nvim",
   {
     "williamboman/mason-lspconfig.nvim",
     event = "BufReadPre",
@@ -95,7 +96,7 @@ return {
         ensure_installed = grab_server_names(),
         automatic_installation = false,
       }
-      local configs = require "nvchad.configs.lspconfig"
+      local configs = require "lspconfig"
       local function lsp_init(lsp, opt)
         opt = opt or {}
         opt = table_combine(opt, {

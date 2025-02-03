@@ -5,8 +5,8 @@ return {
   end,
   lazy = false,
   init = function()
-    local map = require("mappings").map
-    local nomap = require("mappings").nomap
+    local map = require("core.mappings").map
+    local nomap = require("core.mappings").nomap
     local nav = require "Navigator"
 
     nomap("n", "<C-h>")

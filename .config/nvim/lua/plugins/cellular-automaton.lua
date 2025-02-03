@@ -19,7 +19,7 @@ return {
     }
   end,
   init = function()
-    local map = require("mappings").map
+    local map = require("core.mappings").map
     map("n", "<leader>rb", function()
       local ca = require "cellular-automaton"
       local animations = {}

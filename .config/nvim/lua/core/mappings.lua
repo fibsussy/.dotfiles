@@ -1,5 +1,3 @@
-require "nvchad.mappings"
-
 local M = {}
 
 M.mappings = {}
@@ -9,6 +7,7 @@ function M.nomap(mode, lhs)
 end
 
 function M.map(mode, lhs, rhs, opts)
+  table.insert(M.mappings, { action = "nomap", mode = mode, lhs = lhs })
   table.insert(M.mappings, { action = "map", mode = mode, lhs = lhs, rhs = rhs, opts = opts })
 end
 
@@ -17,21 +16,24 @@ function M.init()
     local status, err
     if m.action == "nomap" then
       status, err = pcall(vim.keymap.del, m.mode, m.lhs)
+      if not status then
+        -- Ignore "No such mapping" errors, propagate others
+        if not err:match("E31: No such mapping") then
+          error(string.format("Error unmapping key: mode=%s lhs=%s error=%s", m.mode, m.lhs, err))
+        end
+      end
     elseif m.action == "map" then
       status, err = pcall(vim.keymap.set, m.mode, m.lhs, m.rhs, m.opts)
-    end
-    if not status then
-      error(string.format("Error setting keymap: action=%s mode=%s lhs=%s rhs=%s opts=%s error=%s",
-        m.action, m.mode, m.lhs, m.rhs or "nil", vim.inspect(m.opts), err))
+      if not status then
+        error(string.format("Error setting keymap: mode=%s lhs=%s rhs=%s opts=%s error=%s",
+          m.mode, m.lhs, m.rhs, vim.inspect(m.opts), err))
+      end
     end
   end
 end
 
-M.nomap("n", "<leader>x")
+M.map("n", "C-s", "<cmd> w <cr>", { desc = "Save Buffer" })
 M.map("n", "<leader>q", "<cmd> bd! <cr>", { desc = "Close Buffer" })
-M.nomap("n", "<C-n>")
-M.nomap("n", "<leader>e")
-M.nomap("n", "<leader>gt")
 M.map("n", "J", "mzJ`z", { desc = "General: Join lines and restore cursor position" })
 M.map("n", "<C-d>", "<C-d>zz", { desc = "General: Scroll down half a page and recenter" })
 M.map("n", "<C-u>", "<C-u>zz", { desc = "General: Scroll up half a page and recenter" })
@@ -50,5 +52,7 @@ M.map("n", "<leader>;", function()
 end, { desc = "General: Toggle semicolon at end of line" })
 M.map("v", "J", ":m '>+1<CR>gv=gv", { desc = "Visual: Move visual selection down" })
 M.map("v", "K", ":m '<-2<CR>gv=gv", { desc = "Visual: Move visual selection up" })
+
+M.init()
 
 return M

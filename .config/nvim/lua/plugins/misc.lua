@@ -8,7 +8,7 @@ return {
       require("telescope").load_extension "textcase"
     end,
     init = function()
-      local map = require("mappings").map
+      local map = require("core.mappings").map
       map("n", "ga.", "<cmd>TextCaseOpenTelescope<CR>", { desc = "Telescope" })
       map("v", "ga.", "<cmd>TextCaseOpenTelescope<CR>", { desc = "Telescope" })
     end,
