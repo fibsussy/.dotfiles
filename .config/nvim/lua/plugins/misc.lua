@@ -1,20 +1,11 @@
-return {
-  {
-    "johmsalas/text-case.nvim",
-    event = "BufRead",
-    dependencies = { "nvim-telescope/telescope.nvim" },
-    config = function()
-      require("textcase").setup {}
-      require("telescope").load_extension "textcase"
-    end,
-    init = function()
-      local map = require("core.mappings").map
-      map("n", "ga.", "<cmd>TextCaseOpenTelescope<CR>", { desc = "Telescope" })
-      map("v", "ga.", "<cmd>TextCaseOpenTelescope<CR>", { desc = "Telescope" })
-    end,
-  },
-  {
-    "djoshea/vim-autoread",
-    event = "BufRead",
-  },
-}
+-- Go
+local format_sync_grp = vim.api.nvim_create_augroup("GoFormat", {})
+vim.api.nvim_create_autocmd("BufWritePre", {
+  pattern = "*.go",
+  callback = function()
+   require('go.format').goimport()
+  end,
+  group = format_sync_grp,
+})
+
+return {}

@@ -41,7 +41,6 @@ function M.init()
     if m.action == "nomap" then
       status, err = pcall(vim.keymap.del, m.mode, m.lhs)
       if not status then
-        -- Ignore "No such mapping" errors, propagate others
         if not err:match("E31: No such mapping") then
           error(string.format("Error unmapping key: mode=%s lhs=%s error=%s", m.mode, m.lhs, err))
         end
