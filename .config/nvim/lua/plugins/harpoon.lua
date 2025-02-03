@@ -3,13 +3,17 @@ return {
     "ThePrimeagen/harpoon",
     branch = "harpoon2",
     dependencies = { "nvim-lua/plenary.nvim" },
-    opts = {},
     init = function()
+      local M = require "core.mappings"
       local harpoon = require("harpoon")
       harpoon:setup()
 
-      vim.keymap.set("n", "<leader>m", function() harpoon:list():add() end)
-      vim.keymap.set("n", "<leader>ht", function() harpoon.ui:toggle_quick_menu(harpoon:list()) end)
+      M.map("n", "<leader>m", function() harpoon:list():add() end, {
+        desc = "Harpoon add file",
+      })
+      M.map("n", "<leader>ht", function() harpoon.ui:toggle_quick_menu(harpoon:list()) end, {
+        desc = "Harpoon toggle menu",
+      })
 
       local conf = require("telescope.config").values
       local function toggle_telescope(harpoon_files)
@@ -28,7 +32,9 @@ return {
           }):find()
       end
 
-      vim.keymap.set("n", "<leader>sh", function() toggle_telescope(harpoon:list()) end, { desc = "Open harpoon window" })
+      M.map("n", "<leader>sh", function() toggle_telescope(harpoon:list()) end, {
+        desc = "Harpoon search files",
+      })
     end
   }
 }
