@@ -2,7 +2,7 @@ return {
   "tpope/vim-fugitive",
   lazy = false,
   init = function()
-    local map = require("mappings").map
+    local map = require("core.mappings").map
     map("n", "<leader>gs", "<cmd> G <CR>", { desc = "Git Status" })
     map("n", "<leader>gl", "<cmd> Git log --all --decorate --oneline --graph <CR>", { desc = "Git Log" })
     map("n", "<leader>gL", "<cmd> GlLog <CR>", { desc = "Git Advanced Log" })

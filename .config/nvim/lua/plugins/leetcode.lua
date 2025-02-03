@@ -19,7 +19,7 @@ return {
     "nvim-tree/nvim-web-devicons",
   },
   init = function()
-    local map = require("mappings").map
+    local map = require("core.mappings").map
     map("n", "<leader>lr", "<cmd> Leet run <CR>", { desc = ":Leet run" })
     map("n", "<leader>ls", "<cmd> Leet submit <CR>", { desc = ":Leet submit" })
     map("n", "<leader>lc", "<cmd> Leet close <CR>", { desc = ":Leet close" })

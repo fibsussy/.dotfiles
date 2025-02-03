@@ -16,7 +16,7 @@ return {
     },
   },
   init = function()
-    local map = require("mappings").map
+    local map = require("core.mappings").map
     map("n", "<leader>ct", ":CloakToggle <CR>", { desc = "Cloak Toggle" })
   end,
 }

@@ -3,8 +3,8 @@ return {
  dependencies = { "nvim-tree/nvim-web-devicons" },
   event = "BufRead",
   init = function()
-    local map = require("mappings").map
-    local nomap = require("mappings").nomap
+    local map = require("core.mappings").map
+    local nomap = require("core.mappings").nomap
     local t = require("trouble")
     map("n", "<leader>xx", function() t.toggle("diagnostics") end, { desc = "Diagnostics (Trouble)" })
     map("n", "<leader>xX", function() t.toggle("diagnostics", { filter = { buf = 0 } }) end, { desc = "Buffer Diagnostics (Trouble)" })

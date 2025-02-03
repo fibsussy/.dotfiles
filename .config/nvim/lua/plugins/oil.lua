@@ -1,11 +1,5 @@
 return {
   {
-    "NvChad/nvterm",
-    enabled = false,
-    -- TODO: I found a way to disable this plugin, couldn't find out
-    -- how to not have it install. Sorry for the small bloat.
-  },
-  {
     "stevearc/oil.nvim",
     lazy = false,
     dependencies = {
@@ -41,7 +35,7 @@ return {
       },
     },
     init = function()
-      local map = require("mappings").map
+      local map = require("core.mappings").map
       map("n", "<C-n>", ":Oil <CR>", { desc = "Open oil" })
     end,
   },

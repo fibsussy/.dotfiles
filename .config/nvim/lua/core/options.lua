@@ -1,9 +1,13 @@
-require "nvchad.options"
-
 local o = vim.o
+
+
+vim.g.mapleader = ' '
+vim.g.localmapleader = ' '
 
 o.relativenumber = true
 o.number = true
+
+o.clipboard = 'unnamedplus'
 
 o.tabstop = 4
 o.softtabstop = 4
@@ -27,3 +31,12 @@ vim.opt.isfname:append "@-@"
 o.updatetime = 1
 
 o.colorcolumn = "0"
+
+vim.api.nvim_create_autocmd("TextYankPost", {
+    desc = "Highlight when yanking (copying) text",
+    group = vim.api.nvim_create_augroup("highlight-yank", { clear = true }),
+    callback = function()
+        vim.highlight.on_yank()
+    end,
+})
+
