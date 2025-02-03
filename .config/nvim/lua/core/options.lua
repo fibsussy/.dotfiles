@@ -1,5 +1,5 @@
 local o = vim.o
-
+local opt = vim.opt
 
 vim.g.mapleader = ' '
 vim.g.localmapleader = ' '
@@ -9,9 +9,9 @@ o.number = true
 
 o.clipboard = 'unnamedplus'
 
-o.tabstop = 4
-o.softtabstop = 4
-o.shiftwidth = 4
+o.tabstop = 2
+o.softtabstop = 2
+o.shiftwidth = 2
 o.expandtab = true
 o.smartindent = true
 
@@ -25,8 +25,10 @@ o.undofile = true
 o.termguicolors = true
 
 o.scrolloff = 8
-o.signcolumn = "yes"
-vim.opt.isfname:append "@-@"
+o.signcolumn = "no"
+opt.isfname:append "@-@"
+
+opt.fillchars = { eob = " " }
 
 o.updatetime = 1
 
