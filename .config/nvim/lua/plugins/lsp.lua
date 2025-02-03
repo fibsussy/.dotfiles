@@ -1,26 +1,20 @@
 return {
-  {
-    "williamboman/mason.nvim",
-    opts = {},
-  },
+  { "williamboman/mason.nvim", opts = {}, },
+  { "j-hui/fidget.nvim", opts = {} },
+  { "hrsh7th/cmp-nvim-lsp", opts = {} },
+  { "onsails/lspkind.nvim", opts = {} },
   {
     "williamboman/mason-lspconfig.nvim",
     dependencies = { "williamboman/mason.nvim" },
     opts = {
-      ensure_installed = { "clangd", "rust_analyzer", "pyright", "ts_ls", "gopls" }
+      ensure_installed = {
+        "clangd",
+        "rust_analyzer",
+        "pyright",
+        "ts_ls",
+        "gopls",
+      }
     }
-  },
-  {
-    "j-hui/fidget.nvim",
-    opts = {}
-  },
-  {
-    "hrsh7th/cmp-nvim-lsp",
-    opts = {}
-  },
-  {
-    "onsails/lspkind.nvim",
-    opts = {}
   },
   {
     "neovim/nvim-lspconfig",
@@ -31,42 +25,54 @@ return {
       "hrsh7th/cmp-nvim-lsp"
     },
     config = function()
+      local M = require "core.mappings"
       local lspconfig = require("lspconfig")
       local capabilities = require("cmp_nvim_lsp").default_capabilities()
-      
+
       local function on_attach(_, bufnr)
-        local function nmap(keys, func, desc)
-          vim.keymap.set("n", keys, func, { buffer = bufnr, desc = desc and "LSP: " .. desc })
+        local function lsp_map(mode, lhs, rhs, desc)
+          M.map(mode, lhs, rhs, {
+            buffer = bufnr,
+            desc = "LSP: " .. desc,
+          })
         end
 
-        nmap("<leader>rn", vim.lsp.buf.rename, "[R]e[n]ame")
-        nmap("<leader>ca", vim.lsp.buf.code_action, "[C]ode [A]ction")
-        nmap("gd", vim.lsp.buf.definition, "[G]oto [D]efinition")
-        nmap("<leader>gr", require("telescope.builtin").lsp_references, "[G]oto [R]eferences")
-        nmap("gI", vim.lsp.buf.implementation, "[G]oto [I]mplementation")
-        nmap("<leader>D", vim.lsp.buf.type_definition, "Type [D]efinition")
-        nmap("<leader>ds", require("telescope.builtin").lsp_document_symbols, "[D]ocument [S]ymbols")
-        nmap("<leader>ws", require("telescope.builtin").lsp_dynamic_workspace_symbols, "[W]orkspace [S]ymbols")
-        nmap("K", vim.lsp.buf.hover, "Hover Documentation")
-        nmap("<C-k>", vim.lsp.buf.signature_help, "Signature Documentation")
-        nmap("gD", vim.lsp.buf.declaration, "[G]oto [D]eclaration")
-        nmap("<leader>wa", vim.lsp.buf.add_workspace_folder, "[W]orkspace [A]dd Folder")
-        nmap("<leader>wr", vim.lsp.buf.remove_workspace_folder, "[W]orkspace [R]emove Folder")
-        nmap("<leader>wl", function() print(vim.inspect(vim.lsp.buf.list_workspace_folders())) end, "[W]orkspace [L]ist Folders")
+        lsp_map("n", "<leader>rn", vim.lsp.buf.rename, "Rename")
+        lsp_map("n", "<leader>ca", vim.lsp.buf.code_action, "Code action")
+        lsp_map("n", "gd", vim.lsp.buf.definition, "Goto definition")
+        lsp_map("n", "<leader>gr", require("telescope.builtin").lsp_references, "Goto references")
+        lsp_map("n", "gI", vim.lsp.buf.implementation, "Goto implementation")
+        lsp_map("n", "<leader>D", vim.lsp.buf.type_definition, "Type definition")
+        lsp_map("n", "<leader>ds", require("telescope.builtin").lsp_document_symbols, "Document symbols")
+        lsp_map("n", "<leader>ws", require("telescope.builtin").lsp_dynamic_workspace_symbols, "Workspace symbols")
+        lsp_map("n", "K", vim.lsp.buf.hover, "Hover documentation")
+        lsp_map("n", "<C-k>", vim.lsp.buf.signature_help, "Signature help")
+        lsp_map("n", "gD", vim.lsp.buf.declaration, "Goto declaration")
+        lsp_map("n", "<leader>wa", vim.lsp.buf.add_workspace_folder, "Add workspace folder")
+        lsp_map("n", "<leader>wr", vim.lsp.buf.remove_workspace_folder, "Remove workspace folder")
+        lsp_map("n", "<leader>wl", function() 
+          print(vim.inspect(vim.lsp.buf.list_workspace_folders())) 
+        end, "List workspace folders")
 
         vim.api.nvim_buf_create_user_command(bufnr, "Format", function()
           vim.lsp.buf.format()
-        end, { desc = "Format current buffer with LSP" })
+        end, { desc = "LSP: Format current buffer" })
       end
-      
-      local servers = { "clangd", "rust_analyzer", "pyright", "ts_ls", "gopls" }
+
+      local servers = {
+        "clangd",
+        "rust_analyzer",
+        "pyright",
+        "ts_ls",
+        "gopls",
+      }
       for _, lsp in ipairs(servers) do
         lspconfig[lsp].setup {
           on_attach = on_attach,
           capabilities = capabilities,
         }
       end
-      
+
       lspconfig.lua_ls.setup {
         on_attach = on_attach,
         capabilities = capabilities,

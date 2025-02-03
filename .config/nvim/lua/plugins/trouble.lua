@@ -2,17 +2,29 @@ return {
   {
     "folke/trouble.nvim",
     dependencies = "nvim-tree/nvim-web-devicons",
-    opts = {},
     init = function()
-      -- Keybindings for Trouble
-      vim.keymap.set("n", "<leader>xx", "<cmd>TroubleToggle<cr>", { silent = true, noremap = true })
-      vim.keymap.set("n", "<leader>xw", "<cmd>TroubleToggle workspace_diagnostics<cr>", { silent = true, noremap = true })
-      vim.keymap.set("n", "<leader>xd", "<cmd>TroubleToggle document_diagnostics<cr>", { silent = true, noremap = true })
-      vim.keymap.set("n", "<leader>xl", "<cmd>TroubleToggle loclist<cr>", { silent = true, noremap = true })
-      vim.keymap.set("n", "<leader>xq", "<cmd>TroubleToggle quickfix<cr>", { silent = true, noremap = true })
-      vim.keymap.set("n", "gR", "<cmd>TroubleToggle lsp_references<cr>", { silent = true, noremap = true })
+      local M = require "core.mappings"
 
-      -- Diagnostic signs
+      -- Keybindings with descriptions
+      M.map("n", "<leader>xx", "<cmd>TroubleToggle<cr>", {
+        desc = "Trouble Toggle"
+      })
+      M.map("n", "<leader>xw", "<cmd>TroubleToggle workspace_diagnostics<cr>", {
+        desc = "Trouble workspace diagnostics"
+      })
+      M.map("n", "<leader>xd", "<cmd>TroubleToggle document_diagnostics<cr>", {
+        desc = "Trouble document diagnostics"
+      })
+      M.map("n", "<leader>xl", "<cmd>TroubleToggle loclist<cr>", {
+        desc = "Trouble loclist"
+      })
+      M.map("n", "<leader>xq", "<cmd>TroubleToggle quickfix<cr>", {
+        desc = "Trouble quickfix"
+      })
+      M.map("n", "gR", "<cmd>TroubleToggle lsp_references<cr>", {
+        desc = "Trouble LSP references"
+      })
+
       local signs = {
         Error = " ",
         Warning = " ",

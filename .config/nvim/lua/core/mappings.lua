@@ -5,6 +5,11 @@ function M.nomap(mode, lhs)
   table.insert(M.mappings, { action = "nomap", mode = mode, lhs = lhs })
 end
 function M.map(mode, lhs, rhs, opts)
+  opts = opts or {
+    expr = true,
+    silent = true,
+    noremap = true,
+  }
   table.insert(M.mappings, { action = "nomap", mode = mode, lhs = lhs })
   table.insert(M.mappings, { action = "map", mode = mode, lhs = lhs, rhs = rhs, opts = opts })
 end
