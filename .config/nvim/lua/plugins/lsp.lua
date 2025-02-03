@@ -1,116 +1,94 @@
-local servers = {
-  { "pyright",       {} },
-  -- { "pylsp", {} },
-  { "lua_ls",        {}, mason = true },
-  { "rust_analyzer", {} },
-  { "clangd",        {} },
-  { "omnisharp",     {} },
-  { "jdtls",         {} },
-  {
-    "ts_ls",
-    {
-      settings = { completions = { completeFunctionCalls = true } },
-    },
-  },
-  { "cssls",       {} },
-  { "html",        {} },
-  { "phpactor",    {} },
-  { "tailwindcss", {} },
-}
-
-local function table_combine(t1, t2)
-  local new_table = {}
-  for k, v in pairs(t1) do
-    new_table[k] = v
-  end
-  for k, v in pairs(t2) do
-    new_table[k] = v
-  end
-  return new_table
-end
-
-local function grab_server_names()
-  local new_table = {}
-  for _, server in ipairs(servers) do
-    local needs_mason = false
-    if server.mason ~= nil then
-      needs_mason = server.mason
-    end
-    if needs_mason == true then
-      table.insert(new_table, server[1])
-    end
-  end
-  return new_table
-end
-
 return {
   {
-    "preservim/tagbar",
-    lazy = false,
+    "williamboman/mason.nvim",
+    opts = {},
   },
-  {
-    "nvim-treesitter/nvim-treesitter-context",
-    lazy = false,
-    opts = {
-      multiline_threshold = 1,
-      mode = "topline",
-    },
-  },
-  {
-    "stevearc/conform.nvim",
-    event = { "BufWritePre" },
-    cmd = { "ConformInfo" },
-    opts = {
-      timeout_ms = 10000,
-      formatters_by_ft = {
-        lua = { "stylua" },
-        python = { "isort", "black" },
-        javascript = { "prettier" },
-        json = { "prettier" },
-        html = { "prettier" },
-        rust = { "rustfmt" },
-      },
-    },
-    init = function()
-      local map = require("core.mappings").map
-      local nomap = require("core.mappings").nomap
-      nomap("n", "<leader>fm")
-      map("n", "<leader>fm", function()
-        require("conform").format()
-        vim.cmd "w"
-        print "Formatted and Saved"
-      end, { desc = "Format and Save File" })
-    end,
-  },
-  "williamboman/mason.nvim",
   {
     "williamboman/mason-lspconfig.nvim",
-    event = "BufReadPre",
-    requires = {
+    dependencies = { "williamboman/mason.nvim" },
+    opts = {
+      ensure_installed = { "clangd", "rust_analyzer", "pyright", "ts_ls", "gopls" }
+    }
+  },
+  {
+    "j-hui/fidget.nvim",
+    opts = {}
+  },
+  {
+    "hrsh7th/cmp-nvim-lsp",
+    opts = {}
+  },
+  {
+    "onsails/lspkind.nvim",
+    opts = {}
+  },
+  {
+    "neovim/nvim-lspconfig",
+    dependencies = {
       "williamboman/mason.nvim",
-      "neovim/nvim-lspconfig",
+      "williamboman/mason-lspconfig.nvim",
+      "j-hui/fidget.nvim",
+      "hrsh7th/cmp-nvim-lsp"
     },
     config = function()
-      require("mason").setup()
-      require("mason-lspconfig").setup {
-        ensure_installed = grab_server_names(),
-        automatic_installation = false,
-      }
-      local configs = require "lspconfig"
-      local function lsp_init(lsp, opt)
-        opt = opt or {}
-        opt = table_combine(opt, {
-          on_attach = configs.on_attach,
-          capabilities = configs.capabilities,
-          flags = {
-            debounce_text_changes = 150,
+      local lspconfig = require("lspconfig")
+      local capabilities = require("cmp_nvim_lsp").default_capabilities()
+      
+      local function on_attach(_, bufnr)
+        local function nmap(keys, func, desc)
+          vim.keymap.set("n", keys, func, { buffer = bufnr, desc = desc and "LSP: " .. desc })
+        end
+
+        nmap("<leader>rn", vim.lsp.buf.rename, "[R]e[n]ame")
+        nmap("<leader>ca", vim.lsp.buf.code_action, "[C]ode [A]ction")
+        nmap("gd", vim.lsp.buf.definition, "[G]oto [D]efinition")
+        nmap("<leader>gr", require("telescope.builtin").lsp_references, "[G]oto [R]eferences")
+        nmap("gI", vim.lsp.buf.implementation, "[G]oto [I]mplementation")
+        nmap("<leader>D", vim.lsp.buf.type_definition, "Type [D]efinition")
+        nmap("<leader>ds", require("telescope.builtin").lsp_document_symbols, "[D]ocument [S]ymbols")
+        nmap("<leader>ws", require("telescope.builtin").lsp_dynamic_workspace_symbols, "[W]orkspace [S]ymbols")
+        nmap("K", vim.lsp.buf.hover, "Hover Documentation")
+        nmap("<C-k>", vim.lsp.buf.signature_help, "Signature Documentation")
+        nmap("gD", vim.lsp.buf.declaration, "[G]oto [D]eclaration")
+        nmap("<leader>wa", vim.lsp.buf.add_workspace_folder, "[W]orkspace [A]dd Folder")
+        nmap("<leader>wr", vim.lsp.buf.remove_workspace_folder, "[W]orkspace [R]emove Folder")
+        nmap("<leader>wl", function() print(vim.inspect(vim.lsp.buf.list_workspace_folders())) end, "[W]orkspace [L]ist Folders")
+
+        vim.api.nvim_buf_create_user_command(bufnr, "Format", function()
+          vim.lsp.buf.format()
+        end, { desc = "Format current buffer with LSP" })
+      end
+      
+      local servers = { "clangd", "rust_analyzer", "pyright", "ts_ls", "gopls" }
+      for _, lsp in ipairs(servers) do
+        lspconfig[lsp].setup {
+          on_attach = on_attach,
+          capabilities = capabilities,
+        }
+      end
+      
+      lspconfig.lua_ls.setup {
+        on_attach = on_attach,
+        capabilities = capabilities,
+        settings = {
+          Lua = {
+            runtime = { version = "LuaJIT", path = { "lua/?.lua", "lua/?/init.lua" } },
+            diagnostics = { globals = { "vim" } },
+            workspace = { library = vim.api.nvim_get_runtime_file("", true), checkThirdParty = false },
+            telemetry = { enable = false },
           },
-        })
-        require("lspconfig")[lsp].setup(opt)
-      end
-      for _, server in ipairs(servers) do
-        lsp_init(server[1], server[2])
-      end
-    end,
-  },
+        },
+      }
+
+      vim.api.nvim_create_autocmd("FileType", {
+        pattern = "sh",
+        callback = function()
+          vim.lsp.start({
+            name = "bash-language-server",
+            cmd = { "bash-language-server", "start" },
+          })
+        end,
+      })
+    end
+  }
 }
