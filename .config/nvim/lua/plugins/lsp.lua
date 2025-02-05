@@ -8,6 +8,7 @@ return {
     dependencies = { "williamboman/mason.nvim" },
     opts = {
       ensure_installed = {
+        "lua_ls",
         "clangd",
         "rust_analyzer",
         "pyright",
@@ -60,6 +61,7 @@ return {
       end
 
       local servers = {
+        "lua_ls",
         "clangd",
         "rust_analyzer",
         "pyright",
