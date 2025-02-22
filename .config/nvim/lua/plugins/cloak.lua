@@ -15,8 +15,7 @@ return {
       },
     },
   },
-  init = function()
-    local map = require("core.mappings").map
-    map("n", "<leader>ct", ":CloakToggle <CR>", { desc = "Cloak Toggle" })
+  config = function()
+    vim.keymap.set("n", "<leader>ct", ":CloakToggle<CR>", { desc = "Cloak Toggle" })
   end,
 }

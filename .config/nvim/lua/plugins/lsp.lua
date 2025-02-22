@@ -28,6 +28,7 @@ return {
   { "j-hui/fidget.nvim", opts = {} },
   { "hrsh7th/cmp-nvim-lsp", opts = {} },
   { "onsails/lspkind.nvim", opts = {} },
+
   {
     "stevearc/conform.nvim",
     event = { "BufWritePre" },
@@ -44,21 +45,20 @@ return {
       },
     },
     init = function()
-      local map = require("core.mappings").map
-      local nomap = require("core.mappings").nomap
-      nomap("n", "<leader>fm")
-      map("n", "<leader>fm", function()
+      vim.keymap.set("n", "<leader>fm", function()
         require("conform").format()
         vim.cmd "w"
         print "Formatted and Saved"
       end, { desc = "Format and Save File" })
     end,
   },
+
   {
     "williamboman/mason-lspconfig.nvim",
     dependencies = { "williamboman/mason.nvim" },
     opts = { ensure_installed = grab_server_names(), automatic_installation = false },
   },
+
   {
     "neovim/nvim-lspconfig",
     dependencies = {
@@ -73,7 +73,10 @@ return {
 
       vim.keymap.set("n", "<leader>rn", vim.lsp.buf.rename, { desc = "LSP: Rename" })
       vim.keymap.set("n", "<leader>ca", vim.lsp.buf.code_action, { desc = "LSP: Code action" })
-      vim.keymap.set("n", "gd", vim.lsp.buf.definition, { desc = "LSP: Goto definition" }) vim.keymap.set("n", "<leader>gr", require("telescope.builtin").lsp_references, { desc = "LSP: Goto references" }) vim.keymap.set("n", "gI", vim.lsp.buf.implementation, { desc = "LSP: Goto implementation" }) vim.keymap.set("n", "<leader>D", vim.lsp.buf.type_definition, { desc = "LSP: Type definition" })
+      vim.keymap.set("n", "gd", vim.lsp.buf.definition, { desc = "LSP: Goto definition" })
+      vim.keymap.set("n", "<leader>gr", require("telescope.builtin").lsp_references, { desc = "LSP: Goto references" })
+      vim.keymap.set("n", "gI", vim.lsp.buf.implementation, { desc = "LSP: Goto implementation" })
+      vim.keymap.set("n", "<leader>D", vim.lsp.buf.type_definition, { desc = "LSP: Type definition" })
       vim.keymap.set("n", "<leader>ds", require("telescope.builtin").lsp_document_symbols, { desc = "LSP: Document symbols" })
       vim.keymap.set("n", "<leader>ws", require("telescope.builtin").lsp_dynamic_workspace_symbols, { desc = "LSP: Workspace symbols" })
       vim.keymap.set("n", "K", vim.lsp.buf.hover, { desc = "LSP: Hover documentation" })
@@ -84,7 +87,8 @@ return {
       vim.keymap.set("n", "<leader>wl", function() print(vim.inspect(vim.lsp.buf.list_workspace_folders())) end, { desc = "LSP: List workspace folders" })
       vim.api.nvim_buf_create_user_command(0, "Format", function() vim.lsp.buf.format() end, { desc = "LSP: Format current buffer" })
 
-      local function on_attach(_, _)
+      local function on_attach(client, bufnr)
+        print("LSP attached: " .. client.name)
       end
 
       for _, server in ipairs(servers) do

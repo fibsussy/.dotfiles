@@ -35,8 +35,7 @@ return {
       },
     },
     init = function()
-      local map = require("core.mappings").map
-      map("n", "<C-n>", ":Oil <CR>", { desc = "Open oil" })
+      vim.keymap.set("n", "<C-n>", ":Oil <CR>", { desc = "Open oil" })
     end,
   },
 }
