@@ -68,30 +68,23 @@ return {
       "hrsh7th/cmp-nvim-lsp",
     },
     config = function()
-      local M = require "core.mappings"
       local lspconfig = require("lspconfig")
       local capabilities = require("cmp_nvim_lsp").default_capabilities()
 
-      local function on_attach(_, bufnr)
-        local function lsp_map(mode, lhs, rhs, desc)
-          M.map(mode, lhs, rhs, { buffer = bufnr, desc = "LSP: " .. desc })
-        end
-        
-        lsp_map("n", "<leader>rn", vim.lsp.buf.rename, "Rename")
-        lsp_map("n", "<leader>ca", vim.lsp.buf.code_action, "Code action")
-        lsp_map("n", "gd", vim.lsp.buf.definition, "Goto definition")
-        lsp_map("n", "<leader>gr", require("telescope.builtin").lsp_references, "Goto references")
-        lsp_map("n", "gI", vim.lsp.buf.implementation, "Goto implementation")
-        lsp_map("n", "<leader>D", vim.lsp.buf.type_definition, "Type definition")
-        lsp_map("n", "<leader>ds", require("telescope.builtin").lsp_document_symbols, "Document symbols")
-        lsp_map("n", "<leader>ws", require("telescope.builtin").lsp_dynamic_workspace_symbols, "Workspace symbols")
-        lsp_map("n", "K", vim.lsp.buf.hover, "Hover documentation")
-        lsp_map("n", "<C-k>", vim.lsp.buf.signature_help, "Signature help")
-        lsp_map("n", "gD", vim.lsp.buf.declaration, "Goto declaration")
-        lsp_map("n", "<leader>wa", vim.lsp.buf.add_workspace_folder, "Add workspace folder")
-        lsp_map("n", "<leader>wr", vim.lsp.buf.remove_workspace_folder, "Remove workspace folder")
-        lsp_map("n", "<leader>wl", function() print(vim.inspect(vim.lsp.buf.list_workspace_folders())) end, "List workspace folders")
-        vim.api.nvim_buf_create_user_command(bufnr, "Format", function() vim.lsp.buf.format() end, { desc = "LSP: Format current buffer" })
+      vim.keymap.set("n", "<leader>rn", vim.lsp.buf.rename, { desc = "LSP: Rename" })
+      vim.keymap.set("n", "<leader>ca", vim.lsp.buf.code_action, { desc = "LSP: Code action" })
+      vim.keymap.set("n", "gd", vim.lsp.buf.definition, { desc = "LSP: Goto definition" }) vim.keymap.set("n", "<leader>gr", require("telescope.builtin").lsp_references, { desc = "LSP: Goto references" }) vim.keymap.set("n", "gI", vim.lsp.buf.implementation, { desc = "LSP: Goto implementation" }) vim.keymap.set("n", "<leader>D", vim.lsp.buf.type_definition, { desc = "LSP: Type definition" })
+      vim.keymap.set("n", "<leader>ds", require("telescope.builtin").lsp_document_symbols, { desc = "LSP: Document symbols" })
+      vim.keymap.set("n", "<leader>ws", require("telescope.builtin").lsp_dynamic_workspace_symbols, { desc = "LSP: Workspace symbols" })
+      vim.keymap.set("n", "K", vim.lsp.buf.hover, { desc = "LSP: Hover documentation" })
+      vim.keymap.set("n", "<C-k>", vim.lsp.buf.signature_help, { desc = "LSP: Signature help" })
+      vim.keymap.set("n", "gD", vim.lsp.buf.declaration, { desc = "LSP: Goto declaration" })
+      vim.keymap.set("n", "<leader>wa", vim.lsp.buf.add_workspace_folder, { desc = "LSP: Add workspace folder" })
+      vim.keymap.set("n", "<leader>wr", vim.lsp.buf.remove_workspace_folder, { desc = "LSP: Remove workspace folder" })
+      vim.keymap.set("n", "<leader>wl", function() print(vim.inspect(vim.lsp.buf.list_workspace_folders())) end, { desc = "LSP: List workspace folders" })
+      vim.api.nvim_buf_create_user_command(0, "Format", function() vim.lsp.buf.format() end, { desc = "LSP: Format current buffer" })
+
+      local function on_attach(_, _)
       end
 
       for _, server in ipairs(servers) do
