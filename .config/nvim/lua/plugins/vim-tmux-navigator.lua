@@ -1,22 +1,12 @@
 return {
   "numToStr/Navigator.nvim",
   config = function()
-    require('Navigator').setup()
+    require("Navigator").setup()
+
+    vim.keymap.set("n", "<C-Left>", require("Navigator").left, { desc = "Navigator: Window Left" })
+    vim.keymap.set("n", "<C-Down>", require("Navigator").down, { desc = "Navigator: Window Down" })
+    vim.keymap.set("n", "<C-Up>", require("Navigator").up, { desc = "Navigator: Window Up" })
+    vim.keymap.set("n", "<C-Right>", require("Navigator").right, { desc = "Navigator: Window Right" })
   end,
   lazy = false,
-  init = function()
-    local map = require("core.mappings").map
-    local nomap = require("core.mappings").nomap
-    local nav = require "Navigator"
-
-    nomap("n", "<C-h>")
-    nomap("n", "<C-l>")
-    nomap("n", "<C-j>")
-    nomap("n", "<C-k>")
-
-    map("n", "<C-Left>", nav.left, { desc = "Navigator: Window Left" })
-    map("n", "<C-Down>", nav.down, { desc = "Navigator: Window Down" })
-    map("n", "<C-Up>", nav.up, { desc = "Navigator: Window Up" })
-    map("n", "<C-Right>", nav.right, { desc = "Navigator: Window Right" })
-  end,
 }

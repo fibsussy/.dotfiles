@@ -3,7 +3,8 @@ return {
   lazy = true,
   cmd = { "CellularAutomaton" },
   config = function()
-    local ca = require "cellular-automaton"
+    local ca = require("cellular-automaton")
+    
     ca.register_animation {
       fps = 80,
       name = "slide",
@@ -17,17 +18,13 @@ return {
         return true
       end,
     }
-  end,
-  init = function()
-    local map = require("core.mappings").map
-    map("n", "<leader>rb", function()
-      local ca = require "cellular-automaton"
+
+    vim.keymap.set("n", "<leader>rb", function()
       local animations = {}
       for name, _ in pairs(ca.animations) do
         table.insert(animations, name)
       end
-      local animation = animations[math.random(#animations)]
-      ca.start_animation(animation)
+      ca.start_animation(animations[math.random(#animations)])
     end, { desc = "CellularAutomaton random animation" })
   end,
 }

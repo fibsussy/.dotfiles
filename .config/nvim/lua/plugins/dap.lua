@@ -3,30 +3,18 @@ return {
     "rcarriga/nvim-dap-ui",
     dependencies = {
       "mfussenegger/nvim-dap",
-      "nvim-neotest/nvim-nio"
+      "nvim-neotest/nvim-nio",
     },
-    init = function()
-      local M = require "core.mappings"
+    config = function()
+      vim.fn.sign_define('DapBreakpoint', { text = '🔴', texthl = 'DapBreakpoint', linehl = 'DapBreakpoint', numhl = 'DapBreakpoint' })
 
-      vim.fn.sign_define('DapBreakpoint', { text='🔴', texthl='DapBreakpoint', linehl='DapBreakpoint', numhl='DapBreakpoint' })
-
-      M.map("n", "<leader>dt", function() require('dapui').toggle() end, {
-        desc = "DAP toggle UI",
-      })
-      M.map("n", "<leader>db", function() require('dap').toggle_breakpoint() end, {
-        desc = "DAP toggle breakpoint",
-      })
-      M.map("n", "<leader>dc", function() require('dap').continue() end, {
-        desc = "DAP start/continue",
-      })
-      M.map("n", "<leader>dr", function() require('dapui').open({reset = true}) end, {
-        desc = "DAP reset session",
-      })
-      M.map("n", "<leader>ht", function() require('harpoon.ui').toggle_quick_menu() end, {
-        desc = "Harpoon toggle menu",
-      })
-    end
+      vim.keymap.set("n", "<leader>dt", function() require('dapui').toggle() end, { desc = "DAP toggle UI" })
+      vim.keymap.set("n", "<leader>db", function() require('dap').toggle_breakpoint() end, { desc = "DAP toggle breakpoint" })
+      vim.keymap.set("n", "<leader>dc", function() require('dap').continue() end, { desc = "DAP start/continue" })
+      vim.keymap.set("n", "<leader>dr", function() require('dapui').open({ reset = true }) end, { desc = "DAP reset session" })
+      vim.keymap.set("n", "<leader>ht", function() require('harpoon.ui').toggle_quick_menu() end, { desc = "Harpoon toggle menu" })
+    end,
   },
-  'theHamsta/nvim-dap-virtual-text',
-  'leoluz/nvim-dap-go',
+  "theHamsta/nvim-dap-virtual-text",
+  "leoluz/nvim-dap-go",
 }

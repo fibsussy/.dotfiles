@@ -3,7 +3,7 @@ return {
     "kevinhwang91/nvim-bqf",
     dependencies = "junegunn/fzf",
     event = "VeryLazy",
-    keys = { "gr", "gd", "gD" },
+    ft = "qf",
   },
   {
     "itchyny/vim-qfedit",

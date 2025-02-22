@@ -1,3 +1,3 @@
 require "core.options"
 require "core.lazy"
-require("core.mappings").init()
+require "core.mappings"
