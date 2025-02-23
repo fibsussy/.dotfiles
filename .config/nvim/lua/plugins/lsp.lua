@@ -37,6 +37,11 @@ local function setup_lsp_keybindings()
   vim.keymap.set("n", "<leader>wr", vim.lsp.buf.remove_workspace_folder, { desc = "LSP: Remove workspace folder" })
   vim.keymap.set("n", "<leader>wl", function() print(vim.inspect(vim.lsp.buf.list_workspace_folders())) end, { desc = "LSP: List workspace folders" })
   vim.api.nvim_buf_create_user_command(0, "Format", function() vim.lsp.buf.format() end, { desc = "LSP: Format current buffer" })
+  vim.keymap.set("n", "<leader>fm", function()
+    require("conform").format()
+    vim.cmd "w"
+    print "Formatted and Saved"
+  end, { desc = "Format and Save File" })
 end
 
 local function setup_lsp_servers()
@@ -97,13 +102,6 @@ return {
         rust = { "rustfmt" },
       },
     },
-    init = function()
-      vim.keymap.set("n", "<leader>fm", function()
-        require("conform").format()
-        vim.cmd "w"
-        print "Formatted and Saved"
-      end, { desc = "Format and Save File" })
-    end,
   },
 
   {
