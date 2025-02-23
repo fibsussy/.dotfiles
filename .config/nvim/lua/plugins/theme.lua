@@ -27,11 +27,11 @@ function _G.update_status_column()
   local line_number = vim.v.lnum
   local relative_number = line_number - current_line
   if line_number == current_line then
-    return " %#CursorLineNr#" .. line_number
+    return " %#CursorLineNr#" .. line_number .. " "
   elseif relative_number > 0 then
-    return "%#LineNr#" .. math.abs(relative_number) .. "%#LineNr#j"
+    return "%#LineNr#" .. math.abs(relative_number) .. "%#LineNr#j "
   elseif relative_number < 0 then
-    return "%#LineNr#" .. math.abs(relative_number) .. "%#LineNr#k"
+    return "%#LineNr#" .. math.abs(relative_number) .. "%#LineNr#k "
   end
 end
 vim.opt.nu = false
