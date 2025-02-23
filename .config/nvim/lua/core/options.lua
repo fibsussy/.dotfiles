@@ -4,9 +4,6 @@ local opt = vim.opt
 vim.g.mapleader = ' '
 vim.g.localmapleader = ' '
 
-o.relativenumber = true
-o.number = true
-
 o.clipboard = 'unnamedplus'
 
 o.tabstop = 2
