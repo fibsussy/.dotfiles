@@ -10,6 +10,16 @@ local function set_custom_highlights()
 
   vim.api.nvim_set_hl(0, "LineNr", { fg = dark_gray })
   vim.api.nvim_set_hl(0, "CursorLineNr", { fg = "#FFFFFF", bold = true })
+
+  local async_color = "#FF1493" -- Hot pink
+  local await_color = "#FF69B4" -- Deep pink
+
+  vim.api.nvim_set_hl(0, "@lsp.typemod.function.async", { fg = async_color })
+  vim.api.nvim_set_hl(0, "@lsp.typemod.method.async", { fg = async_color })
+  vim.api.nvim_set_hl(0, "@lsp.typemod.function.call.async", { fg = async_color })
+  vim.api.nvim_set_hl(0, "@lsp.typemod.method.call.async", { fg = async_color })
+  vim.api.nvim_set_hl(0, "@keyword.coroutine", { fg = await_color })
+
 end
 set_custom_highlights()
 
@@ -31,7 +41,7 @@ function _G.update_status_column()
   elseif relative_number > 0 then
     return "%#LineNr#" .. math.abs(relative_number) .. "%#LineNr#j "
   elseif relative_number < 0 then
-    return "%#LineNr#" .. math.abs(relative_number) .. "%#LineNr#k "
+    return "%#LineNr#" .. math.abs(relative_number) .. "%#LineNr#k"
   end
 end
 vim.opt.nu = false
