@@ -86,7 +86,7 @@ download() {
 
 alias c="code"
 code() {
-    tmux send-keys "nvim ." "C-m"
+    tmux send-keys "nvim" "C-m"
     tmux split-window -h
     # tmux select-pane "-L"
 }
