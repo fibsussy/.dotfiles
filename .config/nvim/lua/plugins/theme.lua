@@ -30,8 +30,6 @@ vim.api.nvim_create_autocmd({ "ColorScheme" }, {
   end,
 })
 
-vim.o.statusline = "%f"
-
 function _G.update_status_column()
   local current_line = vim.fn.line('.')
   local line_number = vim.v.lnum
