@@ -1,5 +1,5 @@
 vim.keymap.set("n", "<C-s>", "<cmd>w<cr>", { desc = "Save Buffer", silent = true })
-vim.keymap.set("n", "<C-a>", "ggVG", { desc = "Select All Buffer", silent = true })
+vim.keymap.set("n", "<C-S-a>", "ggVG", { desc = "Select All Buffer", silent = true })
 vim.keymap.set("n", "<C-c>", "<cmd>%y+<cr>", { desc = "Copy All Buffer", silent = true })
 vim.keymap.set("n", "<leader>q", "<cmd>bd!<cr>", { desc = "Close Buffer", silent = true })
 vim.keymap.set("n", "J", "mzJ`z", { desc = "Join lines and restore cursor position", silent = true })

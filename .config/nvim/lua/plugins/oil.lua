@@ -35,7 +35,7 @@ return {
       },
     },
     init = function()
-      vim.keymap.set("n", "<C-n>", ":Oil <CR>", { desc = "Open oil" })
+      vim.keymap.set("n", "<leader>e", ":Oil <CR>", { desc = "Open Oil (explorer)" })
     end,
   },
 }
