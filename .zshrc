@@ -10,22 +10,44 @@ log_time() {
 }
 START_TIME=$(date +%s%N)
 
-
-# Force tmux
-if \
-    command -v tmux >/dev/null 2>&1 \
+tmux_force() {
+    # Check if tmux is installed
+    if ! command -v tmux >/dev/null 2>&1; then
+        echo -e "\033[31mError: tmux is not installed.\033[0m" >&2
+        return 1
+    fi
+    # Check if already in a tmux session
+    if [ -n "$TMUX" ]; then
+        echo -e "\033[31mError: Already in a tmux session.\033[0m" >&2
+        return 1
+    fi
+    # Try to attach to an existing session or create a new one
+    if tmux has-session -t '\~' 2>/dev/null; then
+        if ! tmux attach-session -t '\~' 2>/dev/null; then
+            echo -e "\033[31mError: Failed to attach to tmux session '~'.\033[0m" >&2
+            return 1
+        fi
+    else
+        if ! tmux new-session -s '~' -c '~' 2>/dev/null; then
+            echo -e "\033[31mError: Failed to create new tmux session '~'.\033[0m" >&2
+            return 1
+        fi
+    fi
+    # Infinite loop to reattach if detached
+    while tmux has-session 2>/dev/null; do
+        if ! tmux attach 2>/dev/null; then
+            echo -e "\033[31mError: Failed to reattach to tmux.\033[0m" >&2
+            return 1
+        fi
+    done
+    return 0
+}
+# Force tmux in Alacritty
+if true \
     && [ -n "$ALACRITTY_WINDOW_ID" ] \
     && [ ! "$TMUX" ] \
     ; then
-    if tmux has-session -t '\~' 2>/dev/null; then
-        tmux attach-session -t '\~'
-    else
-        tmux new-session -s '~' -c '~'
-    fi
-    while tmux has-session 2>/dev/null; do
-        tmux attach
-    done
-    exit 0
+    tmux_force && exit 0
 fi
 log_time "force tmux"
 
@@ -169,7 +191,6 @@ log_time "zinit completion initialization"
 set -a
 [[ -f .env ]] && source ./.env
 [[ -f ./.env.development ]] && source ./.env.development
-set +a
 log_time "loading .env files"
 
 # Initialize starship prompt
