@@ -10,6 +10,7 @@ log_time() {
 }
 START_TIME=$(date +%s%N)
 
+
 tmux_force() {
     # Check if tmux is installed
     if ! command -v tmux >/dev/null 2>&1; then
@@ -44,12 +45,37 @@ tmux_force() {
 }
 # Force tmux in Alacritty
 if true \
-    && [ -n "$ALACRITTY_WINDOW_ID" ] \
-    && [ ! "$TMUX" ] \
+    && [[ "$TERM" =~ ^(xterm-kitty|alacritty)$ ]] \
+    && [[ ! "$TMUX" ]] \
+    && [[ "$(tty)" != /dev/tty[0-9]* ]] \
     ; then
-    tmux_force && exit 0
+    read -k 1 "choice?Do you want to force stay in tmux? [n/Y] "
+    case $choice in
+        [yY$'\n'])
+            tmux_force && exit 0
+            ;;
+        *)
+            echo ""
+            echo "Skipping."
+            ;;
+    esac
+
 fi
 log_time "force tmux"
+
+setopt autocd              # change directory just by typing its name
+# setopt correct            # auto correct mistakes
+setopt interactivecomments # allow comments in interactive mode
+setopt magicequalsubst     # enable filename expansion for arguments of the form ‘anything=expression’
+setopt nonomatch           # hide error message if there is no match for the pattern
+setopt notify              # report the status of background jobs immediately
+setopt numericglobsort     # sort filenames numerically when it makes sense
+setopt promptsubst         # enable command substitution in prompt
+setopt auto_pushd           # Push the current directory visited on the stack.
+setopt pushd_ignore_dups    # Do not store duplicates in the stack.
+setopt pushd_silent         # Do not print the directory stack after pushd or popd.
+setopt EXTENDED_GLOB        # Enable extended globbing.
+
 
 
 export SSH_ENV="$HOME/.ssh-agent-vars"
