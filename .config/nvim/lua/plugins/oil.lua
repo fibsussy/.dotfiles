@@ -6,9 +6,7 @@ return {
       "nvim-tree/nvim-web-devicons",
     },
     opts = {
-      columns = {
-        "icon",
-      },
+      columns = { "icon" },
       default_file_explorer = true,
       restore_win_options = true,
       use_default_keymaps = false,
@@ -34,6 +32,7 @@ return {
         end,
       },
     },
+
     init = function()
       vim.keymap.set("n", "<leader>e", ":Oil <CR>", { desc = "Open Oil (explorer)" })
     end,
