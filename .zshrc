@@ -1,3 +1,32 @@
+
+setopt autocd              # change directory just by typing its name 
+setopt interactivecomments # allow comments in interactive mode
+setopt magicequalsubst     # enable filename expansion for ‘anything=expression’
+setopt nonomatch           # hide error if no pattern match
+setopt numericglobsort     # sort filenames numerically
+setopt promptsubst         # enable command substitution in prompt
+setopt auto_pushd          # push visited dirs to stack
+setopt pushd_ignore_dups   # no duplicates in stack
+setopt pushd_silent        # silence dir stack output
+setopt extended_glob       # enable advanced globbing
+setopt histignoredups      # ignore duplicate history entries
+setopt complete_in_word    # Allow tab completion mid-word
+setopt auto_list           # Show choices on ambiguous completion
+setopt auto_menu           # Cycle through tab completions
+setopt always_to_end       # Move cursor to end after completion
+setopt list_packed         # Compact completion lists
+setopt mark_dirs           # Append / to dir names during globbing
+setopt bare_glob_qual      # Allow glob qualifiers without parentheses
+setopt multios             # Allow multiple redirections (>a >b)
+setopt no_hup              # Don't kill bg jobs on shell exit
+setopt long_list_jobs      # Show PID in job listings
+setopt notify              # You already have this - keep it!
+setopt no_beep             # Disable beeping
+setopt transient_rprompt   # Right prompt disappears after command
+setopt clobber             # Allow > to overwrite files (safer alternative to noclobber)
+
+
+
 # Log time setup
 log_time() {
   if false; then
@@ -63,18 +92,6 @@ if true \
 fi
 log_time "force tmux"
 
-setopt autocd              # change directory just by typing its name
-# setopt correct            # auto correct mistakes
-setopt interactivecomments # allow comments in interactive mode
-setopt magicequalsubst     # enable filename expansion for arguments of the form ‘anything=expression’
-setopt nonomatch           # hide error message if there is no match for the pattern
-setopt notify              # report the status of background jobs immediately
-setopt numericglobsort     # sort filenames numerically when it makes sense
-setopt promptsubst         # enable command substitution in prompt
-setopt auto_pushd           # Push the current directory visited on the stack.
-setopt pushd_ignore_dups    # Do not store duplicates in the stack.
-setopt pushd_silent         # Do not print the directory stack after pushd or popd.
-setopt EXTENDED_GLOB        # Enable extended globbing.
 
 
 
