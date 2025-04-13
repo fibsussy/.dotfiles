@@ -1,4 +1,60 @@
+# Add user configurations here
+# For HyDE to not touch your beloved configurations,
+# we added 2 files to the project structure:
+# 1. ~/.hyde.zshrc - for customizing the shell related hyde configurations
+# 2. ~/.zshenv - for updating the zsh environment variables handled by HyDE // this will be modified across updates
 
+#  Plugins 
+# oh-my-zsh plugins are loaded  in ~/.hyde.zshrc file, see the file for more information
+
+
+#  Startup 
+# Commands to execute on startup (before the prompt is shown)
+# This is a good place to load graphic/ascii art, display system information, etc.
+
+# fastfetch --logo-type kitty
+# fastfetch.sh
+
+
+# # Helpful aliases
+# alias c='clear'                                                        # clear terminal
+ alias l='eza -lh --icons=auto'                                         # long list
+ alias ls='eza -1 --icons=auto'                                         # short list
+ alias ll='eza -lha --icons=auto --sort=name --group-directories-first' # long list all
+ alias ld='eza -lhD --icons=auto'                                       # long list dirs
+ alias lt='eza --icons=auto --tree'                                     # list folder as tree
+# alias un='$aurhelper -Rns'                                             # uninstall package
+# alias up='$aurhelper -Syu'                                             # update system/package/aur
+# alias pl='$aurhelper -Qs'                                              # list installed package
+# alias pa='$aurhelper -Ss'                                              # list available package
+# alias pc='$aurhelper -Sc'                                              # remove unused cache
+# alias po='$aurhelper -Qtdq | $aurhelper -Rns -'                        # remove unused packages, also try > $aurhelper -Qqd | $aurhelper -Rsu --print -
+# alias vc='code'                                                        # gui code editor
+# alias fastfetch='fastfetch --logo-type kitty'
+
+# # Directory navigation shortcuts
+# alias ..='cd ..'
+# alias ...='cd ../..'
+# alias .3='cd ../../..'
+# alias .4='cd ../../../..'
+# alias .5='cd ../../../../..'
+
+# # Always mkdir a path (this doesn't inhibit functionality to make a single dir)
+# alias mkdir='mkdir -p'
+
+#  Plugins 
+# manually add your oh-my-zsh plugins here
+plugins=(
+    "sudo"
+    # "git"                     # (default)
+    # "zsh-autosuggestions"     # (default)
+    # "zsh-syntax-highlighting" # (default)
+    # "zsh-completions"         # (default)
+)
+
+
+
+ 
 setopt autocd              # change directory just by typing its name 
 setopt interactivecomments # allow comments in interactive mode
 setopt magicequalsubst     # enable filename expansion for ‘anything=expression’
@@ -259,7 +315,3 @@ log_time "fzf source"
 autoload -Uz compinit
 zstyle ':completion:*' menu select
 fpath+=~/.zfunc
-
-
-# Added by LM Studio CLI (lms)
-export PATH="$PATH:/home/fib/.lmstudio/bin"
