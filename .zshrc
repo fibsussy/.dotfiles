@@ -1,63 +1,62 @@
-# Add user configurations here
-# For HyDE to not touch your beloved configurations,
-# we added 2 files to the project structure:
-# 1. ~/.hyde.zshrc - for customizing the shell related hyde configurations
-# 2. ~/.zshenv - for updating the zsh environment variables handled by HyDE // this will be modified across updates
+#!/usr/bin/env zsh
 
-#  Plugins 
-# oh-my-zsh plugins are loaded  in ~/.hyde.zshrc file, see the file for more information
+# ======================
+# HyDE ZSH Configuration
+# ======================
 
+#  Environment Variables 
+# --------------------------
+export XDG_CONFIG_HOME="$HOME/.config"
+export XDG_CACHE_HOME="$HOME/.cache"
+export XDG_DATA_HOME="$HOME/.local/share"
+export XDG_STATE_HOME="$HOME/.local/state"
+export XDG_DATA_DIRS="/usr/local/share:/usr/share"
+export XDG_CONFIG_DIRS="/etc/xdg"
 
-#  Startup 
-# Commands to execute on startup (before the prompt is shown)
-# This is a good place to load graphic/ascii art, display system information, etc.
+export RUSTUP_HOME="$XDG_DATA_HOME"/rustup
+export RUSTFLAGS='-W clippy::pedantic -W clippy::nursery -A clippy::unreadable_literal -A clippy::struct_excessive_bools'
+export PATH=$PATH:/home/fib/.cargo/bin
+export PYENV_ROOT="$HOME/.pyenv"
+export PATH="$PYENV_ROOT/bin:$PATH"
+export PYENV_VIRTUALENV_DISABLE_PROMPT=1
+export LANG=en_US.UTF-8
+export EDITOR='nvim'
+[[ -n $SSH_CONNECTION ]] && export EDITOR='vim'
 
-# fastfetch --logo-type kitty
-# fastfetch.sh
+# Clean up home folder
+LESSHISTFILE=${LESSHISTFILE:-/tmp/less-hist}
+PARALLEL_HOME="$XDG_CONFIG_HOME/parallel"
+WGETRC="${XDG_CONFIG_HOME}/wgetrc"
+SCREENRC="$XDG_CONFIG_HOME"/screen/screenrc
 
+#  Plugin Configuration 
+# -------------------------
+function load_zsh_plugins {
+    # Oh-my-zsh installation path
+    zsh_paths=(
+        "$HOME/.oh-my-zsh"
+        "/usr/local/share/oh-my-zsh"
+        "/usr/share/oh-my-zsh"
+    )
+    for zsh_path in "${zsh_paths[@]}"; do 
+        [[ -d $zsh_path ]] && export ZSH=$zsh_path && break
+    done
+    
+    # Load Plugins
+    hyde_plugins=(git zsh-256color zsh-autosuggestions zsh-syntax-highlighting)
+    plugins+=("${hyde_plugins[@]}" sudo)
+    # Deduplicate plugins
+    plugins=($(printf "%s\n" "${plugins[@]}" | sort -u))
 
-# # Helpful aliases
-# alias c='clear'                                                        # clear terminal
- alias l='eza -lh --icons=auto'                                         # long list
- alias ls='eza -1 --icons=auto'                                         # short list
- alias ll='eza -lha --icons=auto --sort=name --group-directories-first' # long list all
- alias ld='eza -lhD --icons=auto'                                       # long list dirs
- alias lt='eza --icons=auto --tree'                                     # list folder as tree
-# alias un='$aurhelper -Rns'                                             # uninstall package
-# alias up='$aurhelper -Syu'                                             # update system/package/aur
-# alias pl='$aurhelper -Qs'                                              # list installed package
-# alias pa='$aurhelper -Ss'                                              # list available package
-# alias pc='$aurhelper -Sc'                                              # remove unused cache
-# alias po='$aurhelper -Qtdq | $aurhelper -Rns -'                        # remove unused packages, also try > $aurhelper -Qqd | $aurhelper -Rsu --print -
-# alias vc='code'                                                        # gui code editor
-# alias fastfetch='fastfetch --logo-type kitty'
+    # Loads om-my-zsh
+    [[ -r $ZSH/oh-my-zsh.sh ]] && source $ZSH/oh-my-zsh.sh
+}
 
-# # Directory navigation shortcuts
-# alias ..='cd ..'
-# alias ...='cd ../..'
-# alias .3='cd ../../..'
-# alias .4='cd ../../../..'
-# alias .5='cd ../../../../..'
-
-# # Always mkdir a path (this doesn't inhibit functionality to make a single dir)
-# alias mkdir='mkdir -p'
-
-#  Plugins 
-# manually add your oh-my-zsh plugins here
-plugins=(
-    "sudo"
-    # "git"                     # (default)
-    # "zsh-autosuggestions"     # (default)
-    # "zsh-syntax-highlighting" # (default)
-    # "zsh-completions"         # (default)
-)
-
-
-
- 
+#  Shell Options 
+# ------------------
 setopt autocd              # change directory just by typing its name 
 setopt interactivecomments # allow comments in interactive mode
-setopt magicequalsubst     # enable filename expansion for ‘anything=expression’
+setopt magicequalsubst     # enable filename expansion for 'anything=expression'
 setopt nonomatch           # hide error if no pattern match
 setopt numericglobsort     # sort filenames numerically
 setopt promptsubst         # enable command substitution in prompt
@@ -81,33 +80,45 @@ setopt no_beep             # Disable beeping
 setopt transient_rprompt   # Right prompt disappears after command
 setopt clobber             # Allow > to overwrite files (safer alternative to noclobber)
 
+#  Functions 
+# --------------
+function slow_load_warning {
+    local lock_file="/tmp/.hyde_slow_load_warning.lock"
+    local load_time=$SECONDS
 
-
-# Log time setup
-log_time() {
-  if false; then
-    local step=$1
-    local current_time=$(date +%s%N)
-    local elapsed=$(( (current_time - START_TIME) / 1000000 ))  # in milliseconds
-    echo "Time taken for $step: ${elapsed} ms"
-    START_TIME=$current_time
-  fi
+    if [[ ! -f $lock_file ]]; then
+        touch $lock_file
+        time_limit=3
+        if ((load_time > time_limit)); then
+            cat <<EOF
+⚠️ Warning: Shell startup took more than ${time_limit} seconds. Consider optimizing:
+1. Remove duplicate plugin initializations
+2. Check for slow initialization scripts
+3. Ensure ~/.zshrc doesn't duplicate HyDE configurations
+EOF
+        fi
+    fi
 }
-START_TIME=$(date +%s%N)
 
+function no_such_file_or_directory_handler {
+    local red='\e[1;31m' reset='\e[0m'
+    printf "${red}zsh: no such file or directory: %s${reset}\n" "$1"
+    return 127
+}
 
-tmux_force() {
-    # Check if tmux is installed
+function prompt_stay_at_bottom {
+    tput cup $LINES 0
+}
+
+function tmux_force {
     if ! command -v tmux >/dev/null 2>&1; then
         echo -e "\033[31mError: tmux is not installed.\033[0m" >&2
         return 1
     fi
-    # Check if already in a tmux session
     if [ -n "$TMUX" ]; then
         echo -e "\033[31mError: Already in a tmux session.\033[0m" >&2
         return 1
     fi
-    # Try to attach to an existing session or create a new one
     if tmux has-session -t '\~' 2>/dev/null; then
         if ! tmux attach-session -t '\~' 2>/dev/null; then
             echo -e "\033[31mError: Failed to attach to tmux session '~'.\033[0m" >&2
@@ -119,7 +130,6 @@ tmux_force() {
             return 1
         fi
     fi
-    # Infinite loop to reattach if detached
     while tmux has-session 2>/dev/null; do
         if ! tmux attach 2>/dev/null; then
             echo -e "\033[31mError: Failed to reattach to tmux.\033[0m" >&2
@@ -128,31 +138,8 @@ tmux_force() {
     done
     return 0
 }
-# Force tmux in Alacritty
-if true \
-    && [[ "$TERM" =~ ^(xterm-kitty|alacritty)$ ]] \
-    && [[ ! "$TMUX" ]] \
-    && [[ "$(tty)" != /dev/tty[0-9]* ]] \
-    ; then
-    read -k 1 "choice?Do you want to force stay in tmux? [n/Y] "
-    case $choice in
-        [yY$'\n'])
-            tmux_force && exit 0
-            ;;
-        *)
-            echo ""
-            echo "Skipping."
-            ;;
-    esac
 
-fi
-log_time "force tmux"
-
-
-
-
-export SSH_ENV="$HOME/.ssh-agent-vars"
-start_ssh_agent() {
+function start_ssh_agent {
     eval "$(ssh-agent -s)" > /dev/null 2>&1
     if [ $? -eq 0 ]; then
         echo "export SSH_AUTH_SOCK=$SSH_AUTH_SOCK" > "$SSH_ENV"
@@ -163,41 +150,13 @@ start_ssh_agent() {
         return 1
     fi
 }
-if [ -f "$SSH_ENV" ]; then
-    source "$SSH_ENV" > /dev/null
-    if ! kill -0 "$SSH_AGENT_PID" 2>/dev/null; then
-        start_ssh_agent
-    fi
-else
-    start_ssh_agent
-fi
-{ ssh-add -l > /dev/null 2>&1 || ssh-add $(find ~/.ssh/* -type f -name "*.pub" 2>/dev/null | sed 's/\.pub$//' 2>/dev/null) > /dev/null 2>&1; } > /dev/null 2>&1
-log_time "ssh agent"
 
-
-# Functions
-paru() {
-  command paru --noconfirm "$@"
-  command paru -Qqen > ~/packages.txt
+function paru {
+    command paru --noconfirm "$@"
+    command paru -Qqen > ~/packages.txt
 }
-log_time "paru function"
 
-# Aliases
-alias paruclean="sudo pacman -Rsn $(pacman -Qdtq)"
-alias brb="clear && figlet BRB | lolcat"
-alias l='eza -l  --icons'
-alias ls='eza -1  --icons'
-alias ll='eza -la --icons'
-alias ld='eza -lD --icons'
-alias cat='bat'
-alias v="/bin/nvim"
-alias nightlight="pkill gammastep; gammastep & disown"
-alias nightlight_off="pkill gammastep;"
-alias stow.="pushd ~/.dotfiles/; stow -D .; stow . --adopt; popd"
-alias bgrng='~/Scripts/bgrng.sh'
-alias clip="xclip -selection clipboard"
-
-download() {
+function download {
     if [[ $1 =~ ^https?://(www\.)?(youtube\.com|youtu\.be)/ ]]; then
         yt-dlp "$@"
     else
@@ -205,113 +164,133 @@ download() {
     fi
 }
 
-alias c="code"
-code() {
+function code {
     tmux send-keys "nvim" "C-m"
     tmux split-window -h
-    # tmux select-pane "-L"
 }
 
-log_time "aliases"
-
-
-# Function to create directory and touch a file
-mkdir_and_touch() {
-  mkdir -pv "$(dirname "$1")"
-  touch "$1"
+function mkdir_and_touch {
+    mkdir -pv "$(dirname "$1")"
+    touch "$1"
 }
+
+function load_pyenv {
+    if command -v pyenv 1>/dev/null 2>&1; then
+        eval "$(pyenv init --path)" >/dev/null 2>&1
+        eval "$(pyenv init -)" >/dev/null 2>&1
+        eval "$(pyenv virtualenv-init -)" >/dev/null 2>&1
+    fi
+}
+
+function load_nvm {
+    export NVM_DIR="$HOME/.config/nvm"
+    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+    [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+}
+
+#  Aliases 
+# ------------
+alias l='eza -lh --icons=auto'
+alias ls='eza -1 --icons=auto'
+alias ll='eza -lha --icons=auto --sort=name --group-directories-first'
+alias ld='eza -lhD --icons=auto'
+alias lt='eza --icons=auto --tree'
+alias cat='bat'
+alias v="/bin/nvim"
+alias nightlight="pkill gammastep; gammastep & disown"
+alias nightlight_off="pkill gammastep;"
+alias stow.="pushd ~/.dotfiles/; stow -D .; stow . --adopt; popd"
+alias bgrng='~/Scripts/bgrng.sh'
+alias clip="xclip -selection clipboard"
+alias c="code"
+alias paruclean="sudo pacman -Rsn $(pacman -Qdtq)"
+alias brb="clear && figlet BRB | lolcat"
+alias ..='cd ..'
+alias ...='cd ../..'
+alias .3='cd ../../..'
+alias .4='cd ../../../..'
+alias .5='cd ../../../../..'
+alias mkdir='mkdir -p'
 alias touch="mkdir_and_touch"
-log_time "mkdir_and_touch function"
 
-# Environment Variables
-export XDG_CONFIG_HOME="$HOME/.config"
-export XDG_CACHE_HOME="$HOME/.cache"
-export XDG_DATA_HOME="$HOME/.local/share"
-export XDG_STATE_HOME="$HOME/.local/state"
-export XDG_DATA_DIRS="/usr/local/share:/usr/share"
-export XDG_CONFIG_DIRS="/etc/xdg"
+#  Initialization 
+# -------------------
+if [ -t 1 ]; then
+    # SSH Agent setup
+    export SSH_ENV="$HOME/.ssh-agent-vars"
+    if [ -f "$SSH_ENV" ]; then
+        source "$SSH_ENV" > /dev/null
+        if ! kill -0 "$SSH_AGENT_PID" 2>/dev/null; then
+            start_ssh_agent
+        fi
+    else
+        start_ssh_agent
+    fi
+    { ssh-add -l > /dev/null 2>&1 || ssh-add $(find ~/.ssh/* -type f -name "*.pub" 2>/dev/null | sed 's/\.pub$//' 2>/dev/null) > /dev/null 2>&1; } > /dev/null 2>&1
 
-export RUSTUP_HOME="$XDG_DATA_HOME"/rustup
-export RUSTFLAGS='-W clippy::pedantic -W clippy::nursery -A clippy::unreadable_literal -A clippy::struct_excessive_bools'
+    # Load plugins
+    load_zsh_plugins
+    
+    # Set up hooks
+    autoload -Uz add-zsh-hook
+    add-zsh-hook -Uz precmd slow_load_warning
+    add-zsh-hook precmd prompt_stay_at_bottom
 
-export PATH=$PATH:/home/fib/.cargo/bin
-export PATH="$PYENV_ROOT/bin:$PATH"
+    # Force tmux in Alacritty
+    if [[ "$TERM" =~ ^(xterm-kitty|alacritty)$ ]] && [[ ! "$TMUX" ]] && [[ "$(tty)" != /dev/tty[0-9]* ]]; then
+        read -k 1 "choice?Do you want to force stay in tmux? [n/Y] "
+        case $choice in
+            [yY$'\n'])
+                tmux_force && exit 0
+                ;;
+            *)
+                echo ""
+                echo "Skipping."
+                ;;
+        esac
+    fi
 
-export PYENV_ROOT="$HOME/.pyenv"
-export PYENV_VIRTUALENV_DISABLE_PROMPT=1
+    # Load pyenv if .python-version exists
+    if [[ -f .python-version ]]; then
+        load_pyenv
+    fi
 
-export LANG=en_US.UTF-8
-export EDITOR='nvim'
-[[ -n $SSH_CONNECTION ]] && export EDITOR='vim'
-log_time "environment variables"
+    # Lazy load nvm
+    nvm() {
+        unset -f nvm
+        load_nvm
+        nvm "$@"
+    }
 
-load_pyenv() {
-  if command -v pyenv 1>/dev/null 2>&1; then
-    eval "$(pyenv init --path)" >/dev/null 2>&1
-    eval "$(pyenv init -)" >/dev/null 2>&1
-    eval "$(pyenv virtualenv-init -)" >/dev/null 2>&1
-  fi
-}
-if [[ -f .python-version ]]; then
-    load_pyenv
+    # Initialize zinit if installed
+    if [[ -f $HOME/.local/share/zinit/zinit.git/zinit.zsh ]]; then
+        source "$HOME/.local/share/zinit/zinit.git/zinit.zsh"
+        autoload -Uz _zinit
+        (( ${+_comps} )) && _comps[zinit]=_zinit
+        
+        zinit light-mode for \
+            zdharma-continuum/zinit-annex-as-monitor \
+            zdharma-continuum/zinit-annex-bin-gem-node \
+            zdharma-continuum/zinit-annex-patch-dl \
+            zdharma-continuum/zinit-annex-rust \
+            zsh-users/zsh-autosuggestions
+        
+        zicompinit; zicdreplay
+    fi
+
+    # Load environment files
+    set -a
+    [[ -f .env ]] && source ./.env
+    [[ -f ./.env.development ]] && source ./.env.development
+
+    # Initialize starship prompt
+    eval "$(starship init zsh)"
+
+    # Source fzf
+    source <(fzf --zsh)
+
+    # Completion system
+    autoload -Uz compinit
+    zstyle ':completion:*' menu select
+    fpath+=~/.zfunc
 fi
-log_time "pyenv initialization"
-
-# Install zinit if not already installed
-if [[ ! -f $HOME/.local/share/zinit/zinit.git/zinit.zsh ]]; then
-  echo "Installing ZDHARMA-CONTINUUM Initiative Plugin Manager (zdharma-continuum/zinit)…"
-  mkdir -p "$HOME/.local/share/zinit" && chmod g-rwX "$HOME/.local/share/zinit"
-  git clone https://github.com/zdharma-continuum/zinit "$HOME/.local/share/zinit/zinit.git" && \
-      echo "Installation successful." || \
-      echo "The clone has failed."
-fi
-log_time "zinit installation check"
-
-# Initialize zinit
-source "$HOME/.local/share/zinit/zinit.git/zinit.zsh"
-autoload -Uz _zinit
-(( ${+_comps} )) && _comps[zinit]=_zinit
-log_time "zinit initialization"
-
-# Load zinit plugins asynchronously
-zinit light-mode for \
-  zdharma-continuum/zinit-annex-as-monitor \
-  zdharma-continuum/zinit-annex-bin-gem-node \
-  zdharma-continuum/zinit-annex-patch-dl \
-  zdharma-continuum/zinit-annex-rust \
-  zsh-users/zsh-autosuggestions
-log_time "zinit plugins load"
-
-# Initialize zinit completion
-zicompinit; zicdreplay
-log_time "zinit completion initialization"
-
-# Load environment variables from .env files if they exist
-set -a
-[[ -f .env ]] && source ./.env
-[[ -f ./.env.development ]] && source ./.env.development
-log_time "loading .env files"
-
-# Initialize starship prompt
-eval "$(starship init zsh)"
-log_time "starship initialization"
-
-# Lazy load nvm
-load_nvm() {
-  export NVM_DIR="$HOME/.config/nvm"
-  [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-  [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
-}
-nvm() {
-  unset -f nvm
-  load_nvm
-  nvm "$@"
-}
-log_time "nvm initialization setup"
-
-source <(fzf --zsh)
-log_time "fzf source"
-
-autoload -Uz compinit
-zstyle ':completion:*' menu select
-fpath+=~/.zfunc
