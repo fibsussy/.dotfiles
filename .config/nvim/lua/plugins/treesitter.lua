@@ -15,6 +15,9 @@ return {
     build = function()
       pcall(require('nvim-treesitter.install').update { with_sync = true })
     end,
+    dependencies = {
+      "nvim-treesitter/nvim-treesitter-textobjects",
+    },
     opts = {
       ensure_installed = {
         'go', 'lua', 'python', 'rust', 'typescript', 'regex',
@@ -34,35 +37,37 @@ return {
       },
       textobjects = {
         select = {
-          enable = false,
+          enable = true,
           lookahead = true,
           keymaps = {
-            ['aa'] = '@parameter.outer',
-            ['ia'] = '@parameter.inner',
+            ['af'] = '@function.outer',
+            ['if'] = '@function.inner',
             ['ac'] = '@class.outer',
             ['ic'] = '@class.inner',
+            ['aa'] = '@parameter.outer',
+            ['ia'] = '@parameter.inner',
             ['ii'] = '@conditional.inner',
             ['ai'] = '@conditional.outer',
             ['at'] = '@comment.outer',
           },
         },
         move = {
-          enable = false,
+          enable = true,
           set_jumps = true,
           goto_next_start = {
-            [']f'] = '@function.outer',
+            [']m'] = '@function.outer',
             [']]'] = '@class.outer',
           },
           goto_next_end = {
-            [']F'] = '@function.outer',
+            [']M'] = '@function.outer',
             [']['] = '@class.outer',
           },
           goto_previous_start = {
-            ['[f'] = '@function.outer',
+            ['[m'] = '@function.outer',
             ['[['] = '@class.outer',
           },
           goto_previous_end = {
-            ['[F'] = '@function.outer',
+            ['[M'] = '@function.outer',
             ['[]'] = '@class.outer',
           },
         },
