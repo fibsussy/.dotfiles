@@ -4,6 +4,12 @@
 # HyDE ZSH Configuration
 # ======================
 
+# Enable profiling if ZSH_PROFILE=1
+[[ -n "$ZSH_PROFILE" ]] && zmodload zsh/zprof
+
+# Initialization flags
+typeset -A _HYDE_INIT_FLAGS
+
 #  Environment Variables 
 # --------------------------
 export XDG_CONFIG_HOME="$HOME/.config"
@@ -32,24 +38,28 @@ SCREENRC="$XDG_CONFIG_HOME"/screen/screenrc
 #  Plugin Configuration 
 # -------------------------
 function load_zsh_plugins {
-    # Oh-my-zsh installation path
-    zsh_paths=(
-        "$HOME/.oh-my-zsh"
-        "/usr/local/share/oh-my-zsh"
-        "/usr/share/oh-my-zsh"
-    )
-    for zsh_path in "${zsh_paths[@]}"; do 
-        [[ -d $zsh_path ]] && export ZSH=$zsh_path && break
-    done
-    
-    # Load Plugins
-    hyde_plugins=(git zsh-256color zsh-autosuggestions zsh-syntax-highlighting)
-    plugins+=("${hyde_plugins[@]}" sudo)
-    # Deduplicate plugins
-    plugins=($(printf "%s\n" "${plugins[@]}" | sort -u))
+    if [[ "${_HYDE_INIT_FLAGS[zsh_plugins]}" != "1" ]]; then
+        _HYDE_INIT_FLAGS[zsh_plugins]=1
+        
+        # Oh-my-zsh installation path
+        zsh_paths=(
+            "$HOME/.oh-my-zsh"
+            "/usr/local/share/oh-my-zsh"
+            "/usr/share/oh-my-zsh"
+        )
+        for zsh_path in "${zsh_paths[@]}"; do 
+            [[ -d $zsh_path ]] && export ZSH=$zsh_path && break
+        done
+        
+        # Load Plugins
+        hyde_plugins=(git zsh-256color zsh-autosuggestions zsh-syntax-highlighting)
+        plugins+=("${hyde_plugins[@]}" sudo)
+        # Deduplicate plugins
+        plugins=($(printf "%s\n" "${plugins[@]}" | sort -u))
 
-    # Loads om-my-zsh
-    [[ -r $ZSH/oh-my-zsh.sh ]] && source $ZSH/oh-my-zsh.sh
+        # Loads om-my-zsh
+        [[ -r $ZSH/oh-my-zsh.sh ]] && source $ZSH/oh-my-zsh.sh
+    fi
 }
 
 #  Shell Options 
@@ -95,7 +105,14 @@ function slow_load_warning {
 1. Remove duplicate plugin initializations
 2. Check for slow initialization scripts
 3. Ensure ~/.zshrc doesn't duplicate HyDE configurations
+4. Run with ZSH_PROFILE=1 zsh -i -c exit to profile startup
+5. Consider lazy-loading more components
 EOF
+            # Show top 5 slowest operations if profiling is enabled
+            if [[ -n "$ZSH_PROFILE" ]]; then
+                echo "\nTop 5 slowest operations:"
+                zprof | head -n 10
+            fi
         fi
     fi
 }
@@ -140,14 +157,18 @@ function tmux_force {
 }
 
 function start_ssh_agent {
-    eval "$(ssh-agent -s)" > /dev/null 2>&1
-    if [ $? -eq 0 ]; then
-        echo "export SSH_AUTH_SOCK=$SSH_AUTH_SOCK" > "$SSH_ENV"
-        echo "export SSH_AGENT_PID=$SSH_AGENT_PID" >> "$SSH_ENV"
-        chmod 600 "$SSH_ENV"
-    else
-        echo "Failed to start SSH agent" >&2
-        return 1
+    if [[ "${_HYDE_INIT_FLAGS[ssh_agent]}" != "1" ]]; then
+        _HYDE_INIT_FLAGS[ssh_agent]=1
+        
+        eval "$(ssh-agent -s)" > /dev/null 2>&1
+        if [ $? -eq 0 ]; then
+            echo "export SSH_AUTH_SOCK=$SSH_AUTH_SOCK" > "$SSH_ENV"
+            echo "export SSH_AGENT_PID=$SSH_AGENT_PID" >> "$SSH_ENV"
+            chmod 600 "$SSH_ENV"
+        else
+            echo "Failed to start SSH agent" >&2
+            return 1
+        fi
     fi
 }
 
@@ -175,17 +196,25 @@ function mkdir_and_touch {
 }
 
 function load_pyenv {
-    if command -v pyenv 1>/dev/null 2>&1; then
-        eval "$(pyenv init --path)" >/dev/null 2>&1
-        eval "$(pyenv init -)" >/dev/null 2>&1
-        eval "$(pyenv virtualenv-init -)" >/dev/null 2>&1
+    if [[ "${_HYDE_INIT_FLAGS[pyenv]}" != "1" ]]; then
+        _HYDE_INIT_FLAGS[pyenv]=1
+        
+        if command -v pyenv 1>/dev/null 2>&1; then
+            eval "$(pyenv init --path)" >/dev/null 2>&1
+            eval "$(pyenv init -)" >/dev/null 2>&1
+            eval "$(pyenv virtualenv-init -)" >/dev/null 2>&1
+        fi
     fi
 }
 
 function load_nvm {
-    export NVM_DIR="$HOME/.config/nvm"
-    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-    [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+    if [[ "${_HYDE_INIT_FLAGS[nvm]}" != "1" ]]; then
+        _HYDE_INIT_FLAGS[nvm]=1
+        
+        export NVM_DIR="$HOME/.config/nvm"
+        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+        [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+    fi
 }
 
 #  Aliases 
