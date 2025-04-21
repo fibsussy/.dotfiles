@@ -1,8 +1,10 @@
 #!/usr/bin/env zsh
 
-# ======================
-# HyDE ZSH Configuration
-# ======================
+function prompt_stay_at_bottom {
+    tput cup $LINES 0
+}
+prompt_stay_at_bottom
+
 
 # Enable profiling if ZSH_PROFILE=1
 [[ -n "$ZSH_PROFILE" ]] && zmodload zsh/zprof
@@ -51,13 +53,15 @@ function load_zsh_plugins {
             [[ -d $zsh_path ]] && export ZSH=$zsh_path && break
         done
         
-        # Load Plugins
-        hyde_plugins=(git zsh-256color zsh-autosuggestions zsh-syntax-highlighting)
-        plugins+=("${hyde_plugins[@]}" sudo)
+        # Load minimal plugins - removed problematic plugins that cause pasting issues
+        hyde_plugins=(git zsh-256color)
+        # Removed sudo plugin which causes auto-expansion
+        # Removed zsh-autosuggestions and zsh-syntax-highlighting which cause pasting issues
+        plugins+=("${hyde_plugins[@]}")
         # Deduplicate plugins
         plugins=($(printf "%s\n" "${plugins[@]}" | sort -u))
 
-        # Loads om-my-zsh
+        #env STARSHIP_LOG=trace starship timings  
         [[ -r $ZSH/oh-my-zsh.sh ]] && source $ZSH/oh-my-zsh.sh
     fi
 }
@@ -76,9 +80,11 @@ setopt pushd_silent        # silence dir stack output
 setopt extended_glob       # enable advanced globbing
 setopt histignoredups      # ignore duplicate history entries
 setopt complete_in_word    # Allow tab completion mid-word
-setopt auto_list           # Show choices on ambiguous completion
-setopt auto_menu           # Cycle through tab completions
-setopt always_to_end       # Move cursor to end after completion
+setopt no_hist_expand      # Disable immediate history expansion (fixes !! + space issue)
+# Disabled aggressive completion options that can interfere with pasting
+# setopt auto_list         # Show choices on ambiguous completion
+# setopt auto_menu         # Cycle through tab completions
+# setopt always_to_end     # Move cursor to end after completion
 setopt list_packed         # Compact completion lists
 setopt mark_dirs           # Append / to dir names during globbing
 setopt bare_glob_qual      # Allow glob qualifiers without parentheses
@@ -123,9 +129,6 @@ function no_such_file_or_directory_handler {
     return 127
 }
 
-function prompt_stay_at_bottom {
-    tput cup $LINES 0
-}
 
 function tmux_force {
     if ! command -v tmux >/dev/null 2>&1; then
@@ -291,7 +294,7 @@ if [ -t 1 ]; then
         nvm "$@"
     }
 
-    # Initialize zinit if installed
+    # Disabled zinit plugins which can cause pasting issues
     if [[ -f $HOME/.local/share/zinit/zinit.git/zinit.zsh ]]; then
         source "$HOME/.local/share/zinit/zinit.git/zinit.zsh"
         autoload -Uz _zinit
@@ -301,8 +304,8 @@ if [ -t 1 ]; then
             zdharma-continuum/zinit-annex-as-monitor \
             zdharma-continuum/zinit-annex-bin-gem-node \
             zdharma-continuum/zinit-annex-patch-dl \
-            zdharma-continuum/zinit-annex-rust \
-            zsh-users/zsh-autosuggestions
+            zdharma-continuum/zinit-annex-rust
+            # Removed zsh-autosuggestions which causes pasting issues
         
         zicompinit; zicdreplay
     fi
@@ -318,8 +321,17 @@ if [ -t 1 ]; then
     # Source fzf
     source <(fzf --zsh)
 
-    # Completion system
+    # Simplified completion system
     autoload -Uz compinit
-    zstyle ':completion:*' menu select
+    # Disabled menu select which can interfere with pasting
+    # zstyle ':completion:*' menu select
     fpath+=~/.zfunc
+    
+    # Fix for pasting issues
+    # This disables the "bracketed paste" feature which can cause problems
+    unset zle_bracketed_paste
+    
+    # Disable auto-suggestions and syntax highlighting from affecting pasting
+    ZSH_AUTOSUGGEST_STRATEGY=()
+    ZSH_HIGHLIGHT_MAXLENGTH=0
 fi
