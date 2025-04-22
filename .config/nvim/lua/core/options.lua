@@ -39,3 +39,9 @@ vim.api.nvim_create_autocmd("TextYankPost", {
     end,
 })
 
+-- Folding
+vim.o.foldmethod = "expr"  -- Use treesitter for folding
+vim.o.foldexpr = "nvim_treesitter#foldexpr()"
+vim.o.foldlevel = 99       -- Start with all folds open
+vim.o.foldnestmax = 10     -- Maximum fold nesting level
+vim.o.foldminlines = 1     -- Minimum lines needed to fold

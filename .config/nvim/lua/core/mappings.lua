@@ -23,3 +23,14 @@ end, { desc = "Toggle semicolon at end of line", silent = true })
 -- Visual mode mappings
 vim.keymap.set("v", "J", ":m '>+1<CR>gv=gv", { desc = "Move visual selection down", silent = true })
 vim.keymap.set("v", "K", ":m '<-2<CR>gv=gv", { desc = "Move visual selection up", silent = true })
+
+
+-- Folding
+vim.keymap.set('n', 'zR', function() vim.cmd('set foldlevel=999') end, { desc = 'Folds: Open all folds' })
+vim.keymap.set('n', 'zM', function() vim.cmd('set foldlevel=0') end, { desc = 'Folds: Close all folds' })
+vim.keymap.set('n', 'za', 'za', { desc = 'Folds: Toggle current fold' })
+vim.keymap.set('n', 'zA', 'zA', { desc = 'Folds: Toggle current fold recursively' })
+vim.keymap.set('n', 'zc', 'zc', { desc = 'Folds: Close current fold' })
+vim.keymap.set('n', 'zC', 'zC', { desc = 'Folds: Close current fold recursively' })
+vim.keymap.set('n', 'zo', 'zo', { desc = 'Folds: Open current fold' })
+vim.keymap.set('n', 'zO', 'zO', { desc = 'Folds: Open current fold recursively' })
