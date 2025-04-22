@@ -4,8 +4,7 @@ local function set_custom_highlights()
   vim.api.nvim_set_hl(0, "EndOfBuffer", { bg = "NONE" })
 
   local dark_gray = "#6b7273"
-  --vim.api.nvim_set_hl(0, "Comment", { fg = "#FF0000" })
-  vim.api.nvim_set_hl(0, "@comment", { link = "Comment" })
+  vim.api.nvim_set_hl(0, "@comment", { fg = "#FF0000" })
   vim.api.nvim_set_hl(0, "LspInlayHint", { fg = dark_gray, bg = "NONE" })
 
   vim.api.nvim_set_hl(0, "LineNr", { fg = dark_gray })
