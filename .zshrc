@@ -1,9 +1,39 @@
 #!/usr/bin/env zsh
 
+# Start timing zsh startup
+zsh_start_time=$SECONDS
+
+# Timing function to log module load times
+function _log_timing() {
+    local module_name=$1
+    local elapsed=$(( (SECONDS - zsh_start_time) * 1000 ))
+    printf "TIMING: %-30s %5d ms\n" "${module_name}" $elapsed >> /tmp/zsh_timing.log
+}
+
+# Initialize timing log
+function _init_timing_log() {
+    echo -e "\n=== ZSH Startup: $(date) ===\n" > /tmp/zsh_timing.log
+}
+_init_timing_log
+
+# Function to debug timing at the end
+function _debug_timing() {
+    if [[ -f /tmp/zsh_timing.log ]]; then
+        echo "Shell startup timing report:"
+        cat /tmp/zsh_timing.log
+        
+        # Calculate total time
+        local total_time=$(( SECONDS - zsh_start_time ))
+        echo -e "\nTotal startup time: ${total_time}s"
+    fi
+}
+
 function prompt_stay_at_bottom {
     tput cup $LINES 0
 }
 prompt_stay_at_bottom
+
+_log_timing "init"
 
 
 # Enable profiling if ZSH_PROFILE=1
@@ -11,6 +41,14 @@ prompt_stay_at_bottom
 
 # Initialization flags
 typeset -A _HYDE_INIT_FLAGS
+
+# Load zsh-defer for async loading
+if [[ ! -f ${ZDOTDIR:-$HOME}/.zsh-defer/zsh-defer.plugin.zsh ]]; then
+    mkdir -p ${ZDOTDIR:-$HOME}/.zsh-defer
+    curl -L https://raw.githubusercontent.com/romkatv/zsh-defer/master/zsh-defer.plugin.zsh > ${ZDOTDIR:-$HOME}/.zsh-defer/zsh-defer.plugin.zsh
+fi
+source ${ZDOTDIR:-$HOME}/.zsh-defer/zsh-defer.plugin.zsh
+_log_timing "zsh_defer_load"
 
 #  Environment Variables 
 # --------------------------
@@ -62,7 +100,10 @@ function load_zsh_plugins {
         plugins=($(printf "%s\n" "${plugins[@]}" | sort -u))
 
         #env STARSHIP_LOG=trace starship timings  
+        local omz_start=$SECONDS
         [[ -r $ZSH/oh-my-zsh.sh ]] && source $ZSH/oh-my-zsh.sh
+        local omz_time=$(( (SECONDS - omz_start) * 1000 ))
+        _log_timing "oh_my_zsh_load:${omz_time}ms"
     fi
 }
 
@@ -113,12 +154,16 @@ function slow_load_warning {
 3. Ensure ~/.zshrc doesn't duplicate HyDE configurations
 4. Run with ZSH_PROFILE=1 zsh -i -c exit to profile startup
 5. Consider lazy-loading more components
+6. Run '_debug_timing' to see detailed timing information
 EOF
             # Show top 5 slowest operations if profiling is enabled
             if [[ -n "$ZSH_PROFILE" ]]; then
                 echo "\nTop 5 slowest operations:"
                 zprof | head -n 10
             fi
+            
+            # Show timing information
+            _debug_timing
         fi
     fi
 }
@@ -173,6 +218,7 @@ function start_ssh_agent {
             return 1
         fi
     fi
+    { ssh-add -l > /dev/null 2>&1 || ssh-add $(find ~/.ssh/* -type f -name "*.pub" 2>/dev/null | sed 's/\.pub$//' 2>/dev/null) > /dev/null 2>&1; } > /dev/null 2>&1
 }
 
 function paru {
@@ -189,8 +235,8 @@ function download {
 }
 
 function code {
+    tmux split-window -h -b
     tmux send-keys "nvim" "C-m"
-    tmux split-window -h
 }
 
 function mkdir_and_touch {
@@ -258,15 +304,18 @@ if [ -t 1 ]; then
     else
         start_ssh_agent
     fi
-    { ssh-add -l > /dev/null 2>&1 || ssh-add $(find ~/.ssh/* -type f -name "*.pub" 2>/dev/null | sed 's/\.pub$//' 2>/dev/null) > /dev/null 2>&1; } > /dev/null 2>&1
+    { ssh-add -l > /dev/null 2>&1 || ssh-add $(find ~/.ssh/* -name "*.pub" 2>/dev/null | sed 's/\.pub$//' 2>/dev/null) > /dev/null 2>&1; } > /dev/null 2>&1
 
     # Load plugins
+    _log_timing "pre_plugins"
     load_zsh_plugins
+    _log_timing "plugins_loaded"
     
     # Set up hooks
     autoload -Uz add-zsh-hook
     add-zsh-hook -Uz precmd slow_load_warning
     add-zsh-hook precmd prompt_stay_at_bottom
+    _log_timing "hooks_setup"
 
     # Force tmux in Alacritty
     if [[ "$TERM" =~ ^(xterm-kitty|alacritty)$ ]] && [[ ! "$TMUX" ]] && [[ "$(tty)" != /dev/tty[0-9]* ]]; then
@@ -296,6 +345,7 @@ if [ -t 1 ]; then
 
     # Disabled zinit plugins which can cause pasting issues
     if [[ -f $HOME/.local/share/zinit/zinit.git/zinit.zsh ]]; then
+        _log_timing "pre_zinit"
         source "$HOME/.local/share/zinit/zinit.git/zinit.zsh"
         autoload -Uz _zinit
         (( ${+_comps} )) && _comps[zinit]=_zinit
@@ -308,24 +358,33 @@ if [ -t 1 ]; then
             # Removed zsh-autosuggestions which causes pasting issues
         
         zicompinit; zicdreplay
+        _log_timing "zinit_loaded"
     fi
 
     # Load environment files
     set -a
+    [[ -f ~/.api_keys.env ]] && source ~/.api_keys.env
     [[ -f .env ]] && source ./.env
+    [[ -f ./.env.dev ]] && source ./.env.dev
     [[ -f ./.env.development ]] && source ./.env.development
 
-    # Initialize starship prompt
+# Initialize starship prompt
+    _log_timing "pre_starship"
     eval "$(starship init zsh)"
+    _log_timing "starship_init"
 
     # Source fzf
+    _log_timing "pre_fzf"
     source <(fzf --zsh)
+    _log_timing "fzf_init"
 
     # Simplified completion system
+    _log_timing "pre_compinit"
     autoload -Uz compinit
     # Disabled menu select which can interfere with pasting
     # zstyle ':completion:*' menu select
     fpath+=~/.zfunc
+    _log_timing "compinit"
     
     # Fix for pasting issues
     # This disables the "bracketed paste" feature which can cause problems

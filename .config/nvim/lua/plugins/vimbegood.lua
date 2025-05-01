@@ -12,7 +12,15 @@ return {
       "nvim-lua/plenary.nvim",
     },
     opts = {
-      enabled = false,
+      enabled = true,
+      hint = true,
+      disabled_keys = {
+        ["<Up>"] = {},
+        ["<Down>"] = {},
+        ["<Left>"] = {},
+        ["<Right>"] = {},
+      },
+      disable_mouse = false,
     },
   },
 }

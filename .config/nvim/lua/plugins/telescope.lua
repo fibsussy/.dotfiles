@@ -35,7 +35,7 @@ return {
             vim.keymap.set('n', '<leader>fd', '<cmd>Telescope diagnostics<cr>', { desc = 'Telescope: Find diagnostics' })
             vim.keymap.set('n', '<leader>fb', '<cmd>Telescope buffers<cr>', { desc = 'Telescope: Find buffers' })
             vim.keymap.set('n', '<leader>fS', '<cmd>Telescope git_status<cr>', { desc = 'Telescope: Find git status' })
-            vim.keymap.set('n', '<leader>fm', '<cmd>Telescope harpoon marks<cr>', { desc = 'Telescope: Harpoon Marks' })
+            vim.keymap.set('n', '<leader>fh', '<cmd>Telescope harpoon marks<cr>', { desc = 'Telescope: Harpoon Marks' })
             vim.keymap.set('n', '<leader>fr', '<cmd>Telescope git_worktree git_worktrees<cr>', { desc = 'Telescope: Git Worktrees' })
             vim.keymap.set('n', '<leader>fR', '<cmd>Telescope git_worktree create_git_worktree<cr>', { desc = 'Telescope: Create Git Worktree' })
             vim.keymap.set('n', '<leader>fn', '<cmd>Telescope notify notify<cr>', { desc = 'Telescope: Notify' })

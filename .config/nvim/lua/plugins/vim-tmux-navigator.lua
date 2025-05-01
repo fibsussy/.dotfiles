@@ -1,11 +1,17 @@
 return {
   "numToStr/Navigator.nvim",
-  config = function()
-    require("Navigator").setup()
-    vim.keymap.set("n", "<C-Left>", require("Navigator").left, { desc = "Navigator: Window Left" })
-    vim.keymap.set("n", "<C-Down>", require("Navigator").down, { desc = "Navigator: Window Down" })
-    vim.keymap.set("n", "<C-Up>", require("Navigator").up, { desc = "Navigator: Window Up" })
-    vim.keymap.set("n", "<C-Right>", require("Navigator").right, { desc = "Navigator: Window Right" })
-  end,
-  lazy = false,
+  cmd = {
+    "NavigatorLeft",
+    "NavigatorRight",
+    "NavigatorUp",
+    "NavigatorDown",
+    "NavigatorPrevious",
+  },
+  keys = {
+    { "<C-Left>", "<cmd>NavigatorLeft<cr>", desc = "Navigator: Window Left" },
+    { "<C-Down>", "<cmd>NavigatorDown<cr>", desc = "Navigator: Window Down" },
+    { "<C-Up>", "<cmd>NavigatorUp<cr>", desc = "Navigator: Window Up" },
+    { "<C-Right>", "<cmd>NavigatorRight<cr>", desc = "Navigator: Window Right" },
+  },
+  opts = {},
 }

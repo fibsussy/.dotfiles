@@ -5,20 +5,38 @@ return {
     "rcarriga/nvim-notify",
   },
   opts = {
-    routes = {
-      {
-        filter = {
-          event = 'msg_show',
-          any = {
-            { find = '%d+L, %d+B' },
-            { find = '; after #%d+' },
-            { find = '; before #%d+' },
-            { find = '%d fewer lines' },
-            { find = '%d more lines' },
-          },
+
+    views = {
+      cmdline_popup = {
+        position = {
+          row = 5,
+          col = "50%",
         },
-        opts = { skip = true },
-      }
+        size = {
+          width = "auto",
+          height = "auto",
+        },
+      },
+
+      popupmenu = {
+        relative = "editor",
+        position = {
+          row = 8,
+          col = "50%",
+        },
+        size = {
+          width = 60,
+          height = 10,
+        },
+        border = {
+          style = "rounded",
+          padding = { 0, 1 },
+        },
+        win_options = {
+          winhighlight = { Normal = "Normal", FloatBorder = "DiagnosticInfo" },
+        },
+      },
     },
+
   },
 }
