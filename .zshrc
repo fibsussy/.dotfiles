@@ -1,7 +1,55 @@
 #!/usr/bin/env zsh
 
-# Start timing zsh startup
+
 zsh_start_time=$SECONDS
+
+
+function tmux_force {
+    if ! command -v tmux >/dev/null 2>&1; then
+        echo -e "\033[31mError: tmux is not installed.\033[0m" >&2
+        return 1
+    fi
+    if [ -n "$TMUX" ]; then
+        echo -e "\033[31mError: Already in a tmux session.\033[0m" >&2
+        return 1
+    fi
+    if tmux has-session -t '\~' 2>/dev/null; then
+        if ! tmux attach-session -t '\~' 2>/dev/null; then
+            echo -e "\033[31mError: Failed to attach to tmux session '~'.\033[0m" >&2
+            return 1
+        fi
+    else
+        if ! tmux new-session -s '~' -c '~' 2>/dev/null; then
+            echo -e "\033[31mError: Failed to create new tmux session '~'.\033[0m" >&2
+            return 1
+        fi
+    fi
+    while tmux has-session 2>/dev/null; do
+        if ! tmux attach 2>/dev/null; then
+            echo -e "\033[31mError: Failed to reattach to tmux.\033[0m" >&2
+            return 1
+        fi
+    done
+    return 0
+}
+
+
+# Force tmux in Alacritty
+if [[ "$TERM" =~ ^(xterm-kitty|alacritty)$ ]] && [[ ! "$TMUX" ]] && [[ "$(tty)" != /dev/tty[0-9]* ]]; then
+    tput cup $LINES 0
+    read -k 1 "choice?Do you want to force stay in tmux? [n/Y] "
+    case $choice in
+        [yY$'\n'])
+            tmux_force && exit 0
+            ;;
+        *)
+            echo ""
+            echo "Skipping."
+            ;;
+    esac
+fi
+
+
 
 # Timing function to log module load times
 function _log_timing() {
@@ -175,50 +223,22 @@ function no_such_file_or_directory_handler {
 }
 
 
-function tmux_force {
-    if ! command -v tmux >/dev/null 2>&1; then
-        echo -e "\033[31mError: tmux is not installed.\033[0m" >&2
-        return 1
-    fi
-    if [ -n "$TMUX" ]; then
-        echo -e "\033[31mError: Already in a tmux session.\033[0m" >&2
-        return 1
-    fi
-    if tmux has-session -t '\~' 2>/dev/null; then
-        if ! tmux attach-session -t '\~' 2>/dev/null; then
-            echo -e "\033[31mError: Failed to attach to tmux session '~'.\033[0m" >&2
-            return 1
-        fi
-    else
-        if ! tmux new-session -s '~' -c '~' 2>/dev/null; then
-            echo -e "\033[31mError: Failed to create new tmux session '~'.\033[0m" >&2
-            return 1
-        fi
-    fi
-    while tmux has-session 2>/dev/null; do
-        if ! tmux attach 2>/dev/null; then
-            echo -e "\033[31mError: Failed to reattach to tmux.\033[0m" >&2
-            return 1
-        fi
-    done
-    return 0
-}
 
 function start_ssh_agent {
-    if [[ "${_HYDE_INIT_FLAGS[ssh_agent]}" != "1" ]]; then
-        _HYDE_INIT_FLAGS[ssh_agent]=1
-        
-        eval "$(ssh-agent -s)" > /dev/null 2>&1
-        if [ $? -eq 0 ]; then
-            echo "export SSH_AUTH_SOCK=$SSH_AUTH_SOCK" > "$SSH_ENV"
-            echo "export SSH_AGENT_PID=$SSH_AGENT_PID" >> "$SSH_ENV"
-            chmod 600 "$SSH_ENV"
-        else
-            echo "Failed to start SSH agent" >&2
-            return 1
+    SSH_KEYS=$(grep -lZ -- "-----BEGIN.*PRIVATE KEY-----" ~/.ssh/* | tr '\0' '\n')
+    eval $(keychain --agents ssh --eval --quiet)
+    while IFS= read -r key; do
+        [ -z "$key" ] && continue
+        [ ! -e "$key" ] && continue
+        local target=$(readlink -f "$key" 2>/dev/null || realpath "$key" 2>/dev/null)
+        [ -z "$target" ] && target="$key"
+        local perm=$(stat -c %a "$target" 2>/dev/null)
+        if [ "$perm" != "600" ]; then
+            echo "Fixing permissions for $target (linked from $key)"
+            sudo chmod 600 "$target"
         fi
-    fi
-    { ssh-add -l > /dev/null 2>&1 || ssh-add $(find ~/.ssh/* -type f -name "*.pub" 2>/dev/null | sed 's/\.pub$//' 2>/dev/null) > /dev/null 2>&1; } > /dev/null 2>&1
+    done <<< "$SSH_KEYS"
+    echo "$SSH_KEYS" | xargs ssh-add 2>/dev/null
 }
 
 function paru {
@@ -294,17 +314,7 @@ alias touch="mkdir_and_touch"
 #  Initialization 
 # -------------------
 if [ -t 1 ]; then
-    # SSH Agent setup
-    export SSH_ENV="$HOME/.ssh-agent-vars"
-    if [ -f "$SSH_ENV" ]; then
-        source "$SSH_ENV" > /dev/null
-        if ! kill -0 "$SSH_AGENT_PID" 2>/dev/null; then
-            start_ssh_agent
-        fi
-    else
-        start_ssh_agent
-    fi
-    { ssh-add -l > /dev/null 2>&1 || ssh-add $(find ~/.ssh/* -name "*.pub" 2>/dev/null | sed 's/\.pub$//' 2>/dev/null) > /dev/null 2>&1; } > /dev/null 2>&1
+    start_ssh_agent
 
     # Load plugins
     _log_timing "pre_plugins"
@@ -317,19 +327,6 @@ if [ -t 1 ]; then
     add-zsh-hook precmd prompt_stay_at_bottom
     _log_timing "hooks_setup"
 
-    # Force tmux in Alacritty
-    if [[ "$TERM" =~ ^(xterm-kitty|alacritty)$ ]] && [[ ! "$TMUX" ]] && [[ "$(tty)" != /dev/tty[0-9]* ]]; then
-        read -k 1 "choice?Do you want to force stay in tmux? [n/Y] "
-        case $choice in
-            [yY$'\n'])
-                tmux_force && exit 0
-                ;;
-            *)
-                echo ""
-                echo "Skipping."
-                ;;
-        esac
-    fi
 
     # Load pyenv if .python-version exists
     if [[ -f .python-version ]]; then
