@@ -4,6 +4,11 @@
 zsh_start_time=$SECONDS
 
 
+function prompt_stay_at_bottom {
+    tput cup $LINES 0
+}
+prompt_stay_at_bottom
+
 function tmux_force {
     if ! command -v tmux >/dev/null 2>&1; then
         echo -e "\033[31mError: tmux is not installed.\033[0m" >&2
@@ -36,14 +41,21 @@ function tmux_force {
 
 # Force tmux in Alacritty
 if [[ "$TERM" =~ ^(xterm-kitty|alacritty)$ ]] && [[ ! "$TMUX" ]] && [[ "$(tty)" != /dev/tty[0-9]* ]]; then
-    tput cup $LINES 0
+    local rows=$LINES
+    local cols=$(tput cols)
+    local p="Do you want to force stay in tmux? [n/Y] "
+    prompt_length=${#p}
+    local row=$((rows / 2))  # Middle row
+    local col=$(( (cols - prompt_length) / 2 ))  # Middle column, adjusted for prompt length
+    tput cup $row $col
     read -k 1 "choice?Do you want to force stay in tmux? [n/Y] "
+    clear
+    prompt_stay_at_bottom
     case $choice in
         [yY$'\n'])
             tmux_force && exit 0
             ;;
         *)
-            echo ""
             echo "Skipping."
             ;;
     esac
@@ -76,10 +88,6 @@ function _debug_timing() {
     fi
 }
 
-function prompt_stay_at_bottom {
-    tput cup $LINES 0
-}
-prompt_stay_at_bottom
 
 _log_timing "init"
 
@@ -255,6 +263,11 @@ function download {
 }
 
 function code {
+    if [ -z "$TMUX" ]; then
+        local red='\e[1;31m' reset='\e[0m'
+        printf "${red}Error: 'code' command requires to be in a tmux session${reset}\n"
+        return 1
+    fi
     tmux split-window -h -b
     tmux send-keys "nvim" "C-m"
 }
