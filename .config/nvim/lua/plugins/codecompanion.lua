@@ -1,26 +1,28 @@
 return {
-  "olimorris/codecompanion.nvim",
-  opts = {
-    strategies = {
-      chat = {
-        adapter = "anthropic",
+  {
+    "olimorris/codecompanion.nvim",
+    opts = {
+      strategies = {
+        chat = {
+          adapter = "anthropic",
+        },
+        inline = {
+          adapter = "anthropic",
+        },
       },
-      inline = {
-        adapter = "anthropic",
+      adapters = {
+        anthropic = function()
+          return require("codecompanion.adapters").extend("anthropic", {
+            env = {
+              api_key = "cmd: echo $ANTHROPIC_API_KEY",
+            },
+          })
+        end,
       },
     },
-    adapters = {
-      anthropic = function()
-        return require("codecompanion.adapters").extend("anthropic", {
-          env = {
-            api_key = "cmd: echo $ANTHROPIC_API_KEY",
-          },
-        })
-      end,
+    dependencies = {
+      "nvim-lua/plenary.nvim",
+      "nvim-treesitter/nvim-treesitter",
     },
-  },
-  dependencies = {
-    "nvim-lua/plenary.nvim",
-    "nvim-treesitter/nvim-treesitter",
   },
 }
