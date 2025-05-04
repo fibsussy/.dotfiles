@@ -56,7 +56,7 @@ if [[ "$TERM" =~ ^(xterm-kitty|alacritty)$ ]] && [[ ! "$TMUX" ]] && [[ "$(tty)" 
             tmux_force && exit 0
             ;;
         *)
-            echo "Skipping."
+            echo "not using tmux."
             ;;
     esac
 fi
