@@ -7,11 +7,10 @@
 
 gpg_key.asc.gpg !filter !diff
 README.md !filter !diff
-
 .zshrc !filter !diff
 .zshenv !filter !diff
-
 Scripts/ !filter !diff
+ai_custom_instructions.c !filter !diff
 
 .config/nvim/** !filter !diff
 .config/git/** !filter !diff
