@@ -6,3 +6,4 @@ if [ $status -ne 0 ]; then
     echo "$output"
     exit $status
 fi
+printf "\033[0;32mgitleaks: no leaks found\033[0m\n"
