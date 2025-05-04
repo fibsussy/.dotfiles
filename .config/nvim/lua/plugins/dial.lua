@@ -26,9 +26,11 @@ return {
         {"on", "off"},
         {"enable", "disable"},
         {"enabled", "disabled"},
+        {"null", "undefined"},
         {"public", "private", "protected"},
         {"let", "const", "var"},
         {"and", "or"},
+        {"&&", "||"},
         {"if", "else", "elif"},
         {"min", "max"},
         {"minimum", "maximum"},
@@ -68,6 +70,7 @@ return {
         augend.constant.alias.Alpha,
         augend.constant.alias.ja_weekday,
         augend.constant.alias.ja_weekday_full,
+        augend.constant.alias.bool,
       }
 
       local custom_augends = {}
