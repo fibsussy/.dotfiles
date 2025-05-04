@@ -30,7 +30,7 @@ return {
         {"public", "private", "protected"},
         {"let", "const", "var"},
         {"and", "or"},
-        {"&&", "||"},
+        {"&&", "||", opts = {word=false}, },
         {"if", "else", "elif"},
         {"min", "max"},
         {"minimum", "maximum"},
@@ -57,7 +57,7 @@ return {
 
 
       local augend = require("dial.augend")
-      local default_augends = {
+      local augends = {
         augend.integer.alias.decimal_int,
         augend.integer.alias.hex,
         augend.integer.alias.octal,
@@ -73,20 +73,27 @@ return {
         augend.constant.alias.bool,
       }
 
-      local custom_augends = {}
       for _, list in ipairs(custom_lists) do
-        table.insert(custom_augends, augend.constant.new({
-          elements = list,
-          word = true, -- Match whole words only
+        local options = {
+          word = true, -- Match whole words only by default
           cyclic = true, -- Cycle through the list (e.g., "sunday" to "monday")
           preserve_case = true, -- Preserve case (e.g., "True" to "False")
-        }))
+        }
+        
+        local elements = list
+        if list.opts then
+          local custom_opts = list.opts
+          list.opts = nil
+          for k, v in pairs(custom_opts) do
+            options[k] = v
+          end
+        end
+        options.elements = list
+        table.insert(augends, augend.constant.new(options))
       end
 
-      local all_augends = vim.list_extend(default_augends, custom_augends)
-
       require("dial.config").augends:register_group({
-        default = all_augends,
+        default = augends,
       })
     end,
   },
