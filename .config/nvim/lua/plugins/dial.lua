@@ -49,10 +49,10 @@ return {
         {"block", "inline", "flex", "grid"},
         {"margin", "padding"},
         {"absolute", "relative", "fixed", "sticky"},
-        {"second", "minute", "hour", "day", "week", "month", "year"},
         {"seconds", "minutes", "hours", "days", "weeks", "months", "years"},
-        {"sec", "min", "hr", "day", "wk", "mo", "yr"},
+        {"second", "minute", "hour", "day", "week", "month", "year"},
         {"secs", "mins", "hrs", "days", "wks", "mos", "yrs"},
+        {"sec", "min", "hr", "day", "wk", "mo", "yr"},
       }
 
 
