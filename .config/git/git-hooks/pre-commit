@@ -46,13 +46,13 @@ create_combined_changes_file() {
 
 perform_quick_scan() {
     local combined_file=$1
-    gitleaks file --no-banner "$combined_file" >/dev/null 2>&1
+    gitleaks file -c ~/.config/git/gitleaks.toml "$combined_file" >/dev/null 2>&1
 }
 
 report_leak() {
     local file=$1
     echo "Leaks found in staged version of: $file"
-    gitleaks file --no-banner -v "$file"
+    gitleaks file -c ~/.config/git/gitleaks.toml --no-banner -v "$file"
 }
 
 perform_detailed_scan() {
@@ -62,7 +62,7 @@ perform_detailed_scan() {
     
     while IFS= read -r file; do
         if [ -f "$tmpdir/$file" ] && [ -s "$tmpdir/$file" ]; then
-            if ! gitleaks file --no-banner -v "$tmpdir/$file" >/dev/null 2>&1; then
+            if ! gitleaks file -c ~/.config/git/gitleaks.toml --no-banner -v "$tmpdir/$file" >/dev/null 2>&1; then
                 report_leak "$tmpdir/$file"
                 leaks_found=1
             fi
