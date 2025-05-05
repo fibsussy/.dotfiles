@@ -1,6 +1,7 @@
 #!/bin/bash
 set -eo pipefail
 
+
 # --------------------------
 # Function Definitions
 # --------------------------
@@ -46,7 +47,7 @@ create_combined_changes_file() {
 
 perform_quick_scan() {
     local combined_file=$1
-    gitleaks file -c ~/.config/git/gitleaks.toml "$combined_file" >/dev/null 2>&1
+    gitleaks file -c ~/.config/git/gitleaks.toml --no-banner "$combined_file" >/dev/null 2>&1
 }
 
 report_leak() {
