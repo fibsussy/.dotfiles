@@ -36,7 +36,7 @@ create_combined_changes_file() {
     touch "$combined_file"
     while IFS= read -r file; do
         if export_staged_file "$file" "$tmpdir" && [ -s "$tmpdir/$file" ]; then
-            echo "=== FILE: $file ===" >> "$combined_file"
+            printf "\n=== FILE: $file ===\n\n" >> "$combined_file"
             cat "$tmpdir/$file" >> "$combined_file"
             echo -e "\n" >> "$combined_file"
         fi
@@ -45,9 +45,9 @@ create_combined_changes_file() {
     echo "$combined_file"
 }
 
-perform_quick_scan() {
-    local combined_file=$1
-    gitleaks file -c ~/.config/git/gitleaks.toml --no-banner "$combined_file" >/dev/null 2>&1
+perform_scan() {
+    local file=$1
+    gitleaks file -c ~/.config/git/gitleaks.toml --no-banner -v "$file" >/dev/null 2>&1
 }
 
 report_leak() {
@@ -89,14 +89,16 @@ main() {
     
     combined_file=$(create_combined_changes_file "$files" "$tmpdir")
     
-    if perform_quick_scan "$combined_file"; then
+    if perform_scan "$combined_file"; then
+        printf "\033[0;32mgitleaks: no leaks found\033[0m\n"
         exit 0  # No leaks found
     fi
     
     if perform_detailed_scan "$files" "$tmpdir"; then
         exit 1  # Leaks found
     else
-        exit 0  # No leaks found in detailed scan
+        printf "# No leaks found in detailed scan (false negative?)"
+        exit 2  
     fi
 }
 
