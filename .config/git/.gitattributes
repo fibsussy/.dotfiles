@@ -1,0 +1,2 @@
+identity* filter=git-crypt diff=git-crypt
+gitleaks.toml filter=git-crypt diff=git-crypt

@@ -1,0 +1,105 @@
+#!/bin/bash
+set -eo pipefail
+
+
+# --------------------------
+# Function Definitions
+# --------------------------
+
+setup_temp_workspace() {
+    local -n tmpdir_ref=$1
+    tmpdir_ref=$(mktemp -d)
+    trap 'rm -rf "$tmpdir_ref"' EXIT
+}
+
+get_staged_files() {
+    git diff --name-only --cached --diff-filter=d
+}
+
+export_staged_file() {
+    local file=$1
+    local tmpdir=$2
+    
+    mkdir -p "$tmpdir/$(dirname "$file")"
+    
+    # Try multiple methods to get staged content
+    git show ":0:$file" > "$tmpdir/$file" 2>/dev/null || \
+    git show "HEAD:$file" > "$tmpdir/$file" 2>/dev/null || \
+    git show ":$file" > "$tmpdir/$file" 2>/dev/null
+}
+
+create_combined_changes_file() {
+    local files=$1
+    local tmpdir=$2
+    local combined_file="$tmpdir/combined_changes"
+    
+    touch "$combined_file"
+    while IFS= read -r file; do
+        if export_staged_file "$file" "$tmpdir" && [ -s "$tmpdir/$file" ]; then
+            printf "\n=== FILE: $file ===\n\n" >> "$combined_file"
+            cat "$tmpdir/$file" >> "$combined_file"
+            echo -e "\n" >> "$combined_file"
+        fi
+    done <<< "$files"
+    
+    echo "$combined_file"
+}
+
+perform_scan() {
+    local file=$1
+    gitleaks file -c ~/.config/git/gitleaks.toml --no-banner -v "$file" >/dev/null 2>&1
+}
+
+report_leak() {
+    local file=$1
+    echo "Leaks found in staged version of: $file"
+    gitleaks file -c ~/.config/git/gitleaks.toml --no-banner -v "$file"
+}
+
+perform_detailed_scan() {
+    local files=$1
+    local tmpdir=$2
+    local leaks_found=0
+    
+    while IFS= read -r file; do
+        if [ -f "$tmpdir/$file" ] && [ -s "$tmpdir/$file" ]; then
+            if ! gitleaks file -c ~/.config/git/gitleaks.toml --no-banner -v "$tmpdir/$file" >/dev/null 2>&1; then
+                report_leak "$tmpdir/$file"
+                leaks_found=1
+            fi
+        fi
+    done <<< "$files"
+    
+    return $leaks_found
+}
+
+# --------------------------
+# Main Execution
+# --------------------------
+
+main() {
+    local tmpdir
+    local files
+    local combined_file
+    
+    setup_temp_workspace tmpdir
+    files=$(get_staged_files)
+    
+    [ -z "$files" ] && exit 0
+    
+    combined_file=$(create_combined_changes_file "$files" "$tmpdir")
+    
+    if perform_scan "$combined_file"; then
+        printf "\033[0;32mgitleaks: no leaks found\033[0m\n"
+        exit 0  # No leaks found
+    fi
+    
+    if perform_detailed_scan "$files" "$tmpdir"; then
+        exit 1  # Leaks found
+    else
+        printf "# No leaks found in detailed scan (false negative?)"
+        exit 2  
+    fi
+}
+
+main
