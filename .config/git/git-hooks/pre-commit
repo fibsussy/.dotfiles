@@ -1,10 +1,10 @@
 #!/bin/bash
 set -eo pipefail
 
-
 # --------------------------
 # Function Definitions
 # --------------------------
+export GITLEAKS_CONFIG=~/.config/git/gitleaks.toml
 
 setup_temp_workspace() {
     local -n tmpdir_ref=$1
@@ -13,92 +13,60 @@ setup_temp_workspace() {
 }
 
 get_staged_files() {
-    git diff --name-only --cached --diff-filter=d
-}
-
-export_staged_file() {
-    local file=$1
-    local tmpdir=$2
-    
-    mkdir -p "$tmpdir/$(dirname "$file")"
-    
-    # Try multiple methods to get staged content
-    git show ":0:$file" > "$tmpdir/$file" 2>/dev/null || \
-    git show "HEAD:$file" > "$tmpdir/$file" 2>/dev/null || \
-    git show ":$file" > "$tmpdir/$file" 2>/dev/null
-}
-
-create_combined_changes_file() {
-    local files=$1
-    local tmpdir=$2
-    local combined_file="$tmpdir/combined_changes"
-    
-    touch "$combined_file"
-    while IFS= read -r file; do
-        if export_staged_file "$file" "$tmpdir" && [ -s "$tmpdir/$file" ]; then
-            printf "\n=== FILE: $file ===\n\n" >> "$combined_file"
-            cat "$tmpdir/$file" >> "$combined_file"
-            echo -e "\n" >> "$combined_file"
-        fi
-    done <<< "$files"
-    
-    echo "$combined_file"
-}
-
-perform_scan() {
-    local file=$1
-    gitleaks file -c ~/.config/git/gitleaks.toml --no-banner -v "$file" >/dev/null 2>&1
-}
-
-report_leak() {
-    local file=$1
-    echo "Leaks found in staged version of: $file"
-    gitleaks file -c ~/.config/git/gitleaks.toml --no-banner -v "$file"
-}
-
-perform_detailed_scan() {
-    local files=$1
-    local tmpdir=$2
-    local leaks_found=0
-    
-    while IFS= read -r file; do
-        if [ -f "$tmpdir/$file" ] && [ -s "$tmpdir/$file" ]; then
-            if ! gitleaks file -c ~/.config/git/gitleaks.toml --no-banner -v "$tmpdir/$file" >/dev/null 2>&1; then
-                report_leak "$tmpdir/$file"
-                leaks_found=1
+    git diff --name-only --cached --diff-filter=d | while IFS= read -r file; do
+        # Skip binary files
+        if ! git check-attr binary -- "$file" | grep -q 'binary: set'; then
+            # Skip git-crypt encrypted files that aren't decrypted
+            if ! git-crypt status "$file" 2>/dev/null | grep -q '^encrypted'; then
+                echo "$file"
             fi
         fi
+    done
+}
+
+export_staged_files() {
+    local files=$1
+    local tmpdir=$2
+    while IFS= read -r file; do
+        mkdir -p "$tmpdir/$(dirname "$file")"
+        git show ":0:$file" > "$tmpdir/$file" 2>/dev/null || continue
     done <<< "$files"
-    
-    return $leaks_found
 }
 
 # --------------------------
 # Main Execution
 # --------------------------
-
 main() {
     local tmpdir
     local files
-    local combined_file
-    
+    local output_file
+    local exit_code
+
     setup_temp_workspace tmpdir
     files=$(get_staged_files)
     
     [ -z "$files" ] && exit 0
     
-    combined_file=$(create_combined_changes_file "$files" "$tmpdir")
+    # Export all staged files to temp dir
+    export_staged_files "$files" "$tmpdir"
     
-    if perform_scan "$combined_file"; then
+    # Create temp file for output
+    output_file=$(mktemp)
+    trap 'rm -f "$output_file"' EXIT
+    
+    # Scan temp dir once
+    set +e
+    gitleaks directory --no-banner -v "$tmpdir" >"$output_file" 2>&1
+    exit_code=$?
+    set -e
+    
+    if [ $exit_code -eq 0 ]; then
         printf "\033[0;32mgitleaks: no leaks found\033[0m\n"
-        exit 0  # No leaks found
-    fi
-    
-    if perform_detailed_scan "$files" "$tmpdir"; then
-        exit 1  # Leaks found
+        exit 0
     else
-        printf "# No leaks found in detailed scan (false negative?)"
-        exit 2  
+        printf "gitleaks: leaks found in staged changes\n"
+        cat "$output_file"
+        exit 1
     fi
 }
 
