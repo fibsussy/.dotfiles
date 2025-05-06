@@ -58,11 +58,11 @@ main() {
     set -e
     
     if [ $exit_code -eq 0 ]; then
-        printf "\033[0;32mgitleaks: no leaks found\033[0m\n"
+        echo "gitleaks: no leaks found"
         exit 0
     else
-        printf "gitleaks: leaks found in staged changes\n"
         cat "$output_file"
+        echo "gitleaks: leaks found in staged changes"
         exit 1
     fi
 }
