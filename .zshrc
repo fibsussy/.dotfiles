@@ -299,6 +299,15 @@ function load_nvm {
     fi
 }
 
+
+function stow_dotfiles {
+    local trapped_dir=$(pwd)
+    trap "cd $trapped_dir" EXIT
+    cd ~/.dotfiles/
+    stow -D .
+    stow . --adopt
+}
+
 #  Aliases 
 # ------------
 alias l='eza -lh --icons=auto'
@@ -310,7 +319,6 @@ alias cat='bat'
 alias v="/bin/nvim"
 alias nightlight="pkill gammastep; gammastep & disown"
 alias nightlight_off="pkill gammastep;"
-alias stow.="pushd ~/.dotfiles/; stow -D .; stow . --adopt; popd"
 alias bgrng='~/Scripts/bgrng.sh'
 alias clip="xclip -selection clipboard"
 alias c="code"
