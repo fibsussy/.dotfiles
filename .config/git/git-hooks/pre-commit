@@ -16,10 +16,7 @@ get_staged_files() {
     git diff --name-only --cached --diff-filter=d | while IFS= read -r file; do
         # Skip binary files
         if ! git check-attr binary -- "$file" | grep -q 'binary: set'; then
-            # Skip git-crypt encrypted files that aren't decrypted
-            if ! git-crypt status "$file" 2>/dev/null | grep -q '^encrypted'; then
-                echo "$file"
-            fi
+            echo "$file"
         fi
     done
 }
