@@ -1,6 +1,7 @@
 return {
   {
     "monaqa/dial.nvim",
+    -- branch = "feat-augend-lsp",
     keys = {
       { "<C-a>", function() require("dial.map").manipulate("increment", "normal") end, },
       { "<C-x>", function() require("dial.map").manipulate("decrement", "normal") end, },
@@ -58,6 +59,7 @@ return {
 
       local augend = require("dial.augend")
       local augends = {
+        -- augend.lsp_enum.new({}),
         augend.integer.alias.decimal_int,
         augend.integer.alias.hex,
         augend.integer.alias.octal,
