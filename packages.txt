@@ -93,6 +93,7 @@ os-prober
 pacman-contrib
 pamixer
 parallel
+pass
 pavucontrol
 pipewire
 pipewire-alsa
