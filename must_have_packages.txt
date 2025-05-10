@@ -36,6 +36,7 @@ sea-orm-cli
 
 ## Python
 pyenv
+pyenv-virtualenv
 
 # Containerization
 podman

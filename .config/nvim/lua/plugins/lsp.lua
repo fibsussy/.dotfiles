@@ -98,7 +98,6 @@ vim.api.nvim_create_autocmd("FileType", {
 
 
 return {
-  { "williamboman/mason.nvim" },
   { "j-hui/fidget.nvim" },
   { "hrsh7th/cmp-nvim-lsp" },
   { "onsails/lspkind.nvim" },
@@ -121,8 +120,18 @@ return {
   },
 
   {
-    "williamboman/mason-lspconfig.nvim",
-    dependencies = { "williamboman/mason.nvim" },
+    'neovim/nvim-lspconfig',
+    dependencies = {
+      {'williamboman/mason.nvim'},
+      {
+        'williamboman/mason-lspconfig.nvim',
+        opts = {
+          automatic_enable = true
+
+        }
+      },
+    },
+    lazy = false,
   },
 
 }
