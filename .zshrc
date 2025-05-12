@@ -262,16 +262,6 @@ function download {
     fi
 }
 
-function code {
-    if [ -z "$TMUX" ]; then
-        local red='\e[1;31m' reset='\e[0m'
-        printf "${red}Error: 'code' command requires to be in a tmux session${reset}\n"
-        return 1
-    fi
-    tmux split-window -h -b
-    tmux send-keys "nvim" "C-m"
-}
-
 function mkdir_and_touch {
     mkdir -pv "$(dirname "$1")"
     touch "$1"
@@ -321,7 +311,6 @@ alias nightlight="pkill gammastep; gammastep & disown"
 alias nightlight_off="pkill gammastep;"
 alias bgrng='~/Scripts/bgrng.sh'
 alias clip="xclip -selection clipboard"
-alias c="code"
 alias paruclean="sudo pacman -Rsn $(pacman -Qdtq)"
 alias brb="clear && figlet BRB | lolcat"
 alias ..='cd ..'
