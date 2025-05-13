@@ -24,7 +24,7 @@ return {
         lazy = false,
         init = function() vim.g.unception_block_while_host_edits = true end
       },
-    }
+    },
     cmd = { "GistCreate", "GistCreateFromFile", "GistsList" },
     opts = {
       private = true, 
@@ -38,5 +38,6 @@ return {
         },
       },
     },
+
   },
 }
