@@ -34,16 +34,18 @@ function _G.update_status_column()
   local line_number = vim.v.lnum
   local relative_number = line_number - current_line
   if line_number == current_line then
-    return " %#CursorLineNr#" .. line_number .. " "
-  elseif relative_number > 0 then
-    return "%#LineNr#" .. math.abs(relative_number) .. "%#LineNr#j "
+    return "%s%#CursorLineNr# " .. line_number .. "❯%#NONE# "
   elseif relative_number < 0 then
-    return "%#LineNr#" .. math.abs(relative_number) .. "%#LineNr#k"
+    return "%#LineNr#%s" .. math.abs(relative_number) .. "k "
+  elseif relative_number > 0 then
+    return "%#LineNr#%s" .. math.abs(relative_number) .. "j "
   end
+  return "%s" -- Fallback for empty lines
 end
+vim.o.statuscolumn = "%{%v:lua.update_status_column()%}"
 vim.opt.nu = false
 vim.opt.relativenumber = true
-vim.o.statuscolumn = "%{%v:lua.update_status_column()%}"
+
 
 return {
   "catppuccin/nvim",
