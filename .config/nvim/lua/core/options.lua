@@ -22,7 +22,6 @@ o.undofile = true
 o.termguicolors = true
 
 o.scrolloff = 8
-o.signcolumn = "no"
 opt.isfname:append "@-@"
 
 opt.fillchars = { eob = " " }
