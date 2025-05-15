@@ -38,7 +38,6 @@ function _G.update_status_column()
     if not vim.wo.number then
       line_number = 0
     end
-
     if vim.wo.relativenumber then
       return "%s%#CursorLineNr# " .. line_number .. "❯%#NONE# "
     else
