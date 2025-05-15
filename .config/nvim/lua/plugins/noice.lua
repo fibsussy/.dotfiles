@@ -6,7 +6,11 @@ return {
       "MunifTanjim/nui.nvim",
     },
     opts = {
-
+      notify = { enabled = false, },
+      lsp = { 
+        signature = { enabled = false },
+        hover = { enabled = false },
+      },
       views = {
         cmdline_popup = {
           position = {
