@@ -22,6 +22,6 @@ return {
       vim.keymap.set("n", "<leader>ht", function() require('harpoon.ui').toggle_quick_menu() end, { desc = "Harpoon toggle menu" })
     end,
   },
-  "theHamsta/nvim-dap-virtual-text",
-  "leoluz/nvim-dap-go",
+  { "theHamsta/nvim-dap-virtual-text", event = "VeryLazy" },
+  { "leoluz/nvim-dap-go", event = "VeryLazy" },
 }

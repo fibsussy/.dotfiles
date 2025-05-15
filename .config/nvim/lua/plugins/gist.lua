@@ -21,7 +21,7 @@ return {
       -- and prevents neovim buffer inception
       {
         "samjwill/nvim-unception",
-        lazy = false,
+        event = "VeryLazy",
         init = function() vim.g.unception_block_while_host_edits = true end
       },
     },

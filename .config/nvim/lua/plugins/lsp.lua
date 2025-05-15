@@ -79,28 +79,49 @@ vim.diagnostic.config({
   severity_sort = true,
 })
 
-local capabilities = require("cmp_nvim_lsp").default_capabilities()
-for server, config in pairs(servers) do
-  local server_config = vim.tbl_deep_extend("keep", {
-    capabilities = capabilities,
-  }, config)
-  vim.lsp.config[server] = server_config
-  vim.lsp.enable({server})
+-- Defer capabilities setup to avoid loading cmp_nvim_lsp at startup
+local function setup_servers()
+  local capabilities = require("cmp_nvim_lsp").default_capabilities()
+  for server, config in pairs(servers) do
+    local server_config = vim.tbl_deep_extend("keep", {
+      capabilities = capabilities,
+    }, config)
+    vim.lsp.config[server] = server_config
+    vim.lsp.enable({server})
+  end
 end
+
+-- Setup servers when LSP attaches, not at startup
+vim.api.nvim_create_autocmd("LspAttach", {
+  callback = function()
+    -- Only run once
+    if vim.g.lsp_setup_done then
+      return
+    end
+    vim.g.lsp_setup_done = true
+    setup_servers()
+  end,
+  once = true,
+})
 
 vim.api.nvim_create_autocmd("FileType", {
   pattern = "sh",
   callback = function()
     vim.lsp.config.bashls = {}
     vim.lsp.enable({'bashls'})
+    -- Also ensure cmp_nvim_lsp capabilities are set when needed
+    if vim.g.lsp_setup_done then
+      local capabilities = require("cmp_nvim_lsp").default_capabilities()
+      vim.lsp.config.bashls.capabilities = capabilities
+    end
   end,
 })
 
 
 return {
   { "j-hui/fidget.nvim", event={"LspAttach"} },
-  { "hrsh7th/cmp-nvim-lsp" },
-  { "onsails/lspkind.nvim" },
+  { "hrsh7th/cmp-nvim-lsp", event = "InsertEnter" },
+  { "onsails/lspkind.nvim", event = "InsertEnter" },
 
   {
     "stevearc/conform.nvim",

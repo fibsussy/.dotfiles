@@ -29,8 +29,20 @@ return {
         lualine_c = { { 'filename', path = 1 } },
         lualine_x = {
           {
-            require("noice").api.statusline.mode.get,
-            cond = require("noice").api.statusline.mode.has,
+            function()
+              local ok, noice = pcall(require, "noice")
+              if ok then
+                return noice.api.statusline.mode.get()
+              end
+              return ""
+            end,
+            cond = function()
+              local ok, noice = pcall(require, "noice")
+              if ok then
+                return noice.api.statusline.mode.has()
+              end
+              return false
+            end,
             color = { fg = "#ff9e64" },
           },
           {
