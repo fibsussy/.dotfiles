@@ -91,4 +91,4 @@ return telescope.register_extension {
         :find()
     end,
   },
-}A
+}

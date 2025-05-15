@@ -1,5 +1,12 @@
 return {
   'rmagatti/goto-preview',
+  keys = {
+    { "gpd", desc = "Preview definition" },
+    { "gpt", desc = "Preview type definition" },
+    { "gpi", desc = "Preview implementation" },
+    { "gpr", desc = "Preview references" },
+    { "gP", desc = "Close all previews" },
+  },
   opts = {
     width = 121,
     height = 16,

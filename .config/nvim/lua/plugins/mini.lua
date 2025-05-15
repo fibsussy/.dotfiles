@@ -2,7 +2,8 @@ return {
   {
     "echasnovski/mini.nvim",
     version = false,
-    init = function()
+    event = { "BufReadPre", "BufNewFile" },
+    config = function()
       require('mini.ai').setup()
       require('mini.surround').setup()
       -- require('mini.operators').setup()

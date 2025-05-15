@@ -18,10 +18,8 @@ local function set_custom_highlights()
   vim.api.nvim_set_hl(0, "@lsp.typemod.function.call.async", { fg = async_color })
   vim.api.nvim_set_hl(0, "@lsp.typemod.method.call.async", { fg = async_color })
   vim.api.nvim_set_hl(0, "@keyword.coroutine", { fg = await_color })
-
 end
 set_custom_highlights()
-
 
 vim.api.nvim_create_autocmd({ "ColorScheme" }, {
   callback = function()
@@ -29,20 +27,27 @@ vim.api.nvim_create_autocmd({ "ColorScheme" }, {
   end,
 })
 
+
 function _G.update_status_column()
-  local current_line = vim.fn.line('.')
   local line_number = vim.v.lnum
-  local relative_number = line_number - current_line
+ local current_line = vim.fn.line('.')
   if line_number == current_line then
     return "%s%#CursorLineNr# " .. line_number .. "❯%#NONE# "
-  elseif relative_number < 0 then
-    return "%#LineNr#%s" .. math.abs(relative_number) .. "k "
-  elseif relative_number > 0 then
-    return "%#LineNr#%s" .. math.abs(relative_number) .. "j "
+  end
+  if vim.wo.relativenumber then
+    local relative_number = line_number - current_line
+    if relative_number < 0 then
+      return "%#LineNr#%s" .. math.abs(relative_number) .. "k "
+    elseif relative_number > 0 then
+      return "%#LineNr#%s" .. math.abs(relative_number) .. "j "
+    end
+  else
+    return "%#LineNr#%s:" .. line_number
   end
   return "%s" -- Fallback for empty lines
 end
 vim.o.statuscolumn = "%{%v:lua.update_status_column()%}"
+
 vim.opt.nu = false
 vim.opt.relativenumber = true
 

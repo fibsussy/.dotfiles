@@ -6,7 +6,7 @@ return {
       -- { '<leader>ep', '<cmd>EcologPeek<cr>', desc = 'Ecolog peek variable' },
       -- { '<leader>es', '<cmd>EcologSelect<cr>', desc = 'Switch env file' },
     },
-    lazy = false,
+    event = { "BufReadPre", "BufNewFile" },
     opts = {
       integrations = {
         nvim_cmp = true,

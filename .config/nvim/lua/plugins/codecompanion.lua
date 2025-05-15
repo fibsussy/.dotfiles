@@ -1,6 +1,11 @@
 return {
   {
     "olimorris/codecompanion.nvim",
+    cmd = { "CodeCompanion", "CodeCompanionChat", "CodeCompanionToggle" },
+    keys = {
+      { "<leader>cc", "<cmd>CodeCompanionToggle<cr>", desc = "Toggle CodeCompanion" },
+      { "<leader>ca", "<cmd>CodeCompanionActions<cr>", desc = "CodeCompanion Actions" },
+    },
     opts = {
       strategies = {
         chat = {

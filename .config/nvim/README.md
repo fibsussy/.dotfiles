@@ -142,8 +142,6 @@ NVIM_APPNAME=fibsussy/.dotfiles/.config/nvim nvim
 + [mistricky/codesnap.nvim](https://dotfyle.com/plugins/mistricky/codesnap.nvim)
 + [stevearc/dressing.nvim](https://dotfyle.com/plugins/stevearc/dressing.nvim)
 + [echasnovski/mini.nvim](https://dotfyle.com/plugins/echasnovski/mini.nvim)
-+ [rcarriga/nvim-notify](https://dotfyle.com/plugins/rcarriga/nvim-notify)
-+ [folke/noice.nvim](https://dotfyle.com/plugins/folke/noice.nvim)
 ### workflow
 
 + [m4xshen/hardtime.nvim](https://dotfyle.com/plugins/m4xshen/hardtime.nvim)
