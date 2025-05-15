@@ -54,12 +54,16 @@ function _G.update_status_column()
   end
 end
 
-vim.schedule(function()
-  vim.o.statuscolumn = "%{%v:lua.update_status_column()%}"
-end)
-
 vim.o.number = true
 vim.o.relativenumber = true
+
+vim.api.nvim_create_autocmd("VimEnter", {
+  callback = function()
+    vim.defer_fn(function()
+      vim.o.statuscolumn = "%{%v:lua.update_status_column()%}"
+    end, 0)
+  end,
+})
 
 vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI" }, {
   callback = function()
