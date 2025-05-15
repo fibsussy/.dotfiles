@@ -32,7 +32,6 @@ function _G.update_status_column()
   if not ( vim.wo.number or vim.wo.relativenumber ) then
     return "%s" -- do nothing
   end
-
   local line_number = vim.v.lnum
   local current_line = vim.fn.line('.')
   if line_number == current_line then
@@ -40,31 +39,32 @@ function _G.update_status_column()
       line_number = 0
     end
     return "%s%#CursorLineNr# " .. line_number .. "❯%#NONE# "
-    
   end
-  if vim.wo.relativenumber then
-    local relative_number = line_number - current_line
-    if relative_number < 0 then
-      return "%#LineNr#%s" .. math.abs(relative_number) .. "k "
-    elseif relative_number > 0 then
-      return "%#LineNr#%s" .. math.abs(relative_number) .. "j "
-    end
-  else
+  if not vim.wo.relativenumber then
     return "%#LineNr#%s:" .. line_number
   end
-  return "%s" -- Fallback for empty lines
+  local relative_number = line_number - current_line
+  if relative_number < 0 then
+    return "%#LineNr#%s" .. math.abs(relative_number) .. "k "
+  elseif relative_number > 0 then
+    return "%#LineNr#%s" .. math.abs(relative_number) .. "j "
+  end
 end
-vim.o.statuscolumn = "%{%v:lua.update_status_column()%}"
 
-vim.opt.number = true
-vim.opt.relativenumber = true
+vim.schedule(function()
+  vim.o.statuscolumn = "%{%v:lua.update_status_column()%}"
+end)
+
+vim.o.number = true
+vim.o.relativenumber = true
 
 vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI" }, {
   callback = function()
-    vim.wo.statuscolumn = vim.wo.statuscolumn
+    if not vim.wo.relativenumber then
+      vim.wo.statuscolumn = vim.wo.statuscolumn
+    end
   end,
 })
-
 
 return {
   "catppuccin/nvim",

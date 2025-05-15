@@ -109,7 +109,7 @@ return {
             spell = false,
             wrap = false,
             signcolumn = "yes",
-            statuscolumn = " ",
+            statuscolumn = "",
             conceallevel = 3,
           },
         })
