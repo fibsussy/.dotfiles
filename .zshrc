@@ -3,16 +3,11 @@
 # Skip non-interactive shells
 [[ -o interactive ]] || return
 
-# ====================================
-# Debugging and Profiling Setup
-# ====================================
-# Enable debugging if ZSH_DEBUG is set
 if [[ -n "$ZSH_DEBUG" ]]; then
     zsh_start_ms=$(($(date +%s%N 2>/dev/null || gdate +%s%N || (date +%s; echo 000000000)) / 1000000))
     zsh_previous_ms=$zsh_start_ms
 fi
 
-# Initialize timing log file
 function init_timing_log() {
     if [[ -n "$ZSH_DEBUG" ]]; then
         echo -e "\n=== ZSH Startup: $(date) ===\n" > /tmp/zsh_timing.log
@@ -21,7 +16,6 @@ function init_timing_log() {
     fi
 }
 
-# Log timing for each section
 function log_timing() {
     if [[ -n "$ZSH_DEBUG" ]]; then
         local section_name=$1
@@ -38,28 +32,21 @@ function log_timing() {
     fi
 }
 
-# Enable profiling if ZSH_PROFILE is set
 if [[ -n "$ZSH_PROFILE" ]]; then
     zmodload zsh/zprof
     [[ -n "$ZSH_DEBUG" ]] && log_timing "profiling_setup"
 fi
 
-# Start timing
 if [[ -n "$ZSH_DEBUG" ]]; then
     init_timing_log
     log_timing "init"
 fi
 
-# ====================================
-# Environment Variables
-# ====================================
-# XDG Base Directory Specification
 export XDG_CONFIG_HOME="$HOME/.config"
 export XDG_CACHE_HOME="$HOME/.cache"
 export XDG_DATA_HOME="$HOME/.local/share"
 export XDG_STATE_HOME="$HOME/.local/state"
 
-# Tool-specific environment variables
 export RUSTUP_HOME="$XDG_DATA_HOME/rustup"
 export RUSTFLAGS='-W clippy::pedantic -W clippy::nursery -A clippy::unreadable_literal -A clippy::struct_excessive_bools'
 export PYENV_ROOT="$HOME/.pyenv"
@@ -68,7 +55,6 @@ export LANG=en_US.UTF-8
 export EDITOR='nvim'
 [[ -n $SSH_CONNECTION ]] && export EDITOR='vim'
 
-# Consolidated PATH
 path=(
     $HOME/.cargo/bin
     $PYENV_ROOT/bin
@@ -80,16 +66,12 @@ path=(
 export PATH
 [[ -n "$ZSH_DEBUG" ]] && log_timing "env_vars"
 
-# XDG compliance for tools
 export LESSHISTFILE="${XDG_STATE_HOME}/less/history"
 export PARALLEL_HOME="$XDG_CONFIG_HOME/parallel"
 export WGETRC="${XDG_CONFIG_HOME}/wgetrc"
 export SCREENRC="$XDG_CONFIG_HOME/screen/screenrc"
 [[ -n "$ZSH_DEBUG" ]] && log_timing "xdg_compliance"
 
-# ====================================
-# Shell Options
-# ====================================
 setopt autocd               # Cd by typing directory name
 setopt interactivecomments  # Allow comments in interactive shells
 setopt magicequalsubst      # Expand filenames in 'anything=expression'
@@ -103,9 +85,8 @@ setopt pushd_silent         # Silent pushd/popd
 setopt EXTENDED_GLOB        # Enable extended globbing
 [[ -n "$ZSH_DEBUG" ]] && log_timing "shell_options"
 
-# ====================================
+
 # Vi Keybindings
-# ====================================
 bindkey -v                  # Enable vi mode
 KEYTIMEOUT=1                # Fast mode switching
 autoload edit-command-line
@@ -114,9 +95,7 @@ bindkey '^e' edit-command-line  # Edit command in editor
 bindkey '^r' history-incremental-search-backward  # Ctrl+R for history search
 [[ -n "$ZSH_DEBUG" ]] && log_timing "vi_keybindings"
 
-# ====================================
-# History Configuration
-# ====================================
+
 HISTFILE="${XDG_STATE_HOME}/zsh/history"
 HISTSIZE=50000
 SAVEHIST=10000
@@ -127,22 +106,17 @@ setopt hist_ignore_space       # Ignore commands starting with space
 setopt hist_verify             # Verify history expansion
 [[ -n "$ZSH_DEBUG" ]] && log_timing "history_config"
 
-# ====================================
-# Prompt Configuration
-# ====================================
-# Keep prompt at bottom of terminal
+
 function prompt_stay_at_bottom {
     tput cup $LINES 0 2>/dev/null || true
 }
 [[ -n "$ZSH_DEBUG" ]] && log_timing "prompt_function"
 
-# Starship prompt
+
 eval "$(starship init zsh)"
 [[ -n "$ZSH_DEBUG" ]] && log_timing "starship_init"
 
-# ====================================
-# Completion System
-# ====================================
+
 function setup_completion() {
     [[ -n "$ZSH_DEBUG" ]] && log_timing "pre_compinit"
     fpath=(~/.zfunc $fpath)
@@ -166,7 +140,6 @@ function setup_completion() {
     ZSH_AUTOSUGGEST_STRATEGY=()
     ZSH_HIGHLIGHT_MAXLENGTH=0
     
-    # fzf-tab completion
     source ~/.config/zsh/fzf-tab/fzf-tab.plugin.zsh
     zmodload zsh/complist
     bindkey -M menuselect 'h' vi-backward-char
@@ -179,10 +152,7 @@ function setup_completion() {
     [[ -n "$ZSH_DEBUG" ]] && log_timing "compinit"
 }
 
-# ====================================
-# Plugins and Lazy Loading
-# ====================================
-# Load zsh-defer
+
 function load_zsh_defer() {
     if [[ ! -f ${ZDOTDIR:-$HOME}/.zsh-defer/zsh-defer.plugin.zsh ]]; then
         curl -s -L https://raw.githubusercontent.com/romkatv/zsh-defer/master/zsh-defer.plugin.zsh > ${ZDOTDIR:-$HOME}/.zsh-defer/zsh-defer.plugin.zsh
@@ -191,7 +161,6 @@ function load_zsh_defer() {
     [[ -n "$ZSH_DEBUG" ]] && log_timing "zsh_defer_load"
 }
 
-# Lazy load plugins
 load_zsh_defer
 zsh-defer -c "[[ -f /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh ]] && source /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh"
 zsh-defer -c "[[ -f /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]] && source /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
@@ -199,9 +168,7 @@ zsh-defer setup_completion
 zsh-defer -c "eval \$(zoxide init zsh)"
 [[ -n "$ZSH_DEBUG" ]] && log_timing "plugins_lazy_loaded"
 
-# ====================================
-# TMUX Setup
-# ====================================
+
 function tmux_force {
     if ! (( $+commands[tmux] )); then
         echo -e "\033[31mError: tmux is not installed.\033[0m" >&2
@@ -266,14 +233,12 @@ function setup_tool_aliases() {
 }
 zsh-defer setup_tool_aliases
 
-# Colorized commands
 alias grep='grep --color=auto'
-alias fgrep='fgrep --color=auto'
-alias egrep='egrep --color=auto'
+alias fgrep='grep -F --color=auto'
+alias egrep='grep -E --color=auto'
 alias diff='diff --color=auto'
 alias ip='ip --color=auto'
 
-# Utility functions
 function mkdir_and_touch {
     mkdir -pv "$(dirname "$1")"
     touch "$1"
@@ -331,9 +296,6 @@ function stow_dotfiles {
     fi
 }
 
-# ====================================
-# SSH Agent
-# ====================================
 function start_ssh_agent {
     if (( $+commands[ssh-agent] )) && (( $+commands[keychain] )); then
         local SSH_KEYS=$(find ~/.ssh -type f -exec grep -l -- "-----BEGIN.*PRIVATE KEY-----" {} \; 2>/dev/null)
@@ -352,14 +314,10 @@ function start_ssh_agent {
 }
 zsh-defer start_ssh_agent
 
-# ====================================
-# Hooks
-# ====================================
 autoload -Uz add-zsh-hook
 add-zsh-hook precmd prompt_stay_at_bottom
 [[ -n "$ZSH_DEBUG" ]] && log_timing "hooks_setup"
 
-# Final timing report and slow load check
 if [[ -n "$ZSH_DEBUG" && -f /tmp/zsh_timing.log ]]; then
     local current_ms=$(($(date +%s%N 2>/dev/null || gdate +%s%N || (date +%s; echo 000000000)) / 1000000))
     local total_ms=$((current_ms - zsh_start_ms))
@@ -379,5 +337,4 @@ if [[ -n "$ZSH_DEBUG" && -f /tmp/zsh_timing.log ]]; then
     fi
 fi
 
-# Run profiling if enabled
 [[ -n "$ZSH_PROFILE" ]] && zprof
