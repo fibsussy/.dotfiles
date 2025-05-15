@@ -98,7 +98,7 @@ vim.api.nvim_create_autocmd("FileType", {
 
 
 return {
-  { "j-hui/fidget.nvim" },
+  { "j-hui/fidget.nvim", event={"LspAttach"} },
   { "hrsh7th/cmp-nvim-lsp" },
   { "onsails/lspkind.nvim" },
 

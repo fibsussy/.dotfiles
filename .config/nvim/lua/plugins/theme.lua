@@ -19,7 +19,6 @@ local function set_custom_highlights()
   vim.api.nvim_set_hl(0, "@lsp.typemod.method.call.async", { fg = async_color })
   vim.api.nvim_set_hl(0, "@keyword.coroutine", { fg = await_color })
 end
-set_custom_highlights()
 
 vim.api.nvim_create_autocmd({ "ColorScheme" }, {
   callback = function()
@@ -73,9 +72,13 @@ vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI" }, {
 return {
   "catppuccin/nvim",
   name = "catppuccin",
-  priority = 999999,
-  opts = { transparent_background = true },
+  event = "VimEnter",
+  priority = 99999,
+  opts = {
+    transparent_background = true,
+  },
   config = function()
     vim.cmd.colorscheme "catppuccin"
+    set_custom_highlights()
   end,
 }
