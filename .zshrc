@@ -111,6 +111,7 @@ KEYTIMEOUT=1                # Fast mode switching
 autoload edit-command-line
 zle -N edit-command-line
 bindkey '^e' edit-command-line  # Edit command in editor
+bindkey '^r' history-incremental-search-backward  # Ctrl+R for history search
 [[ -n "$ZSH_DEBUG" ]] && log_timing "vi_keybindings"
 
 # ====================================
@@ -238,20 +239,15 @@ function setup_tmux() {
 setup_tmux
 [[ -n "$ZSH_DEBUG" ]] && log_timing "tmux_setup_complete"
 
-# ====================================
-# Aliases and Functions
-# ====================================
-# Navigation aliases
-alias ..='cd ..'
-alias ...='cd ../..'
-alias .3='cd ../../..'
-alias .4='cd ../../../..'
-alias .5='cd ../../../../..'
-alias mkdir='mkdir -p'
-alias touch="mkdir_and_touch"
 
-# Tool-specific aliases (deferred)
 function setup_tool_aliases() {
+    alias ..='cd ..'
+    alias ...='cd ../..'
+    alias .3='cd ../../..'
+    alias .4='cd ../../../..'
+    alias .5='cd ../../../../..'
+    alias mkdir='mkdir -p'
+    alias touch="mkdir_and_touch"
     alias l='eza -lh --icons=auto'
     alias ls='eza -1 --icons=auto'
     alias ll='eza -lha --icons=auto --sort=name --group-directories-first'
@@ -265,6 +261,7 @@ function setup_tool_aliases() {
     alias clip="xclip -selection clipboard"
     alias brb="clear && figlet BRB | lolcat"
     alias bgrng='~/Scripts/bgrng.sh'
+    alias clipout='tee >(wl-copy)'  # Usage: command | clipout
     [[ -n "$ZSH_DEBUG" ]] && log_timing "aliases_setup"
 }
 zsh-defer setup_tool_aliases
