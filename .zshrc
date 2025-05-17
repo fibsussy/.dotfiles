@@ -297,20 +297,20 @@ function stow_dotfiles {
 }
 
 function start_ssh_agent {
-    if (( $+commands[ssh-agent] )) && (( $+commands[keychain] )); then
-        local SSH_KEYS=$(find ~/.ssh -type f -exec grep -l -- "-----BEGIN.*PRIVATE KEY-----" {} \; 2>/dev/null)
-        eval $(keychain --eval --quiet)
-        echo "$SSH_KEYS" | while IFS= read -r key; do
-            [ -z "$key" ] || [ ! -e "$key" ] && continue
-            local target=$(readlink -f "$key" 2>/dev/null || realpath "$key" 2>/dev/null || echo "$key")
-            local perm=$(stat -c %a "$target" 2>/dev/null)
-            if [ "$perm" != "600" ]; then
-                chmod 600 "$target" 2>/dev/null || sudo chmod 600 "$target" 2>/dev/null
-            fi
-        done
-        echo "$SSH_KEYS" | xargs -r ssh-add 2>/dev/null
-    fi
-    [[ -n "$ZSH_DEBUG" ]] && log_timing "ssh_agent_complete"
+    SSH_KEYS=$(grep -lZ -- "-----BEGIN.*PRIVATE KEY-----" ~/.ssh/* | tr '\0' '\n')
+    eval $(keychain --agents ssh --eval --quiet)
+    while IFS= read -r key; do
+        [ -z "$key" ] && continue
+        [ ! -e "$key" ] && continue
+        local target=$(readlink -f "$key" 2>/dev/null || realpath "$key" 2>/dev/null)
+        [ -z "$target" ] && target="$key"
+        local perm=$(stat -c %a "$target" 2>/dev/null)
+        if [ "$perm" != "600" ]; then
+            echo "Fixing permissions for $target (linked from $key)"
+            sudo chmod 600 "$target"
+        fi
+    done <<< "$SSH_KEYS"
+    echo "$SSH_KEYS" | xargs ssh-add 2>/dev/null
 }
 zsh-defer start_ssh_agent
 
