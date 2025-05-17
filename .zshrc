@@ -171,7 +171,7 @@ log_timing "plugins_lazy_loaded"
 
 
 function tmux_force {
-    if ! (( $+commands[tmux] )); then
+    if ! command -v tmux >/dev/null 2>&1; then
         echo -e "\033[31mError: tmux is not installed.\033[0m" >&2
         return 1
     fi
@@ -180,10 +180,23 @@ function tmux_force {
         return 1
     fi
     if tmux has-session -t '\~' 2>/dev/null; then
-        tmux attach-session -t '\~' 2>/dev/null || return 1
+        if ! tmux attach-session -t '\~' 2>/dev/null; then
+            echo -e "\033[31mError: Failed to attach to tmux session '~'.\033[0m" >&2
+            return 1
+        fi
     else
-        tmux new-session -s '~' -c '~' 2>/dev/null || return 1
+        if ! tmux new-session -s '~' -c '~' 2>/dev/null; then
+            echo -e "\033[31mError: Failed to create new tmux session '~'.\033[0m" >&2
+            return 1
+        fi
     fi
+    while tmux has-session 2>/dev/null; do
+        if ! tmux attach 2>/dev/null; then
+            echo -e "\033[31mError: Failed to reattach to tmux.\033[0m" >&2
+            return 1
+        fi
+    done
+    return 0
 }
 
 function setup_tmux() {
