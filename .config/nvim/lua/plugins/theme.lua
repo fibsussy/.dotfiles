@@ -20,9 +20,26 @@ local function set_custom_highlights()
   vim.api.nvim_set_hl(0, "@keyword.coroutine", { fg = await_color })
 end
 
-vim.api.nvim_create_autocmd({ "ColorScheme" }, {
+
+local colorscheme_file = vim.fn.stdpath('cache') .. '/colorscheme.txt'
+
+vim.api.nvim_create_autocmd('ColorScheme', {
+  pattern = '*',
   callback = function()
+    local colorscheme = vim.g.colors_name
+    vim.fn.writefile({ colorscheme }, colorscheme_file)
     set_custom_highlights()
+  end,
+})
+
+vim.api.nvim_create_autocmd('VimEnter', {
+  pattern = '*',
+  callback = function()
+    if vim.fn.filereadable(colorscheme_file) == 1 then
+      local colorscheme = vim.fn.readfile(colorscheme_file)[1]
+      vim.cmd.colorscheme(colorscheme)
+      set_custom_highlights()
+    end
   end,
 })
 
@@ -56,6 +73,7 @@ end
 
 vim.o.number = true
 vim.o.relativenumber = true
+-- vim.cmd.colorscheme "catppuccin"
 
 vim.api.nvim_create_autocmd("VimEnter", {
   callback = function()
@@ -74,15 +92,19 @@ vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI" }, {
 })
 
 return {
-  "catppuccin/nvim",
-  name = "catppuccin",
-  event = "VimEnter",
-  priority = 99999,
-  opts = {
-    transparent_background = true,
+  {
+    "catppuccin/nvim",
+    name = "catppuccin",
+    lazy = false,
+    priority = 99999,
+    opts = {
+      transparent_background = true,
+    },
   },
-  config = function()
-    vim.cmd.colorscheme "catppuccin"
-    set_custom_highlights()
-  end,
+  {
+    "folke/tokyonight.nvim",
+    lazy = false,
+    priority = 99999,
+    opts = {},
+  },
 }
