@@ -18,23 +18,24 @@ function init_timing_log() {
 
 function log_timing() {
     if [[ -n "$ZSH_DEBUG" ]]; then
-        local section_name=$1
-        local notes=${2:-}
-        local current_ms=$(($(date +%s%N 2>/dev/null || gdate +%s%N || (date +%s; echo 000000000)) / 1000000))
-        local elapsed=$((current_ms - zsh_start_ms))
-        local delta=$((current_ms - zsh_previous_ms))
-        zsh_previous_ms=$current_ms
-        if [[ -z "$notes" ]]; then
-            printf "%-30s %10d   %10d\n" "${section_name}" $elapsed $delta >> /tmp/zsh_timing.log
-        else
-            printf "%-30s %10d   %10d   %s\n" "${section_name}" $elapsed $delta "${notes}" >> /tmp/zsh_timing.log
-        fi
+        return;
+    fi
+    local section_name=$1
+    local notes=${2:-}
+    local current_ms=$(($(date +%s%N 2>/dev/null || gdate +%s%N || (date +%s; echo 000000000)) / 1000000))
+    local elapsed=$((current_ms - zsh_start_ms))
+    local delta=$((current_ms - zsh_previous_ms))
+    zsh_previous_ms=$current_ms
+    if [[ -z "$notes" ]]; then
+        printf "%-30s %10d   %10d\n" "${section_name}" $elapsed $delta >> /tmp/zsh_timing.log
+    else
+        printf "%-30s %10d   %10d   %s\n" "${section_name}" $elapsed $delta "${notes}" >> /tmp/zsh_timing.log
     fi
 }
 
 if [[ -n "$ZSH_PROFILE" ]]; then
     zmodload zsh/zprof
-    [[ -n "$ZSH_DEBUG" ]] && log_timing "profiling_setup"
+    log_timing "profiling_setup"
 fi
 
 if [[ -n "$ZSH_DEBUG" ]]; then
@@ -64,13 +65,13 @@ path=(
     $path
 )
 export PATH
-[[ -n "$ZSH_DEBUG" ]] && log_timing "env_vars"
+log_timing "env_vars"
 
 export LESSHISTFILE="${XDG_STATE_HOME}/less/history"
 export PARALLEL_HOME="$XDG_CONFIG_HOME/parallel"
 export WGETRC="${XDG_CONFIG_HOME}/wgetrc"
 export SCREENRC="$XDG_CONFIG_HOME/screen/screenrc"
-[[ -n "$ZSH_DEBUG" ]] && log_timing "xdg_compliance"
+log_timing "xdg_compliance"
 
 setopt autocd               # Cd by typing directory name
 setopt interactivecomments  # Allow comments in interactive shells
@@ -83,7 +84,7 @@ setopt auto_pushd           # Push directories to stack
 setopt pushd_ignore_dups    # Avoid duplicates in stack
 setopt pushd_silent         # Silent pushd/popd
 setopt EXTENDED_GLOB        # Enable extended globbing
-[[ -n "$ZSH_DEBUG" ]] && log_timing "shell_options"
+log_timing "shell_options"
 
 
 # Vi Keybindings
@@ -93,7 +94,7 @@ autoload edit-command-line
 zle -N edit-command-line
 bindkey '^e' edit-command-line  # Edit command in editor
 bindkey '^r' history-incremental-search-backward  # Ctrl+R for history search
-[[ -n "$ZSH_DEBUG" ]] && log_timing "vi_keybindings"
+log_timing "vi_keybindings"
 
 
 HISTFILE="${XDG_STATE_HOME}/zsh/history"
@@ -104,21 +105,21 @@ setopt hist_expire_dups_first  # Expire duplicates first
 setopt hist_ignore_dups        # Ignore consecutive duplicates
 setopt hist_ignore_space       # Ignore commands starting with space
 setopt hist_verify             # Verify history expansion
-[[ -n "$ZSH_DEBUG" ]] && log_timing "history_config"
+log_timing "history_config"
 
 
 function prompt_stay_at_bottom {
     tput cup $LINES 0 2>/dev/null || true
 }
-[[ -n "$ZSH_DEBUG" ]] && log_timing "prompt_function"
+log_timing "prompt_function"
 
 
 eval "$(starship init zsh)"
-[[ -n "$ZSH_DEBUG" ]] && log_timing "starship_init"
+log_timing "starship_init"
 
 
 function setup_completion() {
-    [[ -n "$ZSH_DEBUG" ]] && log_timing "pre_compinit"
+    log_timing "pre_compinit"
     fpath=(~/.zfunc $fpath)
     autoload -Uz compinit
     
@@ -149,7 +150,7 @@ function setup_completion() {
     zstyle ':completion:*:descriptions' format '[%d]'
     zstyle ':completion:*' list-colors ${(s.:.)LS_COLORS}
     zstyle ':fzf-tab:complete:cd:*' fzf-preview 'ls -1 --color=always $realpath'
-    [[ -n "$ZSH_DEBUG" ]] && log_timing "compinit"
+    log_timing "compinit"
 }
 
 
@@ -158,7 +159,7 @@ function load_zsh_defer() {
         curl -s -L https://raw.githubusercontent.com/romkatv/zsh-defer/master/zsh-defer.plugin.zsh > ${ZDOTDIR:-$HOME}/.zsh-defer/zsh-defer.plugin.zsh
     fi
     source ${ZDOTDIR:-$HOME}/.zsh-defer/zsh-defer.plugin.zsh
-    [[ -n "$ZSH_DEBUG" ]] && log_timing "zsh_defer_load"
+    log_timing "zsh_defer_load"
 }
 
 load_zsh_defer
@@ -166,7 +167,7 @@ zsh-defer -c "[[ -f /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestio
 zsh-defer -c "[[ -f /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]] && source /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
 zsh-defer setup_completion
 zsh-defer -c "eval \$(zoxide init zsh)"
-[[ -n "$ZSH_DEBUG" ]] && log_timing "plugins_lazy_loaded"
+log_timing "plugins_lazy_loaded"
 
 
 function tmux_force {
@@ -204,7 +205,7 @@ function setup_tmux() {
     fi
 }
 setup_tmux
-[[ -n "$ZSH_DEBUG" ]] && log_timing "tmux_setup_complete"
+log_timing "tmux_setup_complete"
 
 
 function setup_tool_aliases() {
@@ -229,7 +230,7 @@ function setup_tool_aliases() {
     alias brb="clear && figlet BRB | lolcat"
     alias bgrng='~/Scripts/bgrng.sh'
     alias clipout='tee >(wl-copy)'  # Usage: command | clipout
-    [[ -n "$ZSH_DEBUG" ]] && log_timing "aliases_setup"
+    log_timing "aliases_setup"
 }
 zsh-defer setup_tool_aliases
 
@@ -251,7 +252,7 @@ function load_environment_files() {
     [[ -f ./.env.dev ]] && source ./.env.dev
     [[ -f ./.env.development ]] && source ./.env.development
     set +a
-    [[ -n "$ZSH_DEBUG" ]] && log_timing "env_files_loaded"
+    log_timing "env_files_loaded"
 }
 load_environment_files
 
@@ -316,7 +317,7 @@ zsh-defer start_ssh_agent
 
 autoload -Uz add-zsh-hook
 add-zsh-hook precmd prompt_stay_at_bottom
-[[ -n "$ZSH_DEBUG" ]] && log_timing "hooks_setup"
+log_timing "hooks_setup"
 
 if [[ -n "$ZSH_DEBUG" && -f /tmp/zsh_timing.log ]]; then
     local current_ms=$(($(date +%s%N 2>/dev/null || gdate +%s%N || (date +%s; echo 000000000)) / 1000000))
