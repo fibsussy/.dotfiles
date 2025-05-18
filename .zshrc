@@ -114,10 +114,6 @@ function prompt_stay_at_bottom {
 log_timing "prompt_function"
 
 
-eval "$(starship init zsh)"
-log_timing "starship_init"
-
-
 function setup_completion() {
     log_timing "pre_compinit"
     fpath=(~/.zfunc $fpath)
@@ -332,6 +328,11 @@ autoload -Uz add-zsh-hook
 add-zsh-hook precmd prompt_stay_at_bottom
 log_timing "hooks_setup"
 
+
+eval "$(starship init zsh)"
+log_timing "starship_init"
+
+
 if [[ -n "$ZSH_DEBUG" && -f /tmp/zsh_timing.log ]]; then
     local current_ms=$(($(date +%s%N 2>/dev/null || gdate +%s%N || (date +%s; echo 000000000)) / 1000000))
     local total_ms=$((current_ms - zsh_start_ms))
@@ -350,5 +351,6 @@ if [[ -n "$ZSH_DEBUG" && -f /tmp/zsh_timing.log ]]; then
         echo "2. Run ZSH_PROFILE=1 zsh -i -c exit for function-level profiling"
     fi
 fi
+
 
 [[ -n "$ZSH_PROFILE" ]] && zprof
