@@ -1,5 +1,4 @@
 return {
-
   {
     "nvim-treesitter/nvim-treesitter-context",
     event = { "BufReadPost", "BufNewFile" },
@@ -11,17 +10,15 @@ return {
 
   {
     'nvim-treesitter/nvim-treesitter',
-    event = { "BufReadPost", "BufNewFile" },
-    build = function()
-      pcall(require('nvim-treesitter.install').update { with_sync = true })
-    end,
+    event = "VeryLazy",
+    build = ":TSUpdate",
     dependencies = {
       "nvim-treesitter/nvim-treesitter-textobjects",
     },
     opts = {
       ensure_installed = {
         'go', 'lua', 'python', 'rust', 'typescript', 'regex',
-        'bash', 'markdown', 'markdown_inline', 'kdl', 'sql', 'org', 'terraform',
+        'bash', 'markdown', 'markdown_inline', 'kdl', 'sql', 'terraform',
         'html', 'css', 'javascript', 'yaml', 'json', 'toml',
       },
       highlight = { enable = true },
@@ -77,6 +74,10 @@ return {
           swap_previous = { ['<leader>A'] = '@parameter.inner' },
         },
       },
-    }
-  }
+      auto_install = true,
+    },
+    config = function(_, opts)
+      require('nvim-treesitter.configs').setup(opts)
+    end,
+  },
 }
