@@ -22,6 +22,13 @@ return {
         {"jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"},
         {"spring", "summer", "fall", "winter"},
         {"north", "northeast", "east", "southeast", "south", "southwest", "west", "northwest"},
+        {
+          "estj","estp","entj","enfj",
+          "esfj","esfp","entp","enfp",
+          "istj","istp","intj","infj",
+          "isfj","isfp","intp","infp",
+        },
+        {"sdsf", "sduf", "udsf", "uduf"},
         {"true", "false"},
         {"yes", "no"},
         {"on", "off"},
