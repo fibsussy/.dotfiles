@@ -71,6 +71,7 @@ export LESSHISTFILE="${XDG_STATE_HOME}/less/history"
 export PARALLEL_HOME="$XDG_CONFIG_HOME/parallel"
 export WGETRC="${XDG_CONFIG_HOME}/wgetrc"
 export SCREENRC="$XDG_CONFIG_HOME/screen/screenrc"
+export MANPAGER='nvim +Man!'
 log_timing "xdg_compliance"
 
 setopt autocd               # Cd by typing directory name
