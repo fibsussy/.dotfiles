@@ -1,6 +1,7 @@
     "custom/ipaddr": {
         "format": "{}",
-        "exec": "ip -4 addr show up | grep -oP '(?<=inet\\s)\\d+\\.\\d+\\.\\d+\\.\\d+'  | grep -v '127.0.0.1' | head -n 1",
+        "exec": "~/.config/waybar/modules/ipaddr.sh",
+        "on-click": "echo",
         "interval": 30,
     },
 
