@@ -3,7 +3,7 @@ return {
     "stevearc/oil.nvim",
     cmd = "Oil",
     keys = {
-      { "<leader>e", "<cmd>Oil<cr>", desc = "Open Oil (explorer)" },
+      { "<leader>e", "<cmd> Oil --preview <cr>", desc = "Open Oil (explorer)" },
     },
     dependencies = {
       "nvim-tree/nvim-web-devicons",
@@ -34,10 +34,9 @@ return {
           return name == ".."
         end,
       },
+      preview_win = {
+        preview_split = "right",
+      },
     },
-
-    init = function()
-      vim.keymap.set("n", "<leader>e", ":Oil <CR>", { desc = "Open Oil (explorer)" })
-    end,
   },
 }
