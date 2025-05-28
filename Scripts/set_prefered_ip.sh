@@ -14,7 +14,8 @@ if [ -z "$IP_INFO" ]; then
     exit 1
 fi
 
-# Extract subnet and mask using ipcalc
+# Extract current IP, subnet, and mask
+CURRENT_IP=$(echo "$IP_INFO" | cut -d'/' -f1)
 SUBNET=$(ipcalc "$IP_INFO" | grep Network | awk '{print $2}' | cut -d'/' -f1)
 MASK=$(ipcalc "$IP_INFO" | grep Network | awk '{print $2}' | cut -d'/' -f2)
 if [ -z "$SUBNET" ] || [ -z "$MASK" ]; then
@@ -22,13 +23,38 @@ if [ -z "$SUBNET" ] || [ -z "$MASK" ]; then
     exit 1
 fi
 
-# Calculate desired IP ending in .69
+# Desired IP ending in .69
 DESIRED_IP=$(echo "$SUBNET" | sed 's/\.[0-9]*$/.69/')
 FULL_IP="$DESIRED_IP/$MASK"
 
-# Check if .69 is in use (using arp-scan, requires root)
-if sudo arp-scan --interface="$INTERFACE" --localnet | grep -q "$DESIRED_IP"; then
-    echo "Error: $DESIRED_IP is already in use."
+# Check if current IP is already .69
+if [ "$CURRENT_IP" = "$DESIRED_IP" ]; then
+    echo "Current IP is already $DESIRED_IP. No changes needed."
+    exit 0
+fi
+
+# Try IPs ending in .69, .70, .71, .72
+for LAST_OCTET in 69 70 71 72; do
+    DESIRED_IP=$(echo "$SUBNET" | sed "s/\.[0-9]*$/.${LAST_OCTET}/")
+    FULL_IP="$DESIRED_IP/$MASK"
+
+    # Skip availability check if this is the current IP
+    if [ "$DESIRED_IP" = "$CURRENT_IP" ]; then
+        echo "Keeping current IP: $DESIRED_IP"
+        break
+    fi
+
+    # Check if IP is in use (using arp-scan, requires root)
+    if ! sudo arp-scan --interface="$INTERFACE" --localnet | grep -q "$DESIRED_IP"; then
+        echo "Found free IP: $DESIRED_IP"
+        break
+    fi
+    echo "$DESIRED_IP is already in use."
+    DESIRED_IP=""
+done
+
+if [ -z "$DESIRED_IP" ]; then
+    echo "Error: No free IPs (.69 to .72) available."
     exit 1
 fi
 
@@ -39,12 +65,13 @@ if [ -z "$GATEWAY" ]; then
     exit 1
 fi
 
-# Remove existing IP (if any)
-sudo ip addr flush dev "$INTERFACE"
-
-# Assign the new IP
-sudo ip addr add "$FULL_IP" dev "$INTERFACE"
-sudo ip route add default via "$GATEWAY" dev "$INTERFACE"
+# Remove existing IP (if any, and if different from desired)
+if [ "$CURRENT_IP" != "$DESIRED_IP" ]; then
+    sudo ip addr flush dev "$INTERFACE"
+    # Assign the new IP
+    sudo ip addr add "$FULL_IP" dev "$INTERFACE"
+    sudo ip route add default via "$GATEWAY" dev "$INTERFACE"
+fi
 
 # Update systemd-networkd config to persist
 CONFIG_FILE="/etc/systemd/network/20-wired.network"
