@@ -1,6 +1,7 @@
 alacritty
 ark
 audacity
+audiorelay
 bacon
 base
 base-devel
