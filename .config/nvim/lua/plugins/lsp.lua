@@ -64,8 +64,6 @@ end, { desc = "Format and Save File" })
 
 
 vim.diagnostic.config({
-  virtual_lines = { current_line = true },
-  virtual_text = false,
   signs = {
     text = {
       [vim.diagnostic.severity.ERROR] = " ",
@@ -74,6 +72,8 @@ vim.diagnostic.config({
       [vim.diagnostic.severity.HINT] = " ",
     },
   },
+  virtual_lines = false,
+  virtual_text = true,
   underline = true,
   update_in_insert = false,
   severity_sort = true,

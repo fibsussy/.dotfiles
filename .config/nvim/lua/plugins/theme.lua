@@ -1,14 +1,16 @@
 local function set_custom_highlights()
+
+  -- No bg
   vim.api.nvim_set_hl(0, "Normal", { bg = "NONE" })
   vim.api.nvim_set_hl(0, "NormalNC", { bg = "NONE" })
   vim.api.nvim_set_hl(0, "EndOfBuffer", { bg = "NONE" })
 
-  local dark_gray = "#6b7273"
-  vim.api.nvim_set_hl(0, "@comment", { fg = "#FF5E54" })
+  local dark_gray = "#484a4a"
+  vim.api.nvim_set_hl(0, "@comment", { fg = dark_gray })
   vim.api.nvim_set_hl(0, "LspInlayHint", { fg = dark_gray, bg = "NONE" })
 
   vim.api.nvim_set_hl(0, "LineNr", { fg = dark_gray })
-  vim.api.nvim_set_hl(0, "CursorLineNr", { fg = "#FFFFFF", bold = true })
+  vim.api.nvim_set_hl(0, "CursorLineNr", { fg = "#FF9E3B", bold = true })
 
   local async_color = "#FF1493" -- Hot pink
   local await_color = "#FF69B4" -- Deep pink

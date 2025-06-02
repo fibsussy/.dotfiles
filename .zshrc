@@ -219,6 +219,8 @@ log_timing "tmux_setup_complete"
 
 
 function setup_tool_aliases() {
+    alias rm='rm -i'
+    alias tm='trash'
     alias ..='cd ..'
     alias ...='cd ../..'
     alias .3='cd ../../..'
