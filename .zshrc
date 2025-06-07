@@ -163,7 +163,7 @@ load_zsh_defer
 zsh-defer -c "[[ -f /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh ]] && source /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh"
 zsh-defer -c "[[ -f /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]] && source /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
 zsh-defer setup_completion
-zsh-defer -c "eval \$(zoxide init zsh)"
+zsh-defer -c "eval $(zoxide init zsh)"
 log_timing "plugins_lazy_loaded"
 
 
@@ -221,6 +221,7 @@ log_timing "tmux_setup_complete"
 function setup_tool_aliases() {
     alias rm='rm -i'
     alias tm='trash'
+    alias cd='z'
     alias ..='cd ..'
     alias ...='cd ../..'
     alias .3='cd ../../..'

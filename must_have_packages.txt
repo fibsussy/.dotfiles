@@ -46,6 +46,7 @@ podman-compose
 # CLI Utilities
 #############################
 # File navigation & viewing
+zoxide
 fzf
 bat
 eza
