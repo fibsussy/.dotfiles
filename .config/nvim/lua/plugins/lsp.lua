@@ -34,8 +34,6 @@ local lsp_buf = vim.lsp.buf
 vim.keymap.set("n", "grn", lsp_buf.rename, { desc = "LSP: Rename" })
 vim.keymap.set("n", "gra", lsp_buf.code_action, { desc = "LSP: Code action" })
 vim.keymap.set("n", "gd", lsp_buf.definition, { desc = "LSP: Goto definition" })
-vim.keymap.set("n", "grr", lsp_buf.references, { desc = "LSP: Find references" })
-vim.keymap.set("n", "<leader>gr", require("telescope.builtin").lsp_references, { desc = "LSP: Telescope references" })
 vim.keymap.set("n", "gri", lsp_buf.implementation, { desc = "LSP: Go to implementation" })
 vim.keymap.set("n", "<leader>D", lsp_buf.type_definition, { desc = "LSP: Type definition" })
 vim.keymap.set("n", "gO", lsp_buf.document_symbol, { desc = "LSP: Document symbols" })
@@ -90,6 +88,7 @@ local function setup_servers()
     vim.lsp.enable({server})
   end
 end
+setup_servers()
 
 -- Setup servers when LSP attaches, not at startup
 vim.api.nvim_create_autocmd("LspAttach", {
