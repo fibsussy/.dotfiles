@@ -3,6 +3,7 @@
         "exec": "~/.config/waybar/modules/ipaddr.sh",
         "tooltip": true,
         "on-click": "echo",
+        "on-click-right": "~/.config/waybar/modules/ipaddr.sh | jq -r .tooltip | tr '\r' '\n' | wl-copy && notify-send 'Copied IP info to Clipboard'",
         "interval": 30
     },
 
