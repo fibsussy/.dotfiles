@@ -1,9 +1,8 @@
     "custom/ipaddr": {
-        "format": "{}",
+        "return-type": "json",
         "exec": "~/.config/waybar/modules/ipaddr.sh",
+        "tooltip": true,
         "on-click": "echo",
-        "interval": 30,
+        "interval": 30
     },
-
-
 
