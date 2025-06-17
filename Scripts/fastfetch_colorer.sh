@@ -29,6 +29,7 @@ if [[ -f "$output_file" && -f "$swww_cache" && -f "$swww_hash_cache" ]]; then
   cached_swww=$(cat "$swww_cache")
   cached_hash=$(cat "$swww_hash_cache")
   if [[ "$current_swww" == "$cached_swww" && "$current_hash" == "$cached_hash" ]]; then
+    echo $output_file
     exit 0
   fi
 fi
@@ -51,3 +52,5 @@ rm -f ~/.cache/thumbnails/fastfetch/*.png
 # Update cache
 echo "$current_swww" > "$swww_cache"
 echo "$current_hash" > "$swww_hash_cache"
+
+echo $output_file
