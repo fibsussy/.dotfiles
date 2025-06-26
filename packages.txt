@@ -7,6 +7,7 @@ bacon
 base
 base-devel
 bat
+bind
 blueman
 bluez
 bluez-utils
