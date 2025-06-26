@@ -310,52 +310,6 @@ function stow_dotfiles {
     fi
 }
 
-function start_ssh_agent() {
-    # Define socket path
-    local sock_path="/run/user/$(id -u)/ssh-agent.socket"
-
-    # Clean up stale agent
-    if [ -S "$sock_path" ]; then
-        local agent_pid=$(pgrep -u "$USER" -f "ssh-agent.*$sock_path")
-        if [ -n "$agent_pid" ] && ps -p "$agent_pid" -o comm= | grep -q ssh-agent; then
-            # Existing agent is running
-            export SSH_AUTH_SOCK="$sock_path"
-            # echo "Using existing SSH agent (PID $agent_pid)"
-            return 0
-        else
-            # Remove stale socket
-            rm -f "$sock_path"
-        fi
-    fi
-
-    # Start new agent
-    eval "$(ssh-agent -s -a "$sock_path" 2>/dev/null)" || {
-        # echo "Failed to start SSH agent" >&2
-        return 1
-    }
-
-    # Verify agent
-    local agent_pid=$(pgrep -u "$USER" -f "ssh-agent.*$sock_path")
-    if [ -z "$agent_pid" ] || [ ! -S "$sock_path" ]; then
-        # echo "Failed to verify SSH agent" >&2
-        return 1
-    fi
-
-    # Persist to ~/.profile
-    local profile_line="export SSH_AUTH_SOCK=\"$sock_path\""
-    if [ -f ~/.profile ]; then
-        grep -q "SSH_AUTH_SOCK=" ~/.profile && \
-            sed -i "s|.*SSH_AUTH_SOCK=.*|$profile_line|" ~/.profile || \
-            echo "$profile_line" >> ~/.profile
-    else
-        echo "$profile_line" > ~/.profile
-    fi
-
-    export SSH_AUTH_SOCK="$sock_path"
-    # echo "SSH agent started (PID $agent_pid)"
-}
-zsh-defer start_ssh_agent
-
 autoload -Uz add-zsh-hook
 add-zsh-hook precmd prompt_stay_at_bottom
 log_timing "hooks_setup"
