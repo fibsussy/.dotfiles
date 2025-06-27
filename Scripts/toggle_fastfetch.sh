@@ -15,7 +15,10 @@ else
     kitty --class "$WINDOW_CLASS" --config ~/.config/kitty/fastfetch.conf \
         -e zsh -c "tput civis; fastfetch; \
         while true; do IFS= read -rs -k1 key; \
-        [[ \"\$key\" == \"q\" || \"\$key\" == $'\n' || \"\$key\" == $'\x03' ]] && break; \
+        case \"\$key\" in \
+            t) notify-send 'lol hi' ;; \
+            c) fastfetch --logo none | wl-copy && notify-send 'Copied to Clipboard' ;; \
+            q|$'\n'|$'\x03') kitty @ close-window --self; exit ;; \
+        esac; \
         done; tput cnorm" &
-
 fi
