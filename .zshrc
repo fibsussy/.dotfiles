@@ -196,28 +196,6 @@ function tmux_force {
     return 0
 }
 
-function setup_tmux() {
-    if [[ "$TERM" =~ ^(xterm-kitty|alacritty)$ ]] && [[ ! "$TMUX" ]] && [[ "$(tty)" != /dev/tty[0-9]* ]]; then
-        local rows=$LINES
-        local cols=$(tput cols 2>/dev/null || echo 80)
-        local p="Do you want to force stay in tmux? [n/Y] "
-        local prompt_length=${#p}
-        local row=$((rows / 2))
-        local col=$(( (cols - prompt_length) / 2 ))
-        tput cup $row $col 2>/dev/null || true
-        read -k 1 "choice?$p"
-        clear
-        prompt_stay_at_bottom
-        case $choice in
-            [yY$'\n']) tmux_force && exit 0 ;;
-            *) echo "not using tmux." ;;
-        esac
-    fi
-}
-setup_tmux
-log_timing "tmux_setup_complete"
-
-
 function setup_tool_aliases() {
     alias rm='rm -i'
     alias tm='trash'

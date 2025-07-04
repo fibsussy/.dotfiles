@@ -21,7 +21,6 @@ cliphist
 cmatrix
 code
 croc
-cuda
 dolphin
 downgrade
 dropbox
@@ -50,6 +49,7 @@ git-filter-repo
 github-cli
 gitleaks
 gnome-font-viewer
+goofcord-bin
 grim
 grimblast-git
 grub
@@ -77,6 +77,7 @@ libinput-gestures
 libnotify
 libpulse
 libreoffice-fresh
+libva-intel-driver
 linux
 linux-firmware
 linux-headers
@@ -145,7 +146,6 @@ spicetify-cli
 spotify
 sshpass
 starship
-steam
 stow
 swappy
 swww
