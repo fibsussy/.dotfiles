@@ -3,44 +3,8 @@
 # Skip non-interactive shells
 [[ -o interactive ]] || return
 
-if [[ -n "$ZSH_DEBUG" ]]; then
-    zsh_start_ms=$(($(date +%s%N 2>/dev/null || gdate +%s%N || (date +%s; echo 000000000)) / 1000000))
-    zsh_previous_ms=$zsh_start_ms
-fi
-
-function init_timing_log() {
-    if [[ -n "$ZSH_DEBUG" ]]; then
-        echo -e "\n=== ZSH Startup: $(date) ===\n" > /tmp/zsh_timing.log
-        echo -e "SECTION                          TOTAL (ms)   DELTA (ms)   NOTES" >> /tmp/zsh_timing.log
-        echo -e "-----------------------------    ----------   ----------   -------------" >> /tmp/zsh_timing.log
-    fi
-}
-
-function log_timing() {
-    if [[ -n "$ZSH_DEBUG" ]]; then
-        return;
-    fi
-    local section_name=$1
-    local notes=${2:-}
-    local current_ms=$(($(date +%s%N 2>/dev/null || gdate +%s%N || (date +%s; echo 000000000)) / 1000000))
-    local elapsed=$((current_ms - zsh_start_ms))
-    local delta=$((current_ms - zsh_previous_ms))
-    zsh_previous_ms=$current_ms
-    if [[ -z "$notes" ]]; then
-        printf "%-30s %10d   %10d\n" "${section_name}" $elapsed $delta >> /tmp/zsh_timing.log
-    else
-        printf "%-30s %10d   %10d   %s\n" "${section_name}" $elapsed $delta "${notes}" >> /tmp/zsh_timing.log
-    fi
-}
-
 if [[ -n "$ZSH_PROFILE" ]]; then
     zmodload zsh/zprof
-    log_timing "profiling_setup"
-fi
-
-if [[ -n "$ZSH_DEBUG" ]]; then
-    init_timing_log
-    log_timing "init"
 fi
 
 export XDG_CONFIG_HOME="$HOME/.config"
@@ -65,14 +29,12 @@ path=(
     $path
 )
 export PATH
-log_timing "env_vars"
 
 export LESSHISTFILE="${XDG_STATE_HOME}/less/history"
 export PARALLEL_HOME="$XDG_CONFIG_HOME/parallel"
 export WGETRC="${XDG_CONFIG_HOME}/wgetrc"
 export SCREENRC="$XDG_CONFIG_HOME/screen/screenrc"
-export MANPAGER='nvim +Man!'
-log_timing "xdg_compliance"
+export MANPAGER='nvim -c "Man!" -c "set buftype=nofile modifiable"'
 
 setopt autocd               # Cd by typing directory name
 setopt interactivecomments  # Allow comments in interactive shells
@@ -85,7 +47,6 @@ setopt auto_pushd           # Push directories to stack
 setopt pushd_ignore_dups    # Avoid duplicates in stack
 setopt pushd_silent         # Silent pushd/popd
 setopt EXTENDED_GLOB        # Enable extended globbing
-log_timing "shell_options"
 
 
 # Vi Keybindings
@@ -95,7 +56,6 @@ autoload edit-command-line
 zle -N edit-command-line
 bindkey '^e' edit-command-line  # Edit command in editor
 bindkey '^r' history-incremental-search-backward  # Ctrl+R for history search
-log_timing "vi_keybindings"
 
 
 HISTFILE="${XDG_STATE_HOME}/zsh/history"
@@ -106,65 +66,38 @@ setopt hist_expire_dups_first  # Expire duplicates first
 setopt hist_ignore_dups        # Ignore consecutive duplicates
 setopt hist_ignore_space       # Ignore commands starting with space
 setopt hist_verify             # Verify history expansion
-log_timing "history_config"
 
 
 function prompt_stay_at_bottom {
     tput cup $LINES 0 2>/dev/null || true
 }
-log_timing "prompt_function"
 
 
-function setup_completion() {
-    log_timing "pre_compinit"
-    fpath=(~/.zfunc $fpath)
-    autoload -Uz compinit
-    
-    local comp_dump="${XDG_CACHE_HOME}/zsh/zcompdump"
-    local today=$(date +'%j')
-    local comp_day=$(stat -f '%Sm' -t '%j' "$comp_dump" 2>/dev/null || 
-                    date -r "$comp_dump" +'%j' 2>/dev/null || 
-                    echo "")
-    
-    if [[ -n "$ZSH_REBUILD_COMPLETION" || ! -f "$comp_dump" || "$today" != "$comp_day" ]]; then
-        compinit -i -d "$comp_dump"
-    else
-        compinit -C -i -d "$comp_dump"
-    fi
-    
-    zstyle ':completion:*' completer _complete _ignored
-    zstyle ':completion:*' matcher-list '' 'm:{a-zA-Z}={A-Za-z}'
-    unset zle_bracketed_paste
-    ZSH_AUTOSUGGEST_STRATEGY=()
-    ZSH_HIGHLIGHT_MAXLENGTH=0
-    
-    source ~/.config/zsh/fzf-tab/fzf-tab.plugin.zsh
-    zmodload zsh/complist
-    bindkey -M menuselect 'h' vi-backward-char
-    bindkey -M menuselect 'k' vi-up-line-or-history
-    bindkey -M menuselect 'l' vi-forward-char
-    bindkey -M menuselect 'j' vi-down-line-or-history
-    zstyle ':completion:*:descriptions' format '[%d]'
-    zstyle ':completion:*' list-colors ${(s.:.)LS_COLORS}
-    zstyle ':fzf-tab:complete:cd:*' fzf-preview 'ls -1 --color=always $realpath'
-    log_timing "compinit"
-}
+fpath=(~/.zfunc $fpath)
+
+autoload -Uz compinit
+local comp_dump="${XDG_CACHE_HOME}/zsh/zcompdump"
+if [[ -n $ZSH_PROFILE || ! -f "$comp_dump" ]]; then
+    compinit -i -d "$comp_dump"
+else
+    compinit -C -i -d "$comp_dump"
+fi
 
 
-function load_zsh_defer() {
-    if [[ ! -f ${ZDOTDIR:-$HOME}/.zsh-defer/zsh-defer.plugin.zsh ]]; then
-        curl -s -L https://raw.githubusercontent.com/romkatv/zsh-defer/master/zsh-defer.plugin.zsh > ${ZDOTDIR:-$HOME}/.zsh-defer/zsh-defer.plugin.zsh
-    fi
-    source ${ZDOTDIR:-$HOME}/.zsh-defer/zsh-defer.plugin.zsh
-    log_timing "zsh_defer_load"
-}
 
-load_zsh_defer
-zsh-defer -c "[[ -f /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh ]] && source /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh"
-zsh-defer -c "[[ -f /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]] && source /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
-zsh-defer setup_completion
-zsh-defer -c "eval $(zoxide init zsh)"
-log_timing "plugins_lazy_loaded"
+zstyle ':completion:*' completer _complete _ignored
+zstyle ':completion:*' matcher-list '' 'm:{a-zA-Z}={A-Za-z}'
+unset zle_bracketed_paste
+ZSH_AUTOSUGGEST_STRATEGY=()
+ZSH_HIGHLIGHT_MAXLENGTH=0
+zmodload zsh/complist
+bindkey -M menuselect 'h' vi-backward-char
+bindkey -M menuselect 'k' vi-up-line-or-history
+bindkey -M menuselect 'l' vi-forward-char
+bindkey -M menuselect 'j' vi-down-line-or-history
+zstyle ':completion:*:descriptions' format '[%d]'
+zstyle ':completion:*' list-colors ${(s.:.)LS_COLORS}
+
 
 
 function tmux_force {
@@ -196,45 +129,46 @@ function tmux_force {
     return 0
 }
 
-function setup_tool_aliases() {
-    alias rm='rm -i'
-    alias tm='trash'
-    alias cd='z'
-    alias ..='cd ..'
-    alias ...='cd ../..'
-    alias .3='cd ../../..'
-    alias .4='cd ../../../..'
-    alias .5='cd ../../../../..'
-    alias mkdir='mkdir -p'
-    alias touch="mkdir_and_touch"
-    alias l='eza -lh --icons=auto'
-    alias ls='eza -1 --icons=auto'
-    alias ll='eza -lha --icons=auto --sort=name --group-directories-first'
-    alias ld='eza -lhD --icons=auto'
-    alias lt='eza --icons=auto --tree'
-    alias cat='bat'
-    alias v="nvim"
-    alias nightlight="pkill gammastep 2>/dev/null; gammastep & disown"
-    alias nightlight_off="pkill gammastep 2>/dev/null;"
-    alias paruclean="sudo pacman -Rsn $(pacman -Qdtq 2>/dev/null)"
-    alias clip="xclip -selection clipboard"
-    alias brb="clear && figlet BRB | lolcat"
-    alias bgrng='~/Scripts/bgrng.sh'
-    alias clipout='tee >(wl-copy)'  # Usage: command | clipout
-    log_timing "aliases_setup"
-}
-zsh-defer setup_tool_aliases
-
+alias sudo='sudo ' # allows aliases with sudo
+alias rm='rm -i'
+alias tm='trash'
+alias cd='z'
+alias ..='cd ..'
+alias ...='cd ../..'
+alias .3='cd ../../..'
+alias .4='cd ../../../..'
+alias .5='cd ../../../../..'
+alias mkdir='mkdir -pv'
+touch() { mkdir -p "$(dirname "$1")" && command touch "$1" ; }
+alias l='eza -lh --icons=auto'
+alias ls='eza -1 --icons=auto'
+alias ll='eza -lha --icons=auto --sort=name --group-directories-first'
+alias ld='eza -lhD --icons=auto'
+alias lt='eza --icons=auto --tree'
+alias cat='bat'
+alias v="nvim"
+alias nightlight="pkill gammastep &>/dev/null; gammastep & disown"
+alias nightlight_off="pkill gammastep &>/dev/null;"
+alias paruclean="sudo pacman -Rsn $(pacman -Qdtq 2>/dev/null)"
+alias brb="clear && figlet BRB | lolcat"
+alias sc='systemctl'
+alias scu='systemctl --user'
 alias grep='grep --color=auto'
 alias fgrep='grep -F --color=auto'
 alias egrep='grep -E --color=auto'
 alias diff='diff --color=auto'
 alias ip='ip --color=auto'
 
-function mkdir_and_touch {
-    mkdir -pv "$(dirname "$1")"
-    touch "$1"
-}
+alias -g H='--help'
+alias -g L="| $MANPAGER"
+alias -g G='| grep'
+alias -g W='| wc'
+alias -g J='| jq .'
+alias -g T="| tr -d '\n' "
+alias -g C='| tee >(wl-copy)'
+alias -g null='/dev/null'
+alias -g 2null='&>null'
+
 
 function load_environment_files() {
     set -a
@@ -243,12 +177,14 @@ function load_environment_files() {
     [[ -f ./.env.dev ]] && source ./.env.dev
     [[ -f ./.env.development ]] && source ./.env.development
     set +a
-    log_timing "env_files_loaded"
 }
 load_environment_files
 
+
+typeset -g _paru_available
+(( $+commands[paru] )) && _paru_available=1
 function paru {
-    if (( $+commands[paru] )); then
+    if [[ -n $_paru_available ]]; then
         command paru --noconfirm "$@"
         command paru -Qqen > ~/packages.txt 2>/dev/null
     else
@@ -257,26 +193,21 @@ function paru {
     fi
 }
 
+typeset -g _ytdlp_available _gallerydl_available
+(( $+commands[yt-dlp] )) && _ytdlp_available=1
+(( $+commands[gallery-dl] )) && _gallerydl_available=1
 function download {
     if [[ $1 =~ ^https?://(www\.)?(youtube\.com|youtu\.be)/ ]]; then
-        if (( $+commands[yt-dlp] )); then
-            yt-dlp "$@"
-        else
-            echo "yt-dlp is not installed"
-            return 1
-        fi
+        [[ -n $_ytdlp_available ]] && yt-dlp "$@" || { echo "yt-dlp is not installed"; return 1 }
     else
-        if (( $+commands[gallery-dl] )); then
-            gallery-dl -D . --cookies-from-browser firefox "$@"
-        else
-            echo "gallery-dl is not installed"
-            return 1
-        fi
+        [[ -n $_gallerydl_available ]] && gallery-dl -D . --cookies-from-browser firefox "$@" || { echo "gallery-dl is not installed"; return 1 }
     fi
 }
 
+typeset -g _stow_available
+(( $+commands[stow] )) && _stow_available=1
 function stow_dotfiles {
-    if (( $+commands[stow] )); then
+    if [[ -n $_stow_available ]]; then
         local trapped_dir=$(pwd)
         trap "cd $trapped_dir" EXIT
         cd ~/.dotfiles/ 2>/dev/null || { echo "~/.dotfiles directory not found"; return 1; }
@@ -290,31 +221,8 @@ function stow_dotfiles {
 
 autoload -Uz add-zsh-hook
 add-zsh-hook precmd prompt_stay_at_bottom
-log_timing "hooks_setup"
 
-
+eval "$(zoxide init zsh)"
 eval "$(starship init zsh)"
-log_timing "starship_init"
-
-
-if [[ -n "$ZSH_DEBUG" && -f /tmp/zsh_timing.log ]]; then
-    local current_ms=$(($(date +%s%N 2>/dev/null || gdate +%s%N || (date +%s; echo 000000000)) / 1000000))
-    local total_ms=$((current_ms - zsh_start_ms))
-    local total_s=$((total_ms / 1000))
-    local total_ms_remainder=$((total_ms % 1000))
-    echo -e "\n------------------------------------------------------------" >> /tmp/zsh_timing.log
-    echo -e "Total startup time: ${total_s}.${total_ms_remainder}s (${total_ms}ms)" >> /tmp/zsh_timing.log
-    echo -e "------------------------------------------------------------" >> /tmp/zsh_timing.log
-    echo "Shell startup timing report:"
-    echo "============================================================"
-    cat /tmp/zsh_timing.log
-    echo "============================================================"
-    if (( total_s > 3 )); then
-        echo -e "\n⚠️ Warning: Shell startup took more than 3 seconds. Consider optimizing:"
-        echo "1. Run ZSH_DEBUG=1 zsh -i -c exit for detailed timing"
-        echo "2. Run ZSH_PROFILE=1 zsh -i -c exit for function-level profiling"
-    fi
-fi
-
 
 [[ -n "$ZSH_PROFILE" ]] && zprof
