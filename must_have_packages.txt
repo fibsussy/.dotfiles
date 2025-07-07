@@ -91,7 +91,6 @@ ntfs-3g
 
 # Fun & visual
 figlet
-neofetch
 fastfetch
 cava
 cmatrix

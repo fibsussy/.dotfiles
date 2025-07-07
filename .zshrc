@@ -84,7 +84,6 @@ else
 fi
 
 
-
 zstyle ':completion:*' completer _complete _ignored
 zstyle ':completion:*' matcher-list '' 'm:{a-zA-Z}={A-Za-z}'
 unset zle_bracketed_paste
@@ -147,8 +146,6 @@ alias ld='eza -lhD --icons=auto'
 alias lt='eza --icons=auto --tree'
 alias cat='bat'
 alias v="nvim"
-alias nightlight="pkill gammastep &>/dev/null; gammastep & disown"
-alias nightlight_off="pkill gammastep &>/dev/null;"
 alias paruclean="sudo pacman -Rsn $(pacman -Qdtq 2>/dev/null)"
 alias brb="clear && figlet BRB | lolcat"
 alias sc='systemctl'
@@ -164,7 +161,6 @@ alias -g L="| $MANPAGER"
 alias -g G='| grep'
 alias -g W='| wc'
 alias -g J='| jq .'
-alias -g T="| tr -d '\n' "
 alias -g C='| tee >(wl-copy)'
 alias -g null='/dev/null'
 alias -g 2null='&>null'

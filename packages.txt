@@ -39,6 +39,7 @@ fzf
 gallery-dl
 gamemode
 gamescope
+gammastep
 gd
 geoip
 gestures
@@ -81,6 +82,7 @@ libva-intel-driver
 linux
 linux-firmware
 linux-headers
+lolcat
 man-db
 mangohud
 musescore
@@ -115,6 +117,7 @@ pipewire-pulse
 plocate
 podman
 podman-compose
+podman-docker
 pokemon-colorscripts-git
 polkit-gnome
 power-profiles-daemon
