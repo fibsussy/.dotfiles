@@ -3,9 +3,22 @@
 # Skip non-interactive shells
 [[ -o interactive ]] || return
 
+
 if [[ -n "$ZSH_PROFILE" ]]; then
     zmodload zsh/zprof
 fi
+
+function prompt_stay_at_bottom {
+    tput cup $LINES 0 2>/dev/null || true
+}
+
+# Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
+# Initialization code that may require console input (password prompts, [y/n]
+# confirmations, etc.) must go above this block; everything else may go below.
+if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
+  source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
+fi
+
 
 export XDG_CONFIG_HOME="$HOME/.config"
 export XDG_CACHE_HOME="$HOME/.cache"
@@ -68,9 +81,6 @@ setopt hist_ignore_space       # Ignore commands starting with space
 setopt hist_verify             # Verify history expansion
 
 
-function prompt_stay_at_bottom {
-    tput cup $LINES 0 2>/dev/null || true
-}
 
 
 fpath=(~/.zfunc $fpath)
@@ -161,7 +171,9 @@ alias -g L="| $MANPAGER"
 alias -g G='| grep'
 alias -g W='| wc'
 alias -g J='| jq .'
-alias -g C='| tee >(wl-copy)'
+alias -g C='| tee /dev/tty | perl -pe "chomp if eof" | wl-copy'
+alias -g CC='| tee /dev/tty | (echo "❯ $ZSH_COMMAND"; perl -pe "chomp if eof") | wl-copy'
+preexec() { ZSH_COMMAND=$1 }
 alias -g null='/dev/null'
 alias -g 2null='&>null'
 
@@ -215,10 +227,12 @@ function stow_dotfiles {
     fi
 }
 
-autoload -Uz add-zsh-hook
-add-zsh-hook precmd prompt_stay_at_bottom
+# autoload -Uz add-zsh-hook
+# add-zsh-hook precmd prompt_stay_at_bottom
 
 eval "$(zoxide init zsh)"
-eval "$(starship init zsh)"
+source /usr/share/zsh-theme-powerlevel10k/powerlevel10k.zsh-theme
+[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
+
 
 [[ -n "$ZSH_PROFILE" ]] && zprof

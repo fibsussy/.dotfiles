@@ -1,3 +1,4 @@
+7zip
 alacritty
 ark
 arp-scan
@@ -148,7 +149,6 @@ speedtest-cli
 spicetify-cli
 spotify
 sshpass
-starship
 stow
 swappy
 swww
