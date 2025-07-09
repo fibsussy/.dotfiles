@@ -1,9 +1,10 @@
+{
     "hyprland/workspaces": {
         "disable-scroll": true,
         "rotate": ${r_deg},
         "all-outputs": true,
         "on-click": "activate",
         "format": "{icon}",
-	    "sort-by-number": true
+        "sort-by-number": true,
     },
-
+}
