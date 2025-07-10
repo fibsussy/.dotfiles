@@ -174,6 +174,7 @@ alias -g CC='| tee /dev/tty | (echo "❯ $ZSH_COMMAND"; perl -pe "chomp if eof")
 preexec() { ZSH_COMMAND=$1 }
 alias -g null='/dev/null'
 alias -g 2null='&>null'
+alias -g 2bg='&>null & disown'
 
 
 function load_environment_files() {
