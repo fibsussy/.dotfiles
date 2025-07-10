@@ -229,7 +229,7 @@ function stow_dotfiles {
 # autoload -Uz add-zsh-hook
 # add-zsh-hook precmd prompt_stay_at_bottom
 eval "$(zoxide init zsh)"
-[[ ! -f .p10k.zsh ]] || source .p10k.zsh
+[[ ! -f $ZDOTDIR/.p10k.zsh ]] || source $ZDOTDIR/.p10k.zsh
 
 [[ -n "$ZSH_PROFILE" ]] && zprof
 
