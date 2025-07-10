@@ -20,6 +20,7 @@ fastfetch
 ffmpegthumbs
 firefox
 fzf
+gallery-dl
 git
 git-crypt
 gitleaks
@@ -107,6 +108,7 @@ xf86-video-amdgpu
 xf86-video-ati
 xorg-server
 xorg-xinit
+yt-dlp
 zoxide
 zram-generator
 zsh
