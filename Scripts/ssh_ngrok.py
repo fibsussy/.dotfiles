@@ -1,4 +1,5 @@
 import requests
+import time
 import subprocess
 from datetime import datetime
 import argparse
@@ -19,21 +20,36 @@ def get_ngrok_token():
 
 API_KEY = get_ngrok_token()
 
-response = requests.get(
-    "https://api.ngrok.com/endpoints",
-    headers={
-        "Authorization": f"Bearer {API_KEY}",
-        "Ngrok-Version": "2"
-    }
-)
-assert response.status_code == 200
-response = response.json()
+def get_ngrok_endpoint():
+    retries = 0
+    while True:
+        try:
+            response = requests.get(
+                "https://api.ngrok.com/endpoints",
+                headers={
+                    "Authorization": f"Bearer {API_KEY}",
+                    "Ngrok-Version": "2"
+                }
+            )
+            response.raise_for_status()
+            response = response.json()
+            if not response['endpoints']:
+                raise ValueError("No endpoints found")
+            if retries > 0:
+                print()
+            return max(
+                response['endpoints'],
+                key=lambda x: datetime.fromisoformat(x['created_at'].replace('Z', '+00:00'))
+            )
+        except (requests.RequestException, ValueError):
+            if retries == 0:
+                print("retrying...", end="", flush=True)
+            else:
+                print(".", end="", flush=True)
+            retries += 1
+            time.sleep(5)
 
-newest = max(
-    response['endpoints'],
-    key=lambda x: datetime.fromisoformat(x['created_at'].replace('Z', '+00:00'))
-)
-
+newest = get_ngrok_endpoint()
 host, port = newest['hostport'].split(':')
 
 user = f"{args.user}@" if args.user else ""
