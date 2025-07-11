@@ -1,5 +1,5 @@
 {
-    "ipaddr": {
+    "custom/ipaddr": {
         "return-type": "json",
         "exec": "~/.config/waybar/modules/ipaddr.sh",
         "tooltip": true,
