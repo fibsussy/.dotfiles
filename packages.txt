@@ -21,6 +21,7 @@ ffmpegthumbs
 firefox
 fzf
 gallery-dl
+gammastep
 git
 git-crypt
 gitleaks
@@ -53,6 +54,7 @@ nano
 neovim
 network-manager-applet
 networkmanager
+ngrok
 noto-fonts-emoji
 nwg-displays
 nwg-look
