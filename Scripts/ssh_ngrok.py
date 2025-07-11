@@ -6,7 +6,8 @@ import os
 import yaml
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--user', help='SSH username', required=False)
+parser.add_argument('--user', help='SSH username')
+parser.add_argument('--dry-run', action='store_true', help='prints endpoint found', default=False)
 parser.add_argument('command', help='Command to execute remotely', nargs='?', default='')
 args = parser.parse_args()
 
@@ -14,7 +15,7 @@ def get_ngrok_token():
     config_path = "~/.config/ngrok/ngrok.yml"
     with open(os.path.expanduser(config_path), 'r') as f:
         config = yaml.safe_load(f)
-        return config.get("agent").get('authtoken')
+        return config.get("api_token")
 
 API_KEY = get_ngrok_token()
 
@@ -35,13 +36,14 @@ newest = max(
 
 host, port = newest['hostport'].split(':')
 
-ssh_cmd = ['ssh']
-if args.user:
-    ssh_cmd.extend(['-A', f'{args.user}@{host}', '-p', port])
-else:
-    ssh_cmd.extend(['-A', host, '-p', port])
+user = f"{args.user}@" if args.user else ""
+con = f'{user}{host}'
 
+ssh_cmd = ['ssh', '-A', con, '-p', port]
 if args.command:
     ssh_cmd.append(args.command)
 
-subprocess.run(ssh_cmd)
+if args.dry_run:
+    print(con, port)
+else:
+    subprocess.run(ssh_cmd)
