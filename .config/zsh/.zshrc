@@ -163,6 +163,7 @@ alias fgrep='grep -F --color=auto'
 alias egrep='grep -E --color=auto'
 alias diff='diff --color=auto'
 alias ip='ip --color=auto'
+alias fastfetch='~/.config/fastfetch/fastfetch_inline.sh'
 
 alias -g H='--help'
 alias -g L="| $MANPAGER"
