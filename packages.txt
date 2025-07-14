@@ -1,4 +1,5 @@
 ark
+audacity
 audiorelay
 base
 base-devel
