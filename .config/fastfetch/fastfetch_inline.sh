@@ -22,5 +22,9 @@ _fetch_cursor_position() {
 height=$(fastfetch --logo none | wc -l)
 fastfetch --key-padding-left 33 --logo none
 _fetch_cursor_position
-y=$((1 + $_cursor_row - $height))
+y=$(($_cursor_row - $height))
+if [ -n "$TMUX" ]; then
+  y=$((y + 1))
+fi
 kitten icat --align=left --place=30x16@2x$y $(~/.config/fastfetch/fastfetch_colorer.sh)
+tput cup $(($_cursor_row - 2)) 0
