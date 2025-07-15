@@ -19,8 +19,10 @@ efibootmgr
 eza
 fastfetch
 ffmpegthumbs
+figlet
 firefox
 fish
+fisher
 fzf
 gallery-dl
 gammastep
@@ -51,6 +53,7 @@ libpulse
 libva-intel-driver
 linux
 linux-firmware
+lolcat
 man-db
 nano
 neovim
@@ -116,5 +119,3 @@ xorg-xinit
 yt-dlp
 zoxide
 zram-generator
-zsh
-zsh-theme-powerlevel10k-git
