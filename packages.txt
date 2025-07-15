@@ -20,6 +20,7 @@ eza
 fastfetch
 ffmpegthumbs
 firefox
+fish
 fzf
 gallery-dl
 gammastep
@@ -70,7 +71,6 @@ pipewire-pulse
 playerctl
 polkit-gnome
 polkit-kde-agent
-power-profiles-daemon
 qt5-graphicaleffects
 qt5-imageformats
 qt5-quickcontrols
@@ -86,8 +86,10 @@ slurp
 smartmontools
 sof-firmware
 starship
+steam
 stow
 swww
+tlp
 tmux
 tree
 udiskie
