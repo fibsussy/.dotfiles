@@ -128,11 +128,12 @@ function stow_dotfiles
     end
 end
 
-# Aliases
+function last_history_item; echo $history[1]; end
+abbr -a !! --position anywhere --function last_history_item
+
 alias brb 'clear; figlet BRB | lolcat'
 alias fastfetch '~/.config/fastfetch/fastfetch_inline.sh'
 
-# Abbreviations
 abbr -a rm 'rm -i'
 abbr -a tm 'trash'
 abbr -a cd 'z'
