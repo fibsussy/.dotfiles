@@ -119,3 +119,4 @@ xorg-xinit
 yt-dlp
 zoxide
 zram-generator
+zsh
