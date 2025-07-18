@@ -49,6 +49,15 @@ function load_environment_files
     end
 end
 
+
+function tmux
+    if test (count $argv) -eq 0
+        tmux_force
+    else
+        command tmux $argv
+    end
+end
+
 function tmux_force --description 'Force tmux session'
     if not command -v tmux >/dev/null
         echo -e "\033[31mError: tmux is not installed.\033[0m" >&2
