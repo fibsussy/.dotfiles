@@ -127,3 +127,4 @@ abbr -a --position anywhere CC -- '| tee /dev/tty | begin; echo "❯ $ZSH_COMMAN
 abbr -a --position anywhere null '/dev/null'
 abbr -a --position anywhere 2null '&>/dev/null'
 abbr -a --position anywhere 2bg '&>/dev/null & disown'
+
