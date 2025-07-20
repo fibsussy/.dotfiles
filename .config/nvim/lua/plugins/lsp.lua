@@ -9,19 +9,29 @@ local servers = {
   clangd = {},
   omnisharp = {},
   jdtls = {},
+  bashls = {},
   lua_ls = {
     settings = {
       Lua = {
-        runtime = { version = "LuaJIT" },
-        workspace = {
-          library = vim.api.nvim_get_runtime_file("", true),
-          checkThirdParty = false
+        runtime = {
+          version = 'LuaJIT',
         },
-        telemetry = { enable = false },
-      }
-    }
+        diagnostics = {
+          globals = { 'vim' },
+        },
+        hint = {
+          enable = true,
+        },
+        workspace = {
+          library = {
+            vim.env.VIMRUNTIME .. '/lua',
+          },
+          checkThirdParty = false,
+        },
+      },
+    },
   },
-  tsserver = {
+  ts_ls = {
     settings = {
       completions = {
         completeFunctionCalls = true
@@ -30,129 +40,162 @@ local servers = {
   },
 }
 
-local lsp_buf = vim.lsp.buf
-vim.keymap.set("n", "grn", lsp_buf.rename, { desc = "LSP: Rename" })
-vim.keymap.set("n", "gra", lsp_buf.code_action, { desc = "LSP: Code action" })
-vim.keymap.set("n", "gd", lsp_buf.definition, { desc = "LSP: Goto definition" })
-vim.keymap.set("n", "gri", lsp_buf.implementation, { desc = "LSP: Go to implementation" })
-vim.keymap.set("n", "<leader>D", lsp_buf.type_definition, { desc = "LSP: Type definition" })
-vim.keymap.set("n", "gO", lsp_buf.document_symbol, { desc = "LSP: Document symbols" })
-vim.keymap.set("n", "<leader>ds", require("telescope.builtin").lsp_document_symbols, { desc = "LSP: Document symbols" })
-vim.keymap.set("n", "<leader>ws", require("telescope.builtin").lsp_dynamic_workspace_symbols,
-  { desc = "LSP: Workspace symbols" })
-vim.keymap.set("n", "K", lsp_buf.hover, { desc = "LSP: Hover documentation" })
-vim.keymap.set("n", "<C-k>", lsp_buf.signature_help, { desc = "LSP: Signature help" })
-vim.keymap.set("n", "gD", lsp_buf.declaration, { desc = "LSP: Goto declaration" })
-vim.keymap.set("n", "<leader>ca", lsp_buf.code_action, { desc = "LSP: Code actions (verbose)" })
-
--- Workspace folders
-vim.keymap.set("n", "<leader>wa", lsp_buf.add_workspace_folder, { desc = "LSP: Add workspace folder" })
-vim.keymap.set("n", "<leader>wr", lsp_buf.remove_workspace_folder, { desc = "LSP: Remove workspace folder" })
-vim.keymap.set("n", "<leader>wl", function() print(vim.inspect(lsp_buf.list_workspace_folders())) end,
-  { desc = "LSP: List workspace folders" })
-
--- Formatting
-vim.api.nvim_buf_create_user_command(0, "Format", function() lsp_buf.format() end,
-  { desc = "LSP: Format current buffer" })
-vim.keymap.set("n", "<leader>fm", function()
-  require("conform").format()
-  vim.cmd "w"
-  print "Formatted and Saved"
-end, { desc = "Format and Save File" })
-
-
-vim.diagnostic.config({
-  signs = {
-    text = {
-      [vim.diagnostic.severity.ERROR] = " ",
-      [vim.diagnostic.severity.WARN] = " ",
-      [vim.diagnostic.severity.INFO] = " ",
-      [vim.diagnostic.severity.HINT] = " ",
-    },
-  },
-  virtual_lines = false,
-  virtual_text = true,
-  underline = true,
-  update_in_insert = false,
-  severity_sort = true,
-})
-
--- Defer capabilities setup to avoid loading cmp_nvim_lsp at startup
-local function setup_servers()
-  local capabilities = require("cmp_nvim_lsp").default_capabilities()
-  for server, config in pairs(servers) do
-    local server_config = vim.tbl_deep_extend("keep", {
-      capabilities = capabilities,
-    }, config)
-    vim.lsp.config[server] = server_config
-    vim.lsp.enable({server})
-  end
-end
-setup_servers()
-
--- Setup servers when LSP attaches, not at startup
-vim.api.nvim_create_autocmd("LspAttach", {
-  callback = function()
-    -- Only run once
-    if vim.g.lsp_setup_done then
-      return
-    end
-    vim.g.lsp_setup_done = true
-    setup_servers()
-  end,
-  once = true,
-})
-
-vim.api.nvim_create_autocmd("FileType", {
-  pattern = "sh",
-  callback = function()
-    vim.lsp.config.bashls = {}
-    vim.lsp.enable({'bashls'})
-    -- Also ensure cmp_nvim_lsp capabilities are set when needed
-    if vim.g.lsp_setup_done then
-      local capabilities = require("cmp_nvim_lsp").default_capabilities()
-      vim.lsp.config.bashls.capabilities = capabilities
-    end
-  end,
-})
-
-
 return {
-  { "j-hui/fidget.nvim", event={"LspAttach"} },
-  { "hrsh7th/cmp-nvim-lsp", event = "InsertEnter" },
-  { "onsails/lspkind.nvim", event = "InsertEnter" },
+  {
+    "williamboman/mason.nvim",
+    cmd = "Mason",
+    opts = {
+      ui = {
+        icons = {
+          package_installed = "✓",
+          package_pending = "➜",
+          package_uninstalled = "✗"
+        }
+      }
+    },
+    config = function(_, opts)
+      require("mason").setup(opts)
+    end,
+  },
+  {
+    "williamboman/mason-lspconfig.nvim",
+    dependencies = { "williamboman/mason.nvim" },
+    config = function()
+      require("mason-lspconfig").setup({
+        automatic_installation = false,
+      })
+    end
+  },
+  {
+    "neovim/nvim-lspconfig",
+    event = { "BufReadPre", "BufNewFile" },
+    dependencies = {
+      "hrsh7th/cmp-nvim-lsp",
+      "mason.nvim",
+      "mason-lspconfig.nvim",
+    },
+    config = function()
+      -- New 0.11+ way to get capabilities
+      local capabilities = vim.lsp.protocol.make_client_capabilities()
+      capabilities = vim.tbl_deep_extend('force', capabilities,
+        require('cmp_nvim_lsp').default_capabilities())
 
+      -- Set up servers
+      for server, config in pairs(servers) do
+        require("lspconfig")[server].setup(vim.tbl_extend("force", {
+          capabilities = capabilities,
+        }, config))
+        vim.lsp.enable(server)
+      end
+
+      -- Keymaps
+      vim.keymap.set("n", "grn", vim.lsp.buf.rename, { desc = "LSP: Rename" })
+      vim.keymap.set("n", "gra", vim.lsp.buf.code_action, { desc = "LSP: Code action" })
+      vim.keymap.set("n", "gd", vim.lsp.buf.definition, { desc = "LSP: Goto definition" })
+      vim.keymap.set("n", "gri", vim.lsp.buf.implementation, { desc = "LSP: Go to implementation" })
+      vim.keymap.set("n", "<leader>D", vim.lsp.buf.type_definition, { desc = "LSP: Type definition" })
+      vim.keymap.set("n", "gO", vim.lsp.buf.document_symbol, { desc = "LSP: Document symbols" })
+      vim.keymap.set("n", "<leader>ds", require("telescope.builtin").lsp_document_symbols, { desc = "LSP: Document symbols" })
+      vim.keymap.set("n", "<leader>ws", require("telescope.builtin").lsp_dynamic_workspace_symbols,
+        { desc = "LSP: Workspace symbols" })
+      vim.keymap.set("n", "K", vim.lsp.buf.hover, { desc = "LSP: Hover documentation" })
+      vim.keymap.set("n", "<C-k>", vim.lsp.buf.signature_help, { desc = "LSP: Signature help" })
+      vim.keymap.set("n", "gD", vim.lsp.buf.declaration, { desc = "LSP: Goto declaration" })
+      vim.keymap.set("n", "<leader>ca", vim.lsp.buf.code_action, { desc = "LSP: Code actions (verbose)" })
+
+      vim.keymap.set("n", "<leader>wa", vim.lsp.buf.add_workspace_folder, { desc = "LSP: Add workspace folder" })
+      vim.keymap.set("n", "<leader>wr", vim.lsp.buf.remove_workspace_folder, { desc = "LSP: Remove workspace folder" })
+      vim.keymap.set("n", "<leader>wl", function() print(vim.inspect(vim.lsp.buf.list_workspace_folders())) end,
+        { desc = "LSP: List workspace folders" })
+
+      -- Diagnostics configuration
+      vim.diagnostic.config({
+        signs = {
+          text = {
+            [vim.diagnostic.severity.ERROR] = " ",
+            [vim.diagnostic.severity.WARN] = " ",
+            [vim.diagnostic.severity.INFO] = " ",
+            [vim.diagnostic.severity.HINT] = " ",
+          },
+        },
+        virtual_text = {
+          prefix = "●",
+          spacing = 4,
+        },
+        underline = true,
+        update_in_insert = false,
+        severity_sort = true,
+      })
+
+      -- LSP attach handler
+      vim.api.nvim_create_autocmd('LspAttach', {
+        group = vim.api.nvim_create_augroup('UserLspConfig', {}),
+        callback = function(ev)
+          local client = vim.lsp.get_client_by_id(ev.data.client_id)
+          local bufnr = ev.buf
+
+          vim.bo[bufnr].omnifunc = 'v:lua.vim.lsp.omnifunc'
+
+          local opts = { buffer = bufnr }
+          vim.keymap.set('n', '<leader>rn', vim.lsp.buf.rename, opts)
+          vim.keymap.set('n', '<leader>ca', vim.lsp.buf.code_action, opts)
+
+          if client.server_capabilities.documentHighlightProvider then
+            vim.api.nvim_create_autocmd({ 'CursorHold', 'CursorHoldI' }, {
+              buffer = bufnr,
+              callback = vim.lsp.buf.document_highlight,
+            })
+            vim.api.nvim_create_autocmd('CursorMoved', {
+              buffer = bufnr,
+              callback = vim.lsp.buf.clear_references,
+            })
+          end
+        end,
+      })
+    end
+  },
+  {
+    "j-hui/fidget.nvim",
+    tag = "legacy",
+    event = "LspAttach",
+    config = function()
+      require("fidget").setup()
+    end
+  },
+  {
+    "hrsh7th/cmp-nvim-lsp",
+    event = "InsertEnter",
+  },
+  {
+    "onsails/lspkind.nvim",
+    event = "InsertEnter",
+  },
   {
     "stevearc/conform.nvim",
     event = { "BufWritePre" },
     cmd = { "ConformInfo" },
-    opts = {
-      timeout_ms = 10000,
-      formatters_by_ft = {
-        lua = { "stylua" },
-        python = { "isort", "black" },
-        javascript = { "prettier" },
-        json = { "prettier" },
-        html = { "prettier" },
-        rust = { "rustfmt" },
-      },
-    },
-  },
+    config = function()
+      require("conform").setup({
+        timeout_ms = 10000,
+        formatters_by_ft = {
+          lua = { "stylua" },
+          python = { "isort", "black" },
+          javascript = { "prettier" },
+          json = { "prettier" },
+          html = { "prettier" },
+          rust = { "rustfmt" },
+        },
+      })
 
-  { "mason-org/mason.nvim", opts = {} },
+      vim.api.nvim_buf_create_user_command(0, "Format", function()
+        require("conform").format()
+      end, { desc = "LSP: Format current buffer" })
 
-  {
-    'neovim/nvim-lspconfig',
-    dependencies = {
-      {'williamboman/mason.nvim'},
-      {
-        'williamboman/mason-lspconfig.nvim',
-        opts = {
-          automatic_enable = true
-        }
-      },
-    },
-    event = { "BufReadPre", "BufNewFile" },
-  },
-
+      vim.keymap.set("n", "<leader>fm", function()
+        require("conform").format()
+        vim.cmd "w"
+        print "Formatted and Saved"
+      end, { desc = "Format and Save File" })
+    end
+  }
 }
