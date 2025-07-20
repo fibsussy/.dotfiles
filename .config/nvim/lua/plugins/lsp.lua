@@ -140,15 +140,17 @@ return {
           vim.keymap.set('n', '<leader>rn', vim.lsp.buf.rename, opts)
           vim.keymap.set('n', '<leader>ca', vim.lsp.buf.code_action, opts)
 
-          if client.server_capabilities.documentHighlightProvider then
-            vim.api.nvim_create_autocmd({ 'CursorHold', 'CursorHoldI' }, {
-              buffer = bufnr,
-              callback = vim.lsp.buf.document_highlight,
-            })
-            vim.api.nvim_create_autocmd('CursorMoved', {
-              buffer = bufnr,
-              callback = vim.lsp.buf.clear_references,
-            })
+          if client then
+            if client.server_capabilities.documentHighlightProvider then
+              vim.api.nvim_create_autocmd({ 'CursorHold', 'CursorHoldI' }, {
+                buffer = bufnr,
+                callback = vim.lsp.buf.document_highlight,
+              })
+              vim.api.nvim_create_autocmd('CursorMoved', {
+                buffer = bufnr,
+                callback = vim.lsp.buf.clear_references,
+              })
+            end
           end
         end,
       })
