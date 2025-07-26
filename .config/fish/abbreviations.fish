@@ -1,40 +1,3 @@
-function tmux
-    if test (count $argv) -eq 0
-        tmux_force
-    else
-        command tmux $argv
-    end
-end
-
-function tmux_force --description 'Force tmux session'
-    if not command -v tmux >/dev/null
-        echo -e "\033[31mError: tmux is not installed.\033[0m" >&2
-        return 1
-    end
-    if set -q TMUX
-        echo -e "\033[31mError: Already in a tmux session.\033[0m" >&2
-        return 1
-    end
-    if tmux has-session -t '~' 2>/dev/null
-        if not tmux attach-session -t '~' 2>/dev/null
-            echo -e "\033[31mError: Failed to attach to tmux session '~'.\033[0m" >&2
-            return 1
-        end
-    else
-        if not tmux new-session -s '~' -c '~' 2>/dev/null
-            echo -e "\033[31mError: Failed to create new tmux session '~'.\033[0m" >&2
-            return 1
-        end
-    end
-    while tmux has-session 2>/dev/null
-        if not tmux attach 2>/dev/null
-            echo -e "\033[31mError: Failed to reattach to tmux.\033[0m" >&2
-            return 1
-        end
-    end
-    return 0
-end
-
 function sudo_toggle
     set -l cmd (commandline)
     if string match -q "sudo *" $cmd
@@ -90,6 +53,7 @@ abbr -a !! --position anywhere --function last_history_item
 
 alias brb 'clear; figlet BRB | lolcat'
 alias fastfetch '~/.config/fastfetch/fastfetch_inline.sh'
+alias touch 'mkdir -p (dirname $argv[1]) && command touch $argv[1]'
 
 abbr -a rm 'rm -i'
 abbr -a tm 'trash'
@@ -114,7 +78,6 @@ abbr -a fgrep 'grep -F --color=auto'
 abbr -a egrep 'grep -E --color=auto'
 abbr -a diff 'diff --color=auto'
 abbr -a ip 'ip --color=auto'
-abbr -a touch 'mkdir -p (dirname $argv[1]) && command touch $argv[1]'
 abbr -a paruclean 'sudo pacman -Rsn (pacman -Qdtq 2>/dev/null)'
 
 abbr -a --position anywhere H -- "--help"
