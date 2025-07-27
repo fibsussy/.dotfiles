@@ -63,7 +63,16 @@ load_environment_files
  
 
 source ~/.config/fish/abbreviations.fish
+
+
 if test -f .python-version
     pyenv init - fish | source
 end
+if test -f .venv/bin/activate.fish
+    source .venv/bin/activate.fish 
+end
+if test -f config.fish
+    source config.fish 
+end
+
 zoxide init fish | source
