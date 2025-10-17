@@ -29,6 +29,12 @@ set -g fish_cursor_visual block
 set -gx tide_left_prompt_items character
 set -gx tide_right_prompt_items status vi_mode pwd cmd_duration context git jobs direnv node python rustc java php pulumi ruby go gcloud kubectl distrobox toolbox terraform aws nix_shell crystal elixir zig
 set -gx tide_left_prompt_suffix ""
+
+set -gx tide_character_icon "\$"
+set -gx tide_character_vi_icon_default " "
+set -gx tide_character_vi_icon_replace ▶
+set -gx tide_character_vi_icon_visual V
+
 set -gx tide_vi_mode_icon_insert ""
 set -gx tide_vi_mode_icon_default "Normal"
 set -gx tide_vi_mode_icon_replace "Replace"
@@ -71,8 +77,13 @@ end
 if test -f .venv/bin/activate.fish
     source .venv/bin/activate.fish 
 end
-if test -f config.fish
-    source config.fish 
+
+set cwd (realpath (pwd))
+set confdir (realpath ~/.config)
+if not string match -q "$confdir*" $cwd
+    if test -f config.fish
+        source config.fish 
+    end
 end
 
 zoxide init fish | source
