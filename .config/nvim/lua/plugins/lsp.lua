@@ -34,9 +34,9 @@ local servers = {
   ts_ls = {
     settings = {
       completions = {
-        completeFunctionCalls = true
-      }
-    }
+        completeFunctionCalls = true,
+      },
+    },
   },
 }
 
@@ -80,11 +80,14 @@ return {
       capabilities = vim.tbl_deep_extend('force', capabilities,
         require('cmp_nvim_lsp').default_capabilities())
 
-      -- Set up servers
+      -- Define & register server configs (Nvim 0.11+ API)
       for server, config in pairs(servers) do
-        require("lspconfig")[server].setup(vim.tbl_extend("force", {
-          capabilities = capabilities,
-        }, config))
+        local cfg = vim.tbl_deep_extend("force", { capabilities = capabilities }, config)
+        vim.lsp.config(server, cfg)
+      end
+
+      -- Enable the configs so they auto-attach for their filetypes
+      for server, _ in pairs(servers) do
         vim.lsp.enable(server)
       end
 

@@ -2,8 +2,9 @@ return {
   {
     "stevearc/oil.nvim",
     cmd = "Oil",
+    lazy = false,
     keys = {
-      { "<leader>e", "<cmd> Oil --preview <cr>", desc = "Open Oil (explorer)" },
+      { "<leader>e", "<cmd> Oil <cr>", desc = "Open Oil (explorer)" },
     },
     dependencies = {
       "nvim-tree/nvim-web-devicons",
