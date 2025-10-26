@@ -14,6 +14,7 @@ btop
 chaotic-keyring
 chaotic-mirrorlist
 cliphist
+discord
 dolphin
 droidcam
 dropbox
@@ -115,6 +116,7 @@ ufw
 unzip
 uwsm
 vim
+vlc
 vulkan-intel
 vulkan-radeon
 waybar
