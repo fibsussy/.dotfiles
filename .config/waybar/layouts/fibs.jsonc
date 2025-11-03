@@ -3,7 +3,7 @@
     "output": [
         "*"
     ],
-    "position": "bottom",
+    "position": "top",
     "mode": "dock",
     "height": 35,
     "exclusive": true,
@@ -21,7 +21,7 @@
     "group/pill#left1": {
         "orientation": "inherit",
         "modules": [
-            "clock"
+            "hyprland/workspaces"
         ]
     },
     "group/pill#left2": {
@@ -45,7 +45,7 @@
     "group/pill#center": {
         "orientation": "inherit",
         "modules": [
-            "hyprland/workspaces"
+            "clock"
         ]
     },
     "modules-right": [
