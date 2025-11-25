@@ -1,22 +1,3 @@
-// Niri configuration (ported from black-don-os Nix setup)
-// Arch version – no Nix interpolation, just plain KDL.
-
-// =======================
-// Outputs (monitors)
-// =======================
-// If you know your output names (check: `niri msg outputs` or `journalctl -b | grep DRM`)
-// put your own output blocks here. Example:
-//
-// output "DP-1" {
-//     mode 2560 1440 165.00
-//     position x=0 y=0
-// }
-//
-// For now we omit host-specific output config.
-
-// =======================
-// Layout / Input / Animations
-// =======================
 
 config-notification {
     disable-failed
@@ -24,342 +5,388 @@ config-notification {
 
 gestures {
     hot-corners {
-        off
+        // off
     }
 }
 
 input {
     keyboard {
         xkb {
-            options "caps:swapescape"
+            layout "us"
+            options "caps:swapescape,fkeys:basic_13-24"
         }
+        repeat-delay 200
+        repeat-rate 70
         numlock
     }
     touchpad {
-        natural-scroll
+        tap
     }
     mouse {
         accel-profile "flat"
         accel-speed -0.7
     }
-    trackpoint {
-    }
+    trackpoint {}
 
-    // focus-follows-mouse
     warp-mouse-to-focus
+    mod-key "Super"
 }
 
-layout {
-    gaps 9
 
+layout {
+    gaps 5
+    background-color "transparent"
     center-focused-column "never"
     always-center-single-column
-
+    default-column-display "normal"
     preset-column-widths {
         proportion 0.25
-        proportion 0.45
-        proportion 0.65
-        proportion 0.85
+        proportion 0.50
+        proportion 0.75
         proportion 1.00
     }
-
-    default-column-width { proportion 0.45; }
-
+    default-column-width { proportion 0.50; }
     border {
-        width 2
-        active-color "#cba6f7"
-        inactive-color "#45475a"
-        urgent-color "#f5c2e7"
-    }
-
-    focus-ring {
         off
+        width 4
+        active-color   "#707070"      // Neutral gray
+        inactive-color "#d0d0d0"      // Light gray
+        urgent-color   "#cc4444"      // Softer red
     }
-
+    focus-ring {
+        width 2
+        active-color   "#808080"      // Medium gray
+        inactive-color "#505050"      // Dark gray
+    }
     shadow {
         softness 30
         spread 5
         offset x=0 y=5
         color "#0007"
     }
+    struts {
+    }
+}
 
+layer-rule {
+    match namespace="^quickshell$"
+    place-within-backdrop true
 }
 
 overview {
-    backdrop-color "#1e1e2e"
-
-    workspace-shadow {
-        softness 40
-        spread 10
-        offset x=0 y=10
-        color "#00000050"
-    }
-
     zoom 0.25
 }
 
+// Add lines like this to spawn processes at startup.
+// Note that running niri as a session supports xdg-desktop-autostart,
+// which may be more convenient to use.
+// See the binds section below for more spawn examples.
+// This line starts waybar, a commonly used bar for Wayland compositors.
+spawn-at-startup "bash" "-c" "wl-paste --watch cliphist store &"
+spawn-at-startup "dms" "run"
+spawn-at-startup "/usr/lib/mate-polkit/polkit-mate-authentication-agent-1"
+environment {
+  XDG_CURRENT_DESKTOP "niri"
+  QT_QPA_PLATFORM "wayland"
+  ELECTRON_OZONE_PLATFORM_HINT "auto"
+  QT_QPA_PLATFORMTHEME "gtk3"
+  QT_QPA_PLATFORMTHEME_QT6 "gtk3"
+  TERMINAL "kitty"
+}
+hotkey-overlay {
+    skip-at-startup
+}
+prefer-no-csd
+screenshot-path "~/Pictures/Screenshots/Screenshot from %Y-%m-%d %H-%M-%S.png"
 animations {
-    off
-    slowdown 0.5
+    // off
+    slowdown 0.3
+    workspace-switch {
+        spring damping-ratio=0.80 stiffness=523 epsilon=0.0001
+    }
+    window-open {
+        duration-ms 150
+        curve "ease-out-expo"
+    }
+    window-close {
+        duration-ms 150
+        curve "ease-out-quad"
+    }
+    horizontal-view-movement {
+        spring damping-ratio=0.85 stiffness=423 epsilon=0.0001
+    }
+    window-movement {
+        spring damping-ratio=0.75 stiffness=323 epsilon=0.0001
+    }
+    window-resize {
+        spring damping-ratio=0.85 stiffness=423 epsilon=0.0001
+    }
+    config-notification-open-close {
+        spring damping-ratio=0.65 stiffness=923 epsilon=0.001
+    }
+    screenshot-ui-open {
+        duration-ms 200
+        curve "ease-out-quad"
+    }
+    overview-open-close {
+        spring damping-ratio=0.85 stiffness=800 epsilon=0.0001
+    }
+}
+// Window rules let you adjust behavior for individual windows.
+// Find more information on the wiki:
+// https://github.com/YaLTeR/niri/wiki/Configuration:-Window-Rules
+// Work around WezTerm's initial configure bug
+// by setting an empty default-column-width.
+window-rule {
+    // This regular expression is intentionally made as specific as possible,
+    // since this is the default config, and we want no false positives.
+    // You can get away with just app-id="wezterm" if you want.
+    match app-id=r#"^org\.wezfurlong\.wezterm$"#
+    default-column-width {}
+}
+window-rule {
+    match app-id=r#"^org\.gnome\."#
+    draw-border-with-background false
+    geometry-corner-radius 12
+    clip-to-geometry true
+}
+window-rule {
+    match app-id=r#"^gnome-control-center$"#
+    match app-id=r#"^pavucontrol$"#
+    match app-id=r#"^nm-connection-editor$"#
+    default-column-width { proportion 0.5; }
+    open-floating false
+}
+window-rule {
+    match app-id=r#"^gnome-calculator$"#
+    match app-id=r#"^galculator$"#
+    match app-id=r#"^blueman-manager$"#
+    match app-id=r#"^org\.gnome\.Nautilus$"#
+    match app-id=r#"^steam$"#
+    match app-id=r#"^xdg-desktop-portal$"#
+    open-floating true
+}
+window-rule {
+    match app-id=r#"^org\.wezfurlong\.wezterm$"#
+    match app-id="Alacritty"
+    match app-id="zen"
+    match app-id="com.mitchellh.ghostty"
+    match app-id="kitty"
+    draw-border-with-background false
+}
+
+window-rule {
+    match is-active=false
+    opacity 0.9
+}
+
+window-rule {
+    match app-id=r#"firefox$"# title="^Picture-in-Picture$"
+    match app-id="zoom"
+    open-floating true
+}
+
+window-rule {
+    geometry-corner-radius 12
+    clip-to-geometry true
 }
 
 binds {
     // === System & Overview ===
-    Mod+X repeat=false { toggle-overview; }
     Mod+O repeat=false { toggle-overview; }
+    Mod+Tab repeat=false { toggle-overview; }
     Mod+Shift+Slash { show-hotkey-overlay; }
 
+    F23 { spawn "notify-send" "Normal Mode"; }
+    F24 { spawn "notify-send" "Game Mode"; }
+
     // === Application Launchers ===
-    Mod+T { spawn "kitty"; }          // terminal
-    Mod+Return { spawn "kitty"; }
-    Mod+Y { spawn "fuzzel"; }         // app launcher
-    Mod+Space { spawn "rofi" "-show" "drun"; } // launcher for waybar setup
+    Mod+T hotkey-overlay-title="Open Terminal" {
+        spawn "kitty" "fish" "-C" "tmux a; or tmux";
+    }
+    Mod+Space hotkey-overlay-title="Application Launcher" {
+        spawn "dms" "ipc" "call" "spotlight" "toggle";
+    }
+    Mod+V hotkey-overlay-title="Clipboard Manager" {
+        spawn "dms" "ipc" "call" "clipboard" "toggle";
+    }
+    Mod+M hotkey-overlay-title="Task Manager" {
+        spawn "dms" "ipc" "call" "processlist" "toggle";
+    }
+    Mod+Comma hotkey-overlay-title="Settings" {
+        spawn "dms" "ipc" "call" "settings" "toggle";
+    }
+    Mod+Y hotkey-overlay-title="Browse Wallpapers" {
+        spawn "dms" "ipc" "call" "dankdash" "wallpaper";
+    }
+    Mod+N hotkey-overlay-title="Notification Center" {
+        spawn "dms" "ipc" "call" "notifications" "toggle";
+    }
+    Mod+Shift+N hotkey-overlay-title="Notepad" {
+        spawn "dms" "ipc" "call" "notepad" "toggle";
+    }
 
     // === Security ===
-    Ctrl+Alt+Backspace { spawn "hyprlock"; }
-    Mod+Shift+Q { quit; }
+    Mod+Alt+L hotkey-overlay-title="Lock Screen" {
+        spawn "dms" "ipc" "call" "lock" "lock";
+    }
+    Ctrl+Alt+Backspace hotkey-overlay-title="Task Manager" {
+        spawn "dms" "ipc" "call" "powermenu" "toggle";
+    }
+    Ctrl+Alt+Escape hotkey-overlay-title="Task Manager" {
+        spawn "dms" "ipc" "call" "processlist" "toggle";
+    }
     Ctrl+Alt+Delete { quit; }
 
-    // === Keyboard Brightness Controls ===
-    XF86KbdBrightnessUp allow-when-locked=true {
-        spawn "kbdbrite.sh" "up";
+    // === Audio Controls ===
+    XF86AudioRaiseVolume allow-when-locked=true {
+        spawn "dms" "ipc" "call" "audio" "increment" "3";
     }
-    XF86KbdBrightnessDown allow-when-locked=true {
-        spawn "kbdbrite.sh" "down";
+    XF86AudioLowerVolume allow-when-locked=true {
+        spawn "dms" "ipc" "call" "audio" "decrement" "3";
+    }
+    XF86AudioMute allow-when-locked=true {
+        spawn "dms" "ipc" "call" "audio" "mute";
+    }
+    XF86AudioMicMute allow-when-locked=true {
+        spawn "dms" "ipc" "call" "audio" "micmute";
+    }
+
+    // === Brightness Controls ===
+    XF86MonBrightnessUp allow-when-locked=true {
+        spawn "dms" "ipc" "call" "brightness" "increment" "5" "";
+    }
+    XF86MonBrightnessDown allow-when-locked=true {
+        spawn "dms" "ipc" "call" "brightness" "decrement" "5" "";
     }
 
     // === Window Management ===
     Mod+Q repeat=false { close-window; }
-    Mod+Alt+F { maximize-column; }
     Mod+F { fullscreen-window; }
-    Mod+W { toggle-window-floating; }
-    Mod+Ctrl+W { switch-focus-between-floating-and-tiling; }
-    Mod+V { toggle-column-tabbed-display; }
+    Mod+Shift+F { toggle-windowed-fullscreen; }
+    Mod+Shift+T { toggle-window-floating; }
+    Mod+Shift+V { switch-focus-between-floating-and-tiling; }
+    Mod+W { toggle-column-tabbed-display; }
 
-    // === Column/Window Focus (Mod+ = column nav) ===
-    Mod+Left  { focus-column-left; }
-    Mod+Right { focus-column-right; }
-    Mod+Up    { focus-window-up; }
-    Mod+Down  { focus-window-down; }
+    // === Focus Navigation ===
+    Mod+Left  { focus-column-or-monitor-left; }
+    Mod+Down  { focus-window-or-monitor-down; }
+    Mod+Up    { focus-window-or-monitor-up; }
+    Mod+Right { focus-column-or-monitor-right; }
+    Mod+H     { focus-column-or-monitor-left; }
+    Mod+J     { focus-window-or-monitor-down; }
+    Mod+K     { focus-window-or-monitor-up; }
+    Mod+L     { focus-column-or-monitor-right; }
 
-    Mod+H { focus-column-left; }
-    Mod+L { focus-column-right; }
-    Mod+K { focus-window-up; }
-    Mod+J { focus-window-down; }
+    // === Window Movement ===
+    Mod+Shift+Left  { move-column-left; }
+    Mod+Shift+Down  { move-window-down; }
+    Mod+Shift+Up    { move-window-up; }
+    Mod+Shift+Right { move-column-right; }
+    Mod+Shift+H     { move-column-left; }
+    Mod+Shift+J     { move-window-down; }
+    Mod+Shift+K     { move-window-up; }
+    Mod+Shift+L     { move-column-right; }
 
+    // === Column Navigation ===
     Mod+Home { focus-column-first; }
     Mod+End  { focus-column-last; }
+    Mod+Ctrl+Home { move-column-to-first; }
+    Mod+Ctrl+End  { move-column-to-last; }
 
-    // === Move Inside Workspace (Mod+Shift+ = move stuff in same workspace) ===
-    Mod+Shift+Left  { move-column-left; }
-    Mod+Shift+Right { move-column-right; }
-    Mod+Shift+Up    { move-window-up; }
-    Mod+Shift+Down  { move-window-down; }
+    // === Monitor Navigation ===
+    Mod+Ctrl+Left  { focus-monitor-left; }
+    // Mod+Ctrl+Down  { focus-monitor-down; }
+    // Mod+Ctrl+Up    { focus-monitor-up; }
+    Mod+Ctrl+Right { focus-monitor-right; }
+    Mod+Ctrl+H     { focus-monitor-left; }
+    Mod+Ctrl+J     { focus-monitor-down; }
+    Mod+Ctrl+K     { focus-monitor-up; }
+    Mod+Ctrl+L     { focus-monitor-right; }
 
-    Mod+Shift+H { move-column-left; }
-    Mod+Shift+L { move-column-right; }
-    Mod+Shift+K { move-window-up; }
-    Mod+Shift+J { move-window-down; }
+    // === Move to Monitor ===
+    Mod+Shift+Ctrl+Left  { move-column-to-monitor-left; }
+    Mod+Shift+Ctrl+Down  { move-column-to-monitor-down; }
+    Mod+Shift+Ctrl+Up    { move-column-to-monitor-up; }
+    Mod+Shift+Ctrl+Right { move-column-to-monitor-right; }
+    Mod+Shift+Ctrl+H     { move-column-to-monitor-left; }
+    Mod+Shift+Ctrl+J     { move-column-to-monitor-down; }
+    Mod+Shift+Ctrl+K     { move-column-to-monitor-up; }
+    Mod+Shift+Ctrl+L     { move-column-to-monitor-right; }
 
-    Mod+Shift+Home { move-column-to-first; }
-    Mod+Shift+End  { move-column-to-last; }
+    // === Workspace Navigation ===
+    Mod+Page_Down      { focus-workspace-down; }
+    Mod+Page_Up        { focus-workspace-up; }
+    Mod+U              { focus-workspace-down; }
+    Mod+I              { focus-workspace-up; }
+    Mod+Ctrl+Down      { move-column-to-workspace-down; }
+    Mod+Ctrl+Up        { move-column-to-workspace-up; }
+    Mod+Ctrl+U         { move-column-to-workspace-down; }
+    Mod+Ctrl+I         { move-column-to-workspace-up; }
 
-    // === Workspace Navigation (Mod+Ctrl+ = workspace nav) ===
-    // directional (up/down only make sense)
-    Mod+Ctrl+Up   { focus-workspace-up; }
-    Mod+Ctrl+Down { focus-workspace-down; }
-    Mod+Ctrl+K    { focus-workspace-up; }
-    Mod+Ctrl+J    { focus-workspace-down; }
-
-    // === Move Across Workspaces (Mod+Ctrl+Shift+ = move stuff across workspaces) ===
-    Mod+Ctrl+Shift+Up   { move-column-to-workspace-up; }
-    Mod+Ctrl+Shift+Down { move-column-to-workspace-down; }
-    Mod+Ctrl+Shift+K    { move-column-to-workspace-up; }
-    Mod+Ctrl+Shift+J    { move-column-to-workspace-down; }
-
-    // === Monitor Navigation (Alt layer) ===
-    Mod+Alt+Left  { focus-monitor-left; }
-    Mod+Alt+Right { focus-monitor-right; }
-    Mod+Alt+Up    { focus-monitor-up; }
-    Mod+Alt+Down  { focus-monitor-down; }
-
-    Mod+Alt+H { focus-monitor-left; }
-    Mod+Alt+L { focus-monitor-right; }
-    Mod+Alt+K { focus-monitor-up; }
-    Mod+Alt+J { focus-monitor-down; }
-
-    // === Move Column Across Monitors (Alt+Shift = move column to monitor) ===
-    Mod+Alt+Shift+Left  { move-column-to-monitor-left; }
-    Mod+Alt+Shift+Right { move-column-to-monitor-right; }
-    Mod+Alt+Shift+Up    { move-column-to-monitor-up; }
-    Mod+Alt+Shift+Down  { move-column-to-monitor-down; }
-
-    Mod+Alt+Shift+H { move-column-to-monitor-left; }
-    Mod+Alt+Shift+L { move-column-to-monitor-right; }
-    Mod+Alt+Shift+K { move-column-to-monitor-up; }
-    Mod+Alt+Shift+J { move-column-to-monitor-down; }
-
-    // === Workspace Reordering (still "move stuff") ===
+    // === Move Workspaces ===
     Mod+Shift+Page_Down { move-workspace-down; }
     Mod+Shift+Page_Up   { move-workspace-up; }
+    Mod+Shift+U         { move-workspace-down; }
+    Mod+Shift+I         { move-workspace-up; }
 
     // === Mouse Wheel Navigation ===
-    // Vertical wheel = workspace nav / move between workspaces
     Mod+WheelScrollDown      cooldown-ms=150 { focus-workspace-down; }
     Mod+WheelScrollUp        cooldown-ms=150 { focus-workspace-up; }
-    Mod+Ctrl+Shift+WheelScrollDown cooldown-ms=150 { move-column-to-workspace-down; }
-    Mod+Ctrl+Shift+WheelScrollUp   cooldown-ms=150 { move-column-to-workspace-up; }
+    Mod+Ctrl+WheelScrollDown cooldown-ms=150 { move-column-to-workspace-down; }
+    Mod+Ctrl+WheelScrollUp   cooldown-ms=150 { move-column-to-workspace-up; }
 
-    // Horizontal wheel = columns (nav vs move-in-workspace)
-    Mod+WheelScrollRight       { focus-column-right; }
-    Mod+WheelScrollLeft        { focus-column-left; }
-    Mod+Shift+WheelScrollRight { move-column-right; }
-    Mod+Shift+WheelScrollLeft  { move-column-left; }
+    Mod+WheelScrollRight      { focus-column-right-or-first; }
+    Mod+WheelScrollLeft       { focus-column-left-or-last; }
+    Mod+Ctrl+WheelScrollRight { move-column-right; }
+    Mod+Ctrl+WheelScrollLeft  { move-column-left; }
+
+    Mod+Shift+WheelScrollDown      { focus-column-right-or-first; }
+    Mod+Shift+WheelScrollUp        { focus-column-left-or-last; }
+    Mod+Ctrl+Shift+WheelScrollDown { move-column-right; }
+    Mod+Ctrl+Shift+WheelScrollUp   { move-column-left; }
 
     // === Numbered Columns: Focus (Mod+1-9 = column nav) ===
-    Mod+1 {
-        focus-column-first;
-    }
-    Mod+2 {
-        spawn-sh "niri msg action focus-column-first; \\
-        niri msg action focus-column-right; \\
-        ";
-    }
-    Mod+3 {
-        spawn-sh "niri msg action focus-column-first; \\
-        niri msg action focus-column-right; \\
-        niri msg action focus-column-right; \\
-        ";
-    }
-    Mod+4 {
-        spawn-sh "niri msg action focus-column-first; \\
-        niri msg action focus-column-right; \\
-        niri msg action focus-column-right; \\
-        niri msg action focus-column-right; \\
-        ";
-    }
-    Mod+5 {
-        spawn-sh "niri msg action focus-column-first; \\
-        niri msg action focus-column-right; \\
-        niri msg action focus-column-right; \\
-        niri msg action focus-column-right; \\
-        niri msg action focus-column-right; \\
-        ";
-    }
-    Mod+6 {
-        spawn-sh "niri msg action focus-column-first; \\
-        niri msg action focus-column-right; \\
-        niri msg action focus-column-right; \\
-        niri msg action focus-column-right; \\
-        niri msg action focus-column-right; \\
-        niri msg action focus-column-right; \\
-        ";
-    }
-    Mod+7 {
-        spawn-sh "niri msg action focus-column-first; \\
-        niri msg action focus-column-right; \\
-        niri msg action focus-column-right; \\
-        niri msg action focus-column-right; \\
-        niri msg action focus-column-right; \\
-        niri msg action focus-column-right; \\
-        niri msg action focus-column-right; \\
-        ";
-    }
-    Mod+8 {
-        spawn-sh "niri msg action focus-column-first; \\
-        niri msg action focus-column-right; \\
-        niri msg action focus-column-right; \\
-        niri msg action focus-column-right; \\
-        niri msg action focus-column-right; \\
-        niri msg action focus-column-right; \\
-        niri msg action focus-column-right; \\
-        niri msg action focus-column-right; \\
-        ";
-    }
-    Mod+9 {
-        spawn-sh "niri msg action focus-column-first; \\
-        niri msg action focus-column-right; \\
-        niri msg action focus-column-right; \\
-        niri msg action focus-column-right; \\
-        niri msg action focus-column-right; \\
-        niri msg action focus-column-right; \\
-        niri msg action focus-column-right; \\
-        niri msg action focus-column-right; \\
-        niri msg action focus-column-right; \\
-        ";
-    }
+    Mod+1 { focus-column 1; }
+    Mod+2 { focus-column 2; }
+    Mod+3 { focus-column 3; }
+    Mod+4 { focus-column 4; }
+    Mod+5 { focus-column 5; }
+    Mod+6 { focus-column 6; }
+    Mod+7 { focus-column 7; }
+    Mod+8 { focus-column 8; }
+    Mod+9 { focus-column 9; }
 
     // === Numbered Columns: Move Inside Workspace (Mod+Shift+1-9) ===
-    Mod+Shift+1 {
-        move-column-to-first;
+    Mod+Return hotkey-overlay-title="Move with Column 1" {
+        spawn "sh" "-c" "col=$(niri msg focused-window | grep -oP '(?<=column )\\d+') && { [ \"$col\" -eq 1 ] && niri msg action focus-column 2; niri msg action move-column-to-index 1; }"
     }
-    Mod+Shift+2 {
-        spawn-sh "niri msg action move-column-to-first; \\
-        niri msg action move-column-right; \\
-        ";
+    Mod+Shift+1 hotkey-overlay-title="Move with Column 1" {
+        spawn "sh" "-c" "col=$(niri msg focused-window | grep -oP '(?<=column )\\d+') && { [ \"$col\" -eq 1 ] && niri msg action focus-column 2; niri msg action move-column-to-index 1; }"
     }
-    Mod+Shift+3 {
-        spawn-sh "niri msg action move-column-to-first; \\
-        niri msg action move-column-right; \\
-        niri msg action move-column-right; \\
-        ";
+    Mod+Shift+2 hotkey-overlay-title="Move with Column 2" {
+        spawn "sh" "-c" "col=$(niri msg focused-window | grep -oP '(?<=column )\\d+') && { [ \"$col\" -eq 2 ] && niri msg action focus-column 3; niri msg action move-column-to-index 2; }"
     }
-    Mod+Shift+4 {
-        spawn-sh "niri msg action move-column-to-first; \\
-        niri msg action move-column-right; \\
-        niri msg action move-column-right; \\
-        niri msg action move-column-right; \\
-        ";
+    Mod+Shift+3 hotkey-overlay-title="Move with Column 3" {
+        spawn "sh" "-c" "col=$(niri msg focused-window | grep -oP '(?<=column )\\d+') && { [ \"$col\" -eq 3 ] && niri msg action focus-column 4; niri msg action move-column-to-index 3; }"
     }
-    Mod+Shift+5 {
-        spawn-sh "niri msg action move-column-to-first; \\
-        niri msg action move-column-right; \\
-        niri msg action move-column-right; \\
-        niri msg action move-column-right; \\
-        niri msg action move-column-right; \\
-        ";
+    Mod+Shift+4 hotkey-overlay-title="Move with Column 4" {
+        spawn "sh" "-c" "col=$(niri msg focused-window | grep -oP '(?<=column )\\d+') && { [ \"$col\" -eq 4 ] && niri msg action focus-column 5; niri msg action move-column-to-index 4; }"
     }
-    Mod+Shift+6 {
-        spawn-sh "niri msg action move-column-to-first; \\
-        niri msg action move-column-right; \\
-        niri msg action move-column-right; \\
-        niri msg action move-column-right; \\
-        niri msg action move-column-right; \\
-        niri msg action move-column-right; \\
-        ";
+    Mod+Shift+5 hotkey-overlay-title="Move with Column 5" {
+        spawn "sh" "-c" "col=$(niri msg focused-window | grep -oP '(?<=column )\\d+') && { [ \"$col\" -eq 5 ] && niri msg action focus-column 6; niri msg action move-column-to-index 5; }"
     }
-    Mod+Shift+7 {
-        spawn-sh "niri msg action move-column-to-first; \\
-        niri msg action move-column-right; \\
-        niri msg action move-column-right; \\
-        niri msg action move-column-right; \\
-        niri msg action move-column-right; \\
-        niri msg action move-column-right; \\
-        niri msg action move-column-right; \\
-        ";
+    Mod+Shift+6 hotkey-overlay-title="Move with Column 6" {
+        spawn "sh" "-c" "col=$(niri msg focused-window | grep -oP '(?<=column )\\d+') && { [ \"$col\" -eq 6 ] && niri msg action focus-column 7; niri msg action move-column-to-index 6; }"
     }
-    Mod+Shift+8 {
-        spawn-sh "niri msg action move-column-to-first; \\
-        niri msg action move-column-right; \\
-        niri msg action move-column-right; \\
-        niri msg action move-column-right; \\
-        niri msg action move-column-right; \\
-        niri msg action move-column-right; \\
-        niri msg action move-column-right; \\
-        niri msg action move-column-right; \\
-        ";
+    Mod+Shift+7 hotkey-overlay-title="Move with Column 7" {
+        spawn "sh" "-c" "col=$(niri msg focused-window | grep -oP '(?<=column )\\d+') && { [ \"$col\" -eq 7 ] && niri msg action focus-column 8; niri msg action move-column-to-index 7; }"
     }
-    Mod+Shift+9 {
-        spawn-sh "niri msg action move-column-to-first; \\
-        niri msg action move-column-right; \\
-        niri msg action move-column-right; \\
-        niri msg action move-column-right; \\
-        niri msg action move-column-right; \\
-        niri msg action move-column-right; \\
-        niri msg action move-column-right; \\
-        niri msg action move-column-right; \\
-        niri msg action move-column-right; \\
-        ";
+    Mod+Shift+8 hotkey-overlay-title="Move with Column 8" {
+        spawn "sh" "-c" "col=$(niri msg focused-window | grep -oP '(?<=column )\\d+') && { [ \"$col\" -eq 8 ] && niri msg action focus-column 9; niri msg action move-column-to-index 8; }"
+    }
+    Mod+Shift+9 hotkey-overlay-title="Move with Column 9" {
+        spawn "sh" "-c" "col=$(niri msg focused-window | grep -oP '(?<=column )\\d+') && { [ \"$col\" -eq 9 ] && niri msg action focus-column 10; niri msg action move-column-to-index 9; }"
     }
 
     // === Numbered Workspaces: Nav (Mod+Ctrl+1-9) ===
@@ -395,6 +422,7 @@ binds {
     Mod+Ctrl+R { reset-window-height; }
     Mod+Ctrl+F { expand-column-to-available-width; }
     Mod+C { center-column; }
+    Mod+Ctrl+C { center-visible-columns; }
 
     // === Manual Sizing ===
     Mod+Minus { set-column-width "-10%"; }
@@ -403,7 +431,6 @@ binds {
     Mod+Shift+Equal { set-window-height "+10%"; }
 
     // === Screenshots ===
-    Mod+Shift+S { screenshot; }
     XF86Launch1 { screenshot; }
     Ctrl+XF86Launch1 { screenshot-screen; }
     Alt+XF86Launch1 { screenshot-window; }
@@ -412,120 +439,10 @@ binds {
     Alt+Print { screenshot-window; }
 
     // === System Controls ===
-    Mod+Escape { spawn "ignis" "open-window" "PowerMenu"; }
-    Mod+Alt+P { power-off-monitors; }
-
-    // === Custom Application Launchers ===
-    Mod+B { spawn "firefox"; }
-    Mod+D { spawn "vesktop"; }
-
-    // === Color picker ===
-    Mod+Shift+C { spawn-sh "niri msg pick-color | grep 'Hex:' | cut -d' ' -f2 | wl-copy"; }
-
-    // === Dynamic Cast ===
-    Mod+P { set-dynamic-cast-monitor; }
-    Mod+Shift+P { set-dynamic-cast-window; }
-    Mod+Ctrl+P { clear-dynamic-cast-target; }
+    Mod+Escape allow-inhibiting=false { toggle-keyboard-shortcuts-inhibit; }
+    Mod+Shift+P { power-off-monitors; }
 }
 
-// =======================
-// Window rules
-// =======================
-
-window-rule {
-    // Work around WezTerm's initial configure bug
-    match app-id=r#"^org\.wezfurlong\.wezterm$"#
-    default-column-width {}
+debug {
+    honor-xdg-activation-with-invalid-serial
 }
-
-// Open the Firefox picture-in-picture player as floating by default
-window-rule {
-    match app-id=r#"firefox$"# title="^Picture-in-Picture$"
-    open-floating true
-}
-
-// Global window styling
-window-rule {
-    geometry-corner-radius 10
-    clip-to-geometry true
-    draw-border-with-background false
-}
-
-// Opacity rules for specific applications
-window-rule {
-    match app-id=r#"^(kitty|thunar|org\.telegram\.desktop|discord|vesktop|org\.gnome\.Nautilus|nemo)$"#
-    opacity 0.9
-}
-
-// Launch vesktop and Telegram on DP-3 monitor
-window-rule {
-    match app-id=r#"^(vesktop|org\.telegram\.desktop)$"#
-    open-on-output "DP-3"
-}
-
-// OBS always opens at full width on DP-2
-window-rule {
-    match app-id=r#"^com\.obsproject\.Studio$"#
-    default-column-width { proportion 1.0; }
-    open-on-output "DP-2"
-}
-
-// Zen Browser and Zed settings
-window-rule {
-    match app-id=r#"^(firefox|dev\.zed\.Zed)$"#
-    opacity 0.98
-    default-column-width { proportion 0.75; }
-}
-
-// Web apps and Steam opacity
-window-rule {
-    match app-id=r#"^(steam|chrome-app\.restream\.io__home-Default|chrome-claude\.ai__new-Default|chrome-github\.com__-Default|chrome-gitlab\.com__theblackdon_black-don-os-Default|chrome-mail\.proton\.me__u_0_inbox-Default|chrome-meet\.google\.com__-Default|chrome-messages\.google\.com__web_u_1_conversations-Default|chrome-web\.descript\.com__-Default)$"#
-    opacity 0.95
-}
-
-// Commented out: Steam fullscreen rule
-/-window-rule {
-    match app-id="steam"
-    exclude title="^Steam$"
-    open-fullscreen true
-}
-
-
-spawn-at-startup "bash" "-c" "wl-paste --watch cliphist store &"
-spawn-at-startup "bash" "-c" "swww-daemon && sleep 1 && swww img '~/Pictures/Wallpapers/wallpaper.png'"
-spawn-at-startup "wal" "-R"
-spawn-at-startup "/usr/lib/mate-polkit/polkit-mate-authentication-agent-1"
-spawn-at-startup "vesktop"
-spawn-at-startup "Telegram"
-
-// =======================
-// Environment / Misc
-// =======================
-
-environment {
-    XDG_CURRENT_DESKTOP "niri"
-    GTK_USE_PORTAL "1"
-    MOZ_ENABLE_WAYLAND "1"
-    QT_QPA_PLATFORM "wayland"
-    ELECTRON_OZONE_PLATFORM_HINT "wayland"
-    QT_QPA_PLATFORMTHEME "gtk3"
-    QT_QPA_PLATFORMTHEME_QT6 "gtk3"
-    TERMINAL "kitty"
-    XCURSOR_THEME "Bibata-Modern-Ice"
-    XCURSOR_SIZE "24"
-
-    // NVIDIA Gaming Optimizations (harmless if you don't use NVIDIA/Proton)
-    __GL_GSYNC_ALLOWED "1"
-    __GL_VRR_ALLOWED "1"
-    PROTON_ENABLE_NVAPI "1"
-    PROTON_HIDE_NVIDIA_GPU "0"
-    PROTON_ENABLE_NGX_UPDATER "1"
-}
-
-hotkey-overlay {
-    skip-at-startup
-}
-
-prefer-no-csd
-
-screenshot-path "~/Pictures/Screenshots/Screenshot from %Y-%m-%d %H-%M-%S.png"

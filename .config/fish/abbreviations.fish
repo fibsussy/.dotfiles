@@ -68,7 +68,7 @@ abbr -a .4 'cd ../../../..'
 abbr -a .5 'cd ../../../../..'
 alias cat 'bat'
 alias bat 'bat --paging never --style=numbers,header-filename'
-abbr -a v 'nvim'
+alias v 'nvim'
 abbr -a sc 'systemctl'
 abbr -a scu 'systemctl --user'
 alias grep 'grep --color=auto'
@@ -76,10 +76,11 @@ alias fgrep 'grep -F --color=auto'
 alias egrep 'grep -E --color=auto'
 alias diff 'diff --color=auto'
 alias ip 'ip --color=auto'
-abbr -a paruclean 'sudo pacman -Rsn (pacman -Qdtq 2>/dev/null)'
+alias paruclean 'sudo pacman -Rsn (pacman -Qdtq 2>/dev/null)'
+alias less $MANPAGER
 
 abbr -a --position anywhere H -- "--help"
-abbr -a --position anywhere L -- "| $MANPAGER"
+abbr -a --position anywhere L -- "| less"
 abbr -a --position anywhere G -- '| grep'
 abbr -a --position anywhere W -- '| wc'
 abbr -a --position anywhere J -- '| jq'
