@@ -3,12 +3,6 @@ config-notification {
     disable-failed
 }
 
-gestures {
-    hot-corners {
-        // off
-    }
-}
-
 input {
     keyboard {
         xkb {
@@ -47,16 +41,16 @@ layout {
     }
     default-column-width { proportion 0.50; }
     border {
-        off
-        width 4
-        active-color   "#707070"      // Neutral gray
-        inactive-color "#d0d0d0"      // Light gray
+        width 1
+        active-color   "#808080f5"      // Neutral gray
+        inactive-color "#00000090"      // Light gray
         urgent-color   "#cc4444"      // Softer red
     }
     focus-ring {
-        width 2
-        active-color   "#808080"      // Medium gray
-        inactive-color "#505050"      // Dark gray
+        // off
+        width 1
+        active-color   "#808080f5"      // Medium gray
+        inactive-color "#50505000"      // Dark gray
     }
     shadow {
         softness 30
@@ -178,6 +172,11 @@ window-rule {
 window-rule {
     match is-active=false
     opacity 0.9
+}
+
+window-rule {
+    match app-id=r#"firefox$"#
+    opacity 1.0
 }
 
 window-rule {
