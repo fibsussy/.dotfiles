@@ -1,0 +1,42 @@
+{
+  "dankBatteryAlerts": {
+    "enabled": true,
+    "criticalThreshold": 10,
+    "warningThreshold": 20
+  },
+  "niriWindows": {
+    "enabled": true,
+    "noTrigger": false,
+    "trigger": "!"
+  },
+  "dankActions": {
+    "enabled": true,
+    "variants": [
+      {
+        "icon": "IP",
+        "displayText": "",
+        "displayCommand": "ip -4 addr show up 2>>/tmp/ipaddr.sh.log | grep -oP '(?<=inet\\s)\\d+\\.\\d+\\.\\d+\\.\\d+' | grep -v '127.0.0.1' | head -n 1\n",
+        "clickCommand": "",
+        "middleClickCommand": "",
+        "rightClickCommand": "",
+        "updateInterval": 5,
+        "showIcon": false,
+        "showText": true,
+        "id": "variant_1763832184872",
+        "name": "IP"
+      }
+    ]
+  },
+  "worldClock": {
+    "enabled": true
+  },
+  "wallpaperBing": {
+    "enabled": true,
+    "notifications": false,
+    "deleteOld": true
+  },
+  "wallpaperDiscovery": {
+    "enabled": true,
+    "downloadLocation": "~/Pictures/Wallpaper"
+  }
+}
