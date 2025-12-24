@@ -7,7 +7,6 @@ input {
     keyboard {
         xkb {
             layout "us"
-            options "caps:swapescape,fkeys:basic_13-24"
         }
         repeat-delay 200
         repeat-rate 70
@@ -18,12 +17,20 @@ input {
     }
     mouse {
         accel-profile "flat"
-        accel-speed -0.7
+        accel-speed -0.8
     }
     trackpoint {}
 
     warp-mouse-to-focus
+    focus-follows-mouse
+    workspace-auto-back-and-forth
     mod-key "Super"
+}
+
+output "DP-1" {
+    mode "1920x1080"
+    // variable-refresh-rate
+    focus-at-startup
 }
 
 
@@ -68,7 +75,7 @@ layer-rule {
 }
 
 overview {
-    zoom 0.25
+    zoom 0.45
 }
 
 // Add lines like this to spawn processes at startup.
@@ -77,8 +84,9 @@ overview {
 // See the binds section below for more spawn examples.
 // This line starts waybar, a commonly used bar for Wayland compositors.
 spawn-at-startup "bash" "-c" "wl-paste --watch cliphist store &"
-spawn-at-startup "dms" "run"
 spawn-at-startup "/usr/lib/mate-polkit/polkit-mate-authentication-agent-1"
+spawn-at-startup "bash" "-c" "dms run & while ! dms ipc call ping >/dev/null 2>&1; do sleep 0.1; done; dms ipc call lock lock"
+spawn-at-startup "chameleos"
 environment {
   XDG_CURRENT_DESKTOP "niri"
   QT_QPA_PLATFORM "wayland"
@@ -93,72 +101,66 @@ hotkey-overlay {
 prefer-no-csd
 screenshot-path "~/Pictures/Screenshots/Screenshot from %Y-%m-%d %H-%M-%S.png"
 animations {
-    // off
-    slowdown 0.3
     workspace-switch {
-        spring damping-ratio=0.80 stiffness=523 epsilon=0.0001
+        duration-ms 75
+        curve "ease-out-expo"
     }
     window-open {
-        duration-ms 150
+        duration-ms 75
         curve "ease-out-expo"
     }
     window-close {
-        duration-ms 150
+        duration-ms 75
         curve "ease-out-quad"
     }
     horizontal-view-movement {
-        spring damping-ratio=0.85 stiffness=423 epsilon=0.0001
+        // off
+        duration-ms 50
+        curve "ease-out-quad"
     }
     window-movement {
-        spring damping-ratio=0.75 stiffness=323 epsilon=0.0001
+        duration-ms 75
+        curve "ease-out-quad"
     }
     window-resize {
-        spring damping-ratio=0.85 stiffness=423 epsilon=0.0001
+        duration-ms 75
+        curve "ease-out-quad"
     }
     config-notification-open-close {
-        spring damping-ratio=0.65 stiffness=923 epsilon=0.001
+        duration-ms 75
+        curve "ease-out-quad"
     }
     screenshot-ui-open {
-        duration-ms 200
+        duration-ms 75
         curve "ease-out-quad"
     }
     overview-open-close {
-        spring damping-ratio=0.85 stiffness=800 epsilon=0.0001
+        duration-ms 50
+        curve "ease-out-quad"
     }
 }
-// Window rules let you adjust behavior for individual windows.
-// Find more information on the wiki:
-// https://github.com/YaLTeR/niri/wiki/Configuration:-Window-Rules
-// Work around WezTerm's initial configure bug
-// by setting an empty default-column-width.
+
 window-rule {
-    // This regular expression is intentionally made as specific as possible,
-    // since this is the default config, and we want no false positives.
-    // You can get away with just app-id="wezterm" if you want.
-    match app-id=r#"^org\.wezfurlong\.wezterm$"#
-    default-column-width {}
+    open-floating false
+    geometry-corner-radius 12
+    clip-to-geometry true
+    opacity 1.0
 }
 window-rule {
     match app-id=r#"^org\.gnome\."#
     draw-border-with-background false
-    geometry-corner-radius 12
-    clip-to-geometry true
 }
 window-rule {
     match app-id=r#"^gnome-control-center$"#
     match app-id=r#"^pavucontrol$"#
     match app-id=r#"^nm-connection-editor$"#
     default-column-width { proportion 0.5; }
-    open-floating false
 }
 window-rule {
     match app-id=r#"^gnome-calculator$"#
-    match app-id=r#"^galculator$"#
-    match app-id=r#"^blueman-manager$"#
     match app-id=r#"^org\.gnome\.Nautilus$"#
-    match app-id=r#"^steam$"#
     match app-id=r#"^xdg-desktop-portal$"#
-    open-floating true
+    // open-floating true
 }
 window-rule {
     match app-id=r#"^org\.wezfurlong\.wezterm$"#
@@ -168,26 +170,9 @@ window-rule {
     match app-id="kitty"
     draw-border-with-background false
 }
-
 window-rule {
     match is-active=false
     opacity 0.9
-}
-
-window-rule {
-    match app-id=r#"firefox$"#
-    opacity 1.0
-}
-
-window-rule {
-    match app-id=r#"firefox$"# title="^Picture-in-Picture$"
-    match app-id="zoom"
-    open-floating true
-}
-
-window-rule {
-    geometry-corner-radius 12
-    clip-to-geometry true
 }
 
 binds {
@@ -196,8 +181,10 @@ binds {
     Mod+Tab repeat=false { toggle-overview; }
     Mod+Shift+Slash { show-hotkey-overlay; }
 
-    F23 { spawn "notify-send" "Normal Mode"; }
-    F24 { spawn "notify-send" "Game Mode"; }
+    Shift+F1 { spawn "chamel" "toggle"; }
+    Shift+F2 { spawn "chamel" "undo"; }
+    Shift+F3 { spawn "chamel" "clear-and-deactivate"; }
+
 
     // === Application Launchers ===
     Mod+T hotkey-overlay-title="Open Terminal" {
@@ -346,47 +333,29 @@ binds {
     Mod+Ctrl+Shift+WheelScrollUp   { move-column-left; }
 
     // === Numbered Columns: Focus (Mod+1-9 = column nav) ===
-    Mod+1 { focus-column 1; }
-    Mod+2 { focus-column 2; }
-    Mod+3 { focus-column 3; }
-    Mod+4 { focus-column 4; }
-    Mod+5 { focus-column 5; }
-    Mod+6 { focus-column 6; }
-    Mod+7 { focus-column 7; }
-    Mod+8 { focus-column 8; }
-    Mod+9 { focus-column 9; }
+    Mod+1 { spawn-sh "niri msg action focus-column 1"; }
+    Mod+2 { spawn-sh "niri msg action focus-column 2"; }
+    Mod+3 { spawn-sh "niri msg action focus-column 3"; }
+    Mod+4 { spawn-sh "niri msg action focus-column 4"; }
+    Mod+5 { spawn-sh "niri msg action focus-column 5"; }
+    Mod+6 { spawn-sh "niri msg action focus-column 6"; }
+    Mod+7 { spawn-sh "niri msg action focus-column 7"; }
+    Mod+8 { spawn-sh "niri msg action focus-column 8"; }
+    Mod+9 { spawn-sh "niri msg action focus-column 9"; }
 
     // === Numbered Columns: Move Inside Workspace (Mod+Shift+1-9) ===
     Mod+Return hotkey-overlay-title="Move with Column 1" {
-        spawn "sh" "-c" "col=$(niri msg focused-window | grep -oP '(?<=column )\\d+') && { [ \"$col\" -eq 1 ] && niri msg action focus-column 2; niri msg action move-column-to-index 1; }"
+        spawn-sh "col=$(niri msg focused-window | grep -oP '(?<=column )\\d+') && { [ \"$col\" -eq 1 ] && niri msg action focus-column 2; niri msg action move-column-to-index 1; }"
     }
-    Mod+Shift+1 hotkey-overlay-title="Move with Column 1" {
-        spawn "sh" "-c" "col=$(niri msg focused-window | grep -oP '(?<=column )\\d+') && { [ \"$col\" -eq 1 ] && niri msg action focus-column 2; niri msg action move-column-to-index 1; }"
-    }
-    Mod+Shift+2 hotkey-overlay-title="Move with Column 2" {
-        spawn "sh" "-c" "col=$(niri msg focused-window | grep -oP '(?<=column )\\d+') && { [ \"$col\" -eq 2 ] && niri msg action focus-column 3; niri msg action move-column-to-index 2; }"
-    }
-    Mod+Shift+3 hotkey-overlay-title="Move with Column 3" {
-        spawn "sh" "-c" "col=$(niri msg focused-window | grep -oP '(?<=column )\\d+') && { [ \"$col\" -eq 3 ] && niri msg action focus-column 4; niri msg action move-column-to-index 3; }"
-    }
-    Mod+Shift+4 hotkey-overlay-title="Move with Column 4" {
-        spawn "sh" "-c" "col=$(niri msg focused-window | grep -oP '(?<=column )\\d+') && { [ \"$col\" -eq 4 ] && niri msg action focus-column 5; niri msg action move-column-to-index 4; }"
-    }
-    Mod+Shift+5 hotkey-overlay-title="Move with Column 5" {
-        spawn "sh" "-c" "col=$(niri msg focused-window | grep -oP '(?<=column )\\d+') && { [ \"$col\" -eq 5 ] && niri msg action focus-column 6; niri msg action move-column-to-index 5; }"
-    }
-    Mod+Shift+6 hotkey-overlay-title="Move with Column 6" {
-        spawn "sh" "-c" "col=$(niri msg focused-window | grep -oP '(?<=column )\\d+') && { [ \"$col\" -eq 6 ] && niri msg action focus-column 7; niri msg action move-column-to-index 6; }"
-    }
-    Mod+Shift+7 hotkey-overlay-title="Move with Column 7" {
-        spawn "sh" "-c" "col=$(niri msg focused-window | grep -oP '(?<=column )\\d+') && { [ \"$col\" -eq 7 ] && niri msg action focus-column 8; niri msg action move-column-to-index 7; }"
-    }
-    Mod+Shift+8 hotkey-overlay-title="Move with Column 8" {
-        spawn "sh" "-c" "col=$(niri msg focused-window | grep -oP '(?<=column )\\d+') && { [ \"$col\" -eq 8 ] && niri msg action focus-column 9; niri msg action move-column-to-index 8; }"
-    }
-    Mod+Shift+9 hotkey-overlay-title="Move with Column 9" {
-        spawn "sh" "-c" "col=$(niri msg focused-window | grep -oP '(?<=column )\\d+') && { [ \"$col\" -eq 9 ] && niri msg action focus-column 10; niri msg action move-column-to-index 9; }"
-    }
+    Mod+Shift+1 hotkey-overlay-title="Move with Column 1" { move-column-to-index 1; }
+    Mod+Shift+2 hotkey-overlay-title="Move with Column 2" { move-column-to-index 2; }
+    Mod+Shift+3 hotkey-overlay-title="Move with Column 3" { move-column-to-index 3; }
+    Mod+Shift+4 hotkey-overlay-title="Move with Column 4" { move-column-to-index 4; }
+    Mod+Shift+5 hotkey-overlay-title="Move with Column 5" { move-column-to-index 5; }
+    Mod+Shift+6 hotkey-overlay-title="Move with Column 6" { move-column-to-index 6; }
+    Mod+Shift+7 hotkey-overlay-title="Move with Column 7" { move-column-to-index 7; }
+    Mod+Shift+8 hotkey-overlay-title="Move with Column 8" { move-column-to-index 8; }
+    Mod+Shift+9 hotkey-overlay-title="Move with Column 9" { move-column-to-index 9; }
 
     // === Numbered Workspaces: Nav (Mod+Ctrl+1-9) ===
     Mod+Ctrl+1 { focus-workspace 1; }

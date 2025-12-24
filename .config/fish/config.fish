@@ -2,7 +2,6 @@ if not status is-interactive
     exit
 end
 
-set -gx RUSTUP_HOME "$XDG_DATA_HOME/rustup"
 set -gx RUSTFLAGS '-W clippy::pedantic -W clippy::nursery -A clippy::unreadable_literal -A clippy::struct_excessive_bools'
 set -gx PYENV_ROOT "$HOME/.pyenv"
 set -gx PYENV_VIRTUALENV_DISABLE_PROMPT 1
