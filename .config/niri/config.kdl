@@ -101,43 +101,38 @@ hotkey-overlay {
 prefer-no-csd
 screenshot-path "~/Pictures/Screenshots/Screenshot from %Y-%m-%d %H-%M-%S.png"
 animations {
-    workspace-switch {
-        duration-ms 75
-        curve "ease-out-expo"
-    }
-    window-open {
-        duration-ms 75
-        curve "ease-out-expo"
-    }
-    window-close {
-        duration-ms 75
-        curve "ease-out-quad"
-    }
-    horizontal-view-movement {
-        // off
-        duration-ms 50
-        curve "ease-out-quad"
-    }
-    window-movement {
-        duration-ms 75
-        curve "ease-out-quad"
-    }
-    window-resize {
-        duration-ms 75
-        curve "ease-out-quad"
-    }
-    config-notification-open-close {
-        duration-ms 75
-        curve "ease-out-quad"
-    }
-    screenshot-ui-open {
-        duration-ms 75
-        curve "ease-out-quad"
-    }
-    overview-open-close {
-        duration-ms 50
-        curve "ease-out-quad"
-    }
+  workspace-switch {
+    duration-ms 50
+    curve "cubic-bezier" 0.16 1 0.3 1
+  }
+  window-open {
+    duration-ms 120
+    curve "cubic-bezier" 0.34 1.4 0.64 1
+  }
+  window-close {
+    duration-ms 100
+    curve "cubic-bezier" 0.33 0 0.67 0
+  }
+  horizontal-view-movement {
+    duration-ms 50
+    curve "cubic-bezier" 0.16 1 0.3 1
+  }
+  window-movement {
+    duration-ms 120
+    curve "cubic-bezier" 0.22 1 0.36 1
+  }
+  config-notification-open-close {
+    duration-ms 100
+    curve "cubic-bezier" 0.22 1 0.36 1
+  }
+  screenshot-ui-open {
+    duration-ms 120
+    curve "cubic-bezier" 0.22 1 0.36 1
+  }
+  overview-open-close {
+    duration-ms 200
+    curve "cubic-bezier" 0.34 1.2 0.64 1
+  }
 }
 
 window-rule {
