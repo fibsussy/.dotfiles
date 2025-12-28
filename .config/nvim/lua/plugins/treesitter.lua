@@ -12,9 +12,6 @@ return {
     'nvim-treesitter/nvim-treesitter',
     event = "VeryLazy",
     build = ":TSUpdate",
-    dependencies = {
-      "nvim-treesitter/nvim-treesitter-textobjects",
-    },
     opts = {
       ensure_installed = {
         'go', 'lua', 'python', 'rust', 'typescript', 'regex',
@@ -76,8 +73,5 @@ return {
       },
       auto_install = true,
     },
-    config = function(_, opts)
-      require('nvim-treesitter.configs').setup(opts)
-    end,
   },
 }

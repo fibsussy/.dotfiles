@@ -17,6 +17,16 @@ function paru
     end
 end
 
+function yay
+    if command -v yay >/dev/null
+        command yay --noconfirm $argv
+        command yay -Qqen > ~/packages.txt 2>/dev/null
+    else
+        echo "yay is not installed"
+        return 1
+    end
+end
+
 function download
     if string match -r '^https?://(www\.)?(youtube\.com|youtu\.be)/' $argv[1] >/dev/null
         if command -v yt-dlp >/dev/null
