@@ -31,7 +31,6 @@
 
   # The list of segments shown on the left. Fill it with the most important segments.
   typeset -g POWERLEVEL9K_LEFT_PROMPT_ELEMENTS=(
-    # os_icon               # os identifier
     prompt_char           # prompt symbol
   )
 
@@ -40,21 +39,12 @@
   # automatically hidden when the input line reaches it. Right prompt above the
   # last prompt line gets hidden if it would overlap with left prompt.
   typeset -g POWERLEVEL9K_RIGHT_PROMPT_ELEMENTS=(
-    vi_mode                 # vi mode
     status                  # exit code of the last command
     command_execution_time  # duration of the last command
-    background_jobs         # presence of background jobs
     dir                     # current directory
-    vcs                     # git status
-    direnv                  # direnv status (https://direnv.net/)
-    asdf                    # asdf version manager (https://github.com/asdf-vm/asdf)
+    # vcs                   # git status (disabled - was causing gitstatus errors)
     virtualenv              # python virtual environment (https://docs.python.org/3/library/venv.html)
-    anaconda                # conda environment (https://conda.io/)
     pyenv                   # python environment (https://github.com/pyenv/pyenv)
-    goenv                   # go environment (https://github.com/syndbg/goenv)
-    nodenv                  # node.js version from nodenv (https://github.com/nodenv/nodenv)
-    nvm                     # node.js version from nvm (https://github.com/nvm-sh/nvm)
-    nodeenv                 # node.js environment (https://github.com/ekalinin/nodeenv)
     # node_version          # node.js version
     # go_version            # go version (https://golang.org)
     # rust_version          # rustc version (https://www.rust-lang.org)
@@ -197,15 +187,14 @@
   typeset -g POWERLEVEL9K_PROMPT_CHAR_OK_{VIINS,VICMD,VIVIS,VIOWR}_FOREGROUND=76
   # Red prompt symbol if the last command failed.
   typeset -g POWERLEVEL9K_PROMPT_CHAR_ERROR_{VIINS,VICMD,VIVIS,VIOWR}_FOREGROUND=196
-  # Default prompt symbol.
-  typeset -g POWERLEVEL9K_PROMPT_CHAR_{OK,ERROR}_VIINS_CONTENT_EXPANSION='❯'
-  # Prompt symbol in command vi mode.
-  typeset -g POWERLEVEL9K_PROMPT_CHAR_{OK,ERROR}_VICMD_CONTENT_EXPANSION='❮'
-  # Prompt symbol in visual vi mode.
-  typeset -g POWERLEVEL9K_PROMPT_CHAR_{OK,ERROR}_VIVIS_CONTENT_EXPANSION='V'
-  # Prompt symbol in overwrite vi mode.
-  typeset -g POWERLEVEL9K_PROMPT_CHAR_{OK,ERROR}_VIOWR_CONTENT_EXPANSION='▶'
+  # Vi mode indicators - changes based on mode
+  typeset -g POWERLEVEL9K_PROMPT_CHAR_{OK,ERROR}_VIINS_CONTENT_EXPANSION='$'     # Insert mode
+  typeset -g POWERLEVEL9K_PROMPT_CHAR_{OK,ERROR}_VICMD_CONTENT_EXPANSION=':'     # Normal mode
+  typeset -g POWERLEVEL9K_PROMPT_CHAR_{OK,ERROR}_VIVIS_CONTENT_EXPANSION='V'     # Visual mode
+  typeset -g POWERLEVEL9K_PROMPT_CHAR_{OK,ERROR}_VIOWR_CONTENT_EXPANSION='R'     # Replace mode
   typeset -g POWERLEVEL9K_PROMPT_CHAR_OVERWRITE_STATE=true
+  # Transient prompt - shows simple $ after command runs
+  typeset -g POWERLEVEL9K_TRANSIENT_PROMPT=always
   # No line terminator if prompt_char is the last segment.
   typeset -g POWERLEVEL9K_PROMPT_CHAR_LEFT_PROMPT_LAST_SEGMENT_END_SYMBOL=
   # No line introducer if prompt_char is the first segment.

@@ -3,16 +3,10 @@
 # Skip non-interactive shells
 [[ -o interactive ]] || return
 
+# Disable gitstatus (must be before instant prompt)
+typeset -g POWERLEVEL9K_DISABLE_GITSTATUS=true
 
-if [[ -n "$ZSH_PROFILE" ]]; then
-    zmodload zsh/zprof
-fi
-
-function prompt_stay_at_bottom {
-    tput cup $LINES 0 2>/dev/null || true
-}
-
-source /usr/share/zsh-theme-powerlevel10k/powerlevel10k.zsh-theme
+# Enable instant prompt (must be near top)
 if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
   source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
 fi
@@ -66,7 +60,29 @@ KEYTIMEOUT=1                # Fast mode switching
 autoload edit-command-line
 zle -N edit-command-line
 bindkey '^e' edit-command-line  # Edit command in editor
-bindkey '^r' history-incremental-search-backward  # Ctrl+R for history search
+
+# Sudo toggle function
+sudo_toggle() {
+    if [[ $BUFFER == sudo\ * ]]; then
+        BUFFER="${BUFFER#sudo }"
+    else
+        BUFFER="sudo $BUFFER"
+    fi
+    zle end-of-line
+}
+zle -N sudo_toggle
+bindkey '^s' sudo_toggle  # Ctrl+S to toggle sudo
+
+# Vi mode cursor shapes
+function zle-keymap-select {
+    case $KEYMAP in
+        vicmd|visual) echo -ne '\e[2 q';;  # block cursor
+        viins|main)   echo -ne '\e[2 q';;  # block cursor
+        replace)      echo -ne '\e[4 q';;  # underscore cursor
+    esac
+}
+zle -N zle-keymap-select
+echo -ne '\e[2 q'  # block cursor on startup
 
 
 HISTFILE="${XDG_STATE_HOME}/zsh/history"
@@ -81,59 +97,38 @@ setopt hist_verify             # Verify history expansion
 
 
 
-fpath=(~/.zfunc $fpath)
-
+# Completion system - fast and cached
 autoload -Uz compinit
-local comp_dump="${XDG_CACHE_HOME}/zsh/zcompdump"
-if [[ -n $ZSH_PROFILE || ! -f "$comp_dump" ]]; then
-    compinit -i -d "$comp_dump"
+local zcd="${XDG_CACHE_HOME:-$HOME/.cache}/zsh/zcompdump"
+# Only regenerate if older than 24 hours
+if [[ ! -f "$zcd" || -n $(find "$zcd" -mtime +1 2>/dev/null) ]]; then
+    compinit -d "$zcd"
 else
-    compinit -C -i -d "$comp_dump"
+    compinit -C -d "$zcd"
 fi
+# Compile if needed
+[[ ! -f "$zcd.zwc" || "$zcd" -nt "$zcd.zwc" ]] && zcompile "$zcd" &!
 
+# Completion styling - minimal but functional
+zstyle ':completion:*' completer _complete _approximate
+zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}' 'r:|[._-]=* r:|=*'
+zstyle ':completion:*' list-colors ${(s.:.)LS_COLORS}
+zstyle ':completion:*' menu select
+zstyle ':completion:*' use-cache on
+zstyle ':completion:*' cache-path "${XDG_CACHE_HOME}/zsh/zcompcache"
 
-zstyle ':completion:*' completer _complete _ignored
-zstyle ':completion:*' matcher-list '' 'm:{a-zA-Z}={A-Za-z}'
-unset zle_bracketed_paste
-ZSH_AUTOSUGGEST_STRATEGY=()
-ZSH_HIGHLIGHT_MAXLENGTH=0
+# Vi menu navigation
 zmodload zsh/complist
 bindkey -M menuselect 'h' vi-backward-char
 bindkey -M menuselect 'k' vi-up-line-or-history
 bindkey -M menuselect 'l' vi-forward-char
 bindkey -M menuselect 'j' vi-down-line-or-history
-zstyle ':completion:*:descriptions' format '[%d]'
-zstyle ':completion:*' list-colors ${(s.:.)LS_COLORS}
 
 
 
 function tmux_force {
-    if ! command -v tmux >/dev/null 2>&1; then
-        echo -e "\033[31mError: tmux is not installed.\033[0m" >&2
-        return 1
-    fi
-    if [ -n "$TMUX" ]; then
-        echo -e "\033[31mError: Already in a tmux session.\033[0m" >&2
-        return 1
-    fi
-    if tmux has-session -t '\~' 2>/dev/null; then
-        if ! tmux attach-session -t '\~' 2>/dev/null; then
-            echo -e "\033[31mError: Failed to attach to tmux session '~'.\033[0m" >&2
-            return 1
-        fi
-    else
-        if ! tmux new-session -s '~' -c '~' 2>/dev/null; then
-            echo -e "\033[31mError: Failed to create new tmux session '~'.\033[0m" >&2
-            return 1
-        fi
-    fi
-    while tmux has-session 2>/dev/null; do
-        if ! tmux attach 2>/dev/null; then
-            echo -e "\033[31mError: Failed to reattach to tmux.\033[0m" >&2
-            return 1
-        fi
-    done
-    return 0
+    [[ -n "$TMUX" ]] && { echo "Already in tmux"; return 1; }
+    tmux attach -t '\~' 2>/dev/null || tmux new -s '~' -c '~'
 }
 
 alias sudo='sudo ' # allows aliases with sudo
@@ -153,7 +148,9 @@ alias ll='eza -lha --icons=auto --sort=name --group-directories-first'
 alias ld='eza -lhD --icons=auto'
 alias lt='eza --icons=auto --tree'
 alias cat='bat'
+alias bat='bat --paging never --style=numbers,header-filename'
 alias v="nvim"
+alias less="$MANPAGER"
 alias paruclean="sudo pacman -Rsn $(pacman -Qdtq 2>/dev/null)"
 alias brb="clear && figlet BRB | lolcat"
 alias sc='systemctl'
@@ -172,67 +169,81 @@ alias -g W='| wc'
 alias -g J='| jq'
 alias -g C='| tee /dev/tty | perl -pe "chomp if eof" | wl-copy'
 alias -g CC='| tee /dev/tty | (echo "❯ $ZSH_COMMAND"; perl -pe "chomp if eof") | wl-copy'
-preexec() { ZSH_COMMAND=$1 }
+preexec() { echo -ne '\e[2 q'; ZSH_COMMAND=$1 }  # block cursor before command + save command for CC alias
 alias -g null='/dev/null'
 alias -g 2null='&>null'
 alias -g 2bg='&>null & disown'
 
+# Last command (!!) expansion
+function _expand_last_command() {
+    LBUFFER="${LBUFFER}${history[$((HISTCMD-1))]}"
+}
+zle -N _expand_last_command
+bindkey '!!' _expand_last_command
 
+# Load environment files (lazy)
 function load_environment_files() {
     set -a
     [[ -f ~/.api_keys.env ]] && source ~/.api_keys.env
     [[ -f .env ]] && source ./.env
-    [[ -f ./.env.dev ]] && source ./.env.dev
-    [[ -f ./.env.development ]] && source ./.env.development
     set +a
 }
 load_environment_files
 
-
-typeset -g _paru_available
-(( $+commands[paru] )) && _paru_available=1
+# Wrapper functions - simplified
 function paru {
-    if [[ -n $_paru_available ]]; then
-        command paru --noconfirm "$@"
-        command paru -Qqen > ~/packages.txt 2>/dev/null
-    else
-        echo "paru is not installed"
-        return 1
-    fi
+    command paru --noconfirm "$@"
+    command paru -Qqen > ~/packages.txt 2>/dev/null
 }
 
-typeset -g _ytdlp_available _gallerydl_available
-(( $+commands[yt-dlp] )) && _ytdlp_available=1
-(( $+commands[gallery-dl] )) && _gallerydl_available=1
+function yay {
+    command yay --noconfirm "$@"
+    command yay -Qqen > ~/packages.txt 2>/dev/null
+}
+
 function download {
     if [[ $1 =~ ^https?://(www\.)?(youtube\.com|youtu\.be)/ ]]; then
-        [[ -n $_ytdlp_available ]] && yt-dlp "$@" || { echo "yt-dlp is not installed"; return 1 }
+        yt-dlp "$@"
     else
-        [[ -n $_gallerydl_available ]] && gallery-dl -D . --cookies-from-browser firefox "$@" || { echo "gallery-dl is not installed"; return 1 }
+        gallery-dl -D . --cookies-from-browser firefox "$@"
     fi
 }
 
-typeset -g _stow_available
-(( $+commands[stow] )) && _stow_available=1
 function stow_dotfiles {
-    if [[ -n $_stow_available ]]; then
-        local trapped_dir=$(pwd)
-        trap "cd $trapped_dir" EXIT
-        cd ~/.dotfiles/ 2>/dev/null || { echo "~/.dotfiles directory not found"; return 1; }
-        stow -D .
-        stow . --adopt
-    else
-        echo "stow is not installed"
-        return 1
-    fi
+    local cwd=$(pwd)
+    cd ~/.dotfiles/ && stow -D . && stow . --adopt && cd "$cwd"
 }
 
-# autoload -Uz add-zsh-hook
-# add-zsh-hook precmd prompt_stay_at_bottom
-eval "$(zoxide init zsh)"
-[[ ! -f $ZDOTDIR/.p10k.zsh ]] || source $ZDOTDIR/.p10k.zsh
+# Plugins (install: paru -S zsh-syntax-highlighting zsh-autosuggestions)
+[[ -f /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]] && \
+    source /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+[[ -f /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh ]] && \
+    source /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
 
-[[ -n "$ZSH_PROFILE" ]] && zprof
+# fzf integration (Ctrl-R only, for speed)
+if (( $+commands[fzf] )); then
+    __fzf_history__() {
+        local selected
+        selected=$(fc -rl 1 | fzf --tac --no-sort --exact --query="$LBUFFER" | awk '{$1=""; print substr($0,2)}')
+        [[ -n $selected ]] && LBUFFER=$selected
+        zle reset-prompt
+    }
+    zle -N __fzf_history__
+    bindkey '^r' __fzf_history__
+fi
 
-: # removes the exit 1
+# Lazy init tools (only when needed)
+if (( $+commands[pyenv] )) && [[ -f .python-version ]]; then
+    eval "$(pyenv init - zsh 2>/dev/null)" 2>/dev/null || true
+fi
+[[ -f .venv/bin/activate ]] && source .venv/bin/activate 2>/dev/null
+
+# Fast tools
+if (( $+commands[zoxide] )); then
+    eval "$(zoxide init zsh 2>/dev/null)" 2>/dev/null || true
+fi
+
+# Load theme last
+source /usr/share/zsh-theme-powerlevel10k/powerlevel10k.zsh-theme
+[[ -f $ZDOTDIR/.p10k.zsh ]] && source $ZDOTDIR/.p10k.zsh
 

@@ -151,3 +151,5 @@ xwayland-satellite
 zoxide
 zram-generator
 zsh
+zsh-autosuggestions
+zsh-syntax-highlighting
