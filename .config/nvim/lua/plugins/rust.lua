@@ -1,23 +1,24 @@
 return {
   {
-    "simrat39/rust-tools.nvim",
-    ft = "rust",
-    dependencies = "neovim/nvim-lspconfig",
-    opts = {
-      server = {
-        --on_attach = require("nvchad.configs.lspconfig").on_attach,
-        --capabilities = require("nvchad.configs.lspconfig").capabilities,
-      },
-      tools = {
-        inlay_hints = {
-          parameter_hints_prefix = "    ",
-          other_hints_prefix = "    ",
-          right_align = false,
-          right_align_padding = 0,
-          highlight = "LspInlayHint",
+    "mrcjkb/rustaceanvim",
+    version = "^5",
+    ft = { "rust" },
+    lazy = false,
+    config = function()
+      vim.g.rustaceanvim = {
+        server = {
+          default_settings = {
+            ["rust-analyzer"] = {
+              inlayHints = {
+                parameterHints = { prefix = "    " },
+                chainingHints = { prefix = "    " },
+                typeHints = { prefix = "    " },
+              },
+            },
+          },
         },
-      },
-    },
+      }
+    end,
   },
   {
     "saecki/crates.nvim",

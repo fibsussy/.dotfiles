@@ -1,10 +1,108 @@
-jjjjj
+
+config-notification {
+    disable-failed
+}
+
+input {
+    keyboard {
+        xkb {
+            layout "us"
+        }
+        repeat-delay 200
+        repeat-rate 70
+        numlock
+    }
+    touchpad {
+        tap
+    }
+    mouse {
+        accel-profile "flat"
+        accel-speed -0.8
+    }
+    trackpoint {}
+
+    warp-mouse-to-focus
+    focus-follows-mouse
+    workspace-auto-back-and-forth
+    mod-key "Super"
+}
+
+output "DP-1" {
+    mode "1920x1080"
+    // variable-refresh-rate
+    focus-at-startup
+}
+
+
+layout {
+    gaps 5
+    background-color "transparent"
+    center-focused-column "never"
+    always-center-single-column
+    default-column-display "normal"
+    preset-column-widths {
+        proportion 0.25
+        proportion 0.50
+        proportion 0.75
+        proportion 1.00
+    }
+    default-column-width { proportion 0.50; }
+    border {
+        width 1
+        active-color   "#808080f5"      // Neutral gray
+        inactive-color "#00000090"      // Light gray
+        urgent-color   "#cc4444"      // Softer red
+    }
+    focus-ring {
+        // off
+        width 1
+        active-color   "#808080f5"      // Medium gray
+        inactive-color "#50505000"      // Dark gray
+    }
+    shadow {
+        softness 30
+        spread 5
+        offset x=0 y=5
+        color "#0007"
+    }
+    struts {
+    }
+}
+
+layer-rule {
+    match namespace="^quickshell$"
+    place-within-backdrop true
+}
+
+overview {
+    zoom 0.45
+}
+
+// Add lines like this to spawn processes at startup.
+// Note that running niri as a session supports xdg-desktop-autostart,
+// which may be more convenient to use.
+// See the binds section below for more spawn examples.
+// This line starts waybar, a commonly used bar for Wayland compositors.
+spawn-at-startup "bash" "-c" "wl-paste --watch cliphist store &"
+spawn-at-startup "/usr/lib/mate-polkit/polkit-mate-authentication-agent-1"
+spawn-at-startup "bash" "-c" "dms run & while ! dms ipc call ping >/dev/null 2>&1; do sleep 0.1; done; dms ipc call lock lock"
+spawn-at-startup "chameleos"
+environment {
+  XDG_CURRENT_DESKTOP "niri"
+  QT_QPA_PLATFORM "wayland"
+  ELECTRON_OZONE_PLATFORM_HINT "auto"
+  QT_QPA_PLATFORMTHEME "gtk3"
+  QT_QPA_PLATFORMTHEME_QT6 "gtk3"
+  TERMINAL "kitty"
+}
+hotkey-overlay {
     skip-at-startup
 }
 prefer-no-csd
 screenshot-path "~/Pictures/Screenshots/Screenshot from %Y-%m-%d %H-%M-%S.png"
 animations {
   off
+  slowdown 5
   workspace-switch {
     duration-ms 50
     curve "cubic-bezier" 0.16 1 0.3 1

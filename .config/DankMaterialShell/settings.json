@@ -251,13 +251,44 @@
         "weather"
       ],
       "rightWidgets": [
-        "systemTray",
-        "clipboard",
-        "cpuUsage",
-        "memUsage",
-        "notificationButton",
-        "battery",
-        "controlCenterButton"
+        {
+          "id": "systemTray",
+          "enabled": true
+        },
+        {
+          "id": "clipboard",
+          "enabled": true
+        },
+        {
+          "id": "cpuUsage",
+          "enabled": true
+        },
+        {
+          "id": "memUsage",
+          "enabled": true
+        },
+        {
+          "id": "cpuTemp",
+          "enabled": true
+        },
+        {
+          "id": "gpuTemp",
+          "enabled": true,
+          "selectedGpuIndex": 0,
+          "pciId": "10de:2f04"
+        },
+        {
+          "id": "notificationButton",
+          "enabled": true
+        },
+        {
+          "id": "battery",
+          "enabled": true
+        },
+        {
+          "id": "controlCenterButton",
+          "enabled": true
+        }
       ],
       "spacing": 0,
       "innerPadding": -5,

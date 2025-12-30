@@ -5,7 +5,6 @@ local servers = {
   tailwindcss = {},
   gopls = {},
   pyright = {},
-  rust_analyzer = {},
   clangd = {},
   omnisharp = {},
   jdtls = {},
@@ -67,7 +66,8 @@ return {
     end
   },
   {
-    "neovim/nvim-lspconfig",
+    name = "lsp-setup",
+    dir = vim.fn.stdpath("config"),
     event = { "BufReadPre", "BufNewFile" },
     dependencies = {
       "hrsh7th/cmp-nvim-lsp",
