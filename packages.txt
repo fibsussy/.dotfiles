@@ -5,12 +5,16 @@ bat
 bluez
 bluez-utils
 btop
+claude-code
 cli11
 cliphist
 cmake
 cpupower
 dgop
 discord
+dms-shell-bin
+dms-shell-bin-debug
+dropbox-cli
 efibootmgr
 evtest
 eza
@@ -26,6 +30,7 @@ git-crypt
 github-cli
 gitleaks
 gnome-font-viewer
+google-breakpad
 grub
 gst-plugin-pipewire
 intel-ucode
@@ -33,6 +38,7 @@ interception-tools
 inxi
 jemalloc
 keepassxc
+keyboard-middleware
 keyd
 kitty
 lib32-gamemode
@@ -79,6 +85,7 @@ qt6-declarative
 qt6-shadertools
 qt6-svg
 qt6-wayland
+quickshell-git
 ripgrep
 rustup
 sddm
@@ -86,6 +93,7 @@ sof-firmware
 steam
 stow
 tmux
+tmux-leap
 tree
 ttf-0xproto-nerd
 ttf-3270-nerd
@@ -103,8 +111,8 @@ ttf-dejavu-nerd
 ttf-envycoder-nerd
 ttf-fantasque-nerd
 ttf-firacode-nerd
-ttf-go-nerd
 ttf-gohu-nerd
+ttf-go-nerd
 ttf-hack-nerd
 ttf-heavydata-nerd
 ttf-iawriter-nerd
@@ -138,6 +146,7 @@ ttf-sourcecodepro-nerd
 ttf-space-mono-nerd
 ttf-terminus-nerd
 ttf-tinos-nerd
+ttf-twemoji-color
 ttf-ubuntu-mono-nerd
 ttf-ubuntu-nerd
 ttf-victor-mono-nerd
@@ -148,8 +157,11 @@ wl-clipboard
 xdg-desktop-portal-gnome
 xdg-desktop-portal-gtk
 xwayland-satellite
+yay-bin
+yay-bin-debug
 zoxide
 zram-generator
 zsh
 zsh-autosuggestions
 zsh-syntax-highlighting
+zsh-theme-powerlevel10k-bin-git
