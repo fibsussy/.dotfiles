@@ -1,14 +1,5 @@
 claude-code
 dms-shell-bin
-dms-shell-bin-debug
-dropbox
 dropbox-cli
-google-breakpad
-keyboard-middleware
-quickshell-git
-tmux-leap
 ttf-twemoji-color
-yay-bin
-yay-bin-debug
 zsh-theme-powerlevel10k-bin-git
-zsh-theme-powerlevel10k-bin-git-debug

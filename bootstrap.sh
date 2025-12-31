@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 set -euo pipefail
 
 echo "Bootstrapping your Arch setup..."
@@ -18,13 +19,15 @@ show_diff() {
 echo "Running custom package script..."
 ./packages-custom.sh
 
-echo "Installing pacman packages..."
+# --- Explicit packages ---
+echo "Installing explicit pacman packages..."
 missing_pkgs=$(comm -23 <(sort packages.txt) <(pacman -Qq | sort))
 if [[ -n "$missing_pkgs" ]]; then
     sudo pacman -S --needed --noconfirm $missing_pkgs
 fi
 
-echo "Installing AUR packages..."
+# --- AUR packages ---
+echo "Installing explicit AUR packages..."
 while IFS= read -r pkg; do
     if ! yay -Qq "$pkg" >/dev/null 2>&1; then
         yay -S --noconfirm "$pkg"
