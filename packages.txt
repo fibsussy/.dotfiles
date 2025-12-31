@@ -30,6 +30,8 @@ blas
 bluez
 bluez-libs
 bluez-utils
+boost
+boost-libs
 botan
 brotli
 btop
