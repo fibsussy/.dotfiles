@@ -2,6 +2,7 @@ bluetooth.service
 cpupower.service
 fstrim.timer
 getty@.service
+keyboard-middleware.service
 NetworkManager-dispatcher.service
 NetworkManager.service
 NetworkManager-wait-online.service
