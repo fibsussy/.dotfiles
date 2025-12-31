@@ -1,0 +1,17 @@
+bluetooth.service
+cpupower.service
+fstrim.timer
+getty@.service
+NetworkManager-dispatcher.service
+NetworkManager.service
+NetworkManager-wait-online.service
+nvidia-hibernate.service
+nvidia-resume.service
+nvidia-suspend.service
+nvidia-suspend-then-hibernate.service
+polkit-agent-helper.socket
+remote-fs.target
+sddm.service
+sshd.service
+systemd-timesyncd.service
+systemd-userdbd.socket

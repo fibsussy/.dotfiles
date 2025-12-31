@@ -1,0 +1,10 @@
+dropbox.service
+gamemoded.service
+keyboard-middleware.service
+p11-kit-server.socket
+pipewire-pulse.socket
+pipewire.socket
+ssh-agent.socket
+wireplumber.service
+xdg-user-dirs.service
+xwayland-satellite.service

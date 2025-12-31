@@ -191,16 +191,6 @@ function load_environment_files() {
 load_environment_files
 
 # Wrapper functions - simplified
-function paru {
-    command paru --noconfirm "$@"
-    command paru -Qqen > ~/packages.txt 2>/dev/null
-}
-
-function yay {
-    command yay --noconfirm "$@"
-    command yay -Qqen > ~/packages.txt 2>/dev/null
-}
-
 function download {
     if [[ $1 =~ ^https?://(www\.)?(youtube\.com|youtu\.be)/ ]]; then
         yt-dlp "$@"
