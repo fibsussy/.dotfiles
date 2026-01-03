@@ -6,11 +6,11 @@ keyboard-middleware.service
 NetworkManager-dispatcher.service
 NetworkManager.service
 NetworkManager-wait-online.service
+nix-daemon.socket
 nvidia-hibernate.service
 nvidia-resume.service
 nvidia-suspend.service
 nvidia-suspend-then-hibernate.service
-polkit-agent-helper.socket
 remote-fs.target
 sddm.service
 sshd.service

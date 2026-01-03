@@ -214,7 +214,7 @@ function stow_dotfiles {
 if (( $+commands[fzf] )); then
     __fzf_history__() {
         local selected
-        selected=$(fc -rl 1 | fzf --tac --no-sort --exact --query="$LBUFFER" | awk '{$1=""; print substr($0,2)}')
+        selected=$(fc -rl 1 | tac | fzf --tac --no-sort --exact --query="$LBUFFER" | awk '{$1=""; print substr($0,2)}')
         [[ -n $selected ]] && LBUFFER=$selected
         zle reset-prompt
     }
