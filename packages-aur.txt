@@ -1,6 +1,11 @@
-claude-code
+chameleos
 dms-shell-bin
 dropbox-cli
+gallery-dl
+gamescope-nvidia
 jstest-gtk-git
+opencode-bin
+paru-bin
+ttf-twemoji
 ttf-twemoji-color
 zsh-theme-powerlevel10k-bin-git

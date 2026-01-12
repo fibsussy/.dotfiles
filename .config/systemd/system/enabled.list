@@ -1,12 +1,17 @@
 bluetooth.service
 cpupower.service
+fancontrol.service
 fstrim.timer
 getty@.service
 keyboard-middleware.service
+libvirtd-admin.socket
+libvirtd-ro.socket
+libvirtd.service
+libvirtd.socket
+lm_sensors.service
 NetworkManager-dispatcher.service
 NetworkManager.service
 NetworkManager-wait-online.service
-nix-daemon.socket
 nvidia-hibernate.service
 nvidia-resume.service
 nvidia-suspend.service
@@ -16,3 +21,7 @@ sddm.service
 sshd.service
 systemd-timesyncd.service
 systemd-userdbd.socket
+virtlockd-admin.socket
+virtlockd.socket
+virtlogd-admin.socket
+virtlogd.socket

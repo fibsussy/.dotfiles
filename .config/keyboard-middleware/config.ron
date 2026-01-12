@@ -1,47 +1,103 @@
 (
+    hot_config_reload: true,
     tapping_term_ms: 130,
-    double_tap_window_ms: None,
+    mt_config: (
+        permissive_hold: true,                  // Press another key → resolve to hold immediately
+        enable_roll_detection: false,           // Fast same-hand rolls favor tap
+        enable_chord_detection: true,           // Opposite-hand chords favor hold
+        enable_multi_mod_detection: true,       // Multiple mods on same hand → all become hold
+        multi_mod_threshold: 2,                 // Minimum MT keys to trigger multi-mod
+        enable_adaptive_timing: true,           // Learn typing patterns - tracks tap durations!
+        target_margin_ms: 15,                   // Keep threshold 15ms above average tap duration
+        enable_predictive_scoring: true,        // Predict tap/hold intent (experimental)
+        roll_threshold_ms: 150,                 // Window for detecting rolls
+        chord_threshold_ms: 50,                 // Window for detecting chords
+        enable_double_tap_hold: true,           // Double-tap to hold the tap key until released
+        double_tap_window_ms: 100,              // Window for detecting double-taps
+        enable_cross_hand_unwrap: true,         // Holding opposite hand mod unwraps MT to tap key
+        pause_learning_in_game_mode: true,      // Pause adaptive learning during game mode
+        ema_alpha: 0.02,                        // Exponential moving average alpha for adaptive learning
+        auto_save_interval_secs: 30,            // Auto-save adaptive stats every 30 seconds
+    ),
     enabled_keyboards: Some([
         "362d:0210:0111:0003",
         "2e3c:c365:0110:0003",
     ]),
     remaps: {
-        KC_LALT: TO(L_NAV),
-        KC_L: HR(KC_L, KC_RALT),
-        KC_D: HR(KC_D, KC_LCTL),
+        KC_A: MT(KC_A, KC_LGUI),
+        KC_S: MT(KC_S, KC_LALT),
+        KC_D: MT(KC_D, KC_LCTL),
+        KC_F: MT(KC_F, KC_LSFT),
+        
+        KC_J: MT(KC_J, KC_RSFT),
+        KC_K: MT(KC_K, KC_RCTL),
+        KC_L: MT(KC_L, KC_RALT),
+        KC_SCLN: MT(KC_SCLN, KC_RGUI),
+        
+        KC_LALT: TO(Layer("nav")),
+
         KC_CAPS: Key(KC_ESC),
-        KC_K: HR(KC_K, KC_RCTL),
-        KC_J: HR(KC_J, KC_RSFT),
         KC_ESC: Key(KC_GRV),
-        KC_A: HR(KC_A, KC_LGUI),
-        KC_F: HR(KC_F, KC_LSFT),
-        KC_S: HR(KC_S, KC_LALT),
-        KC_SCLN: HR(KC_SCLN, KC_RGUI),
     },
     layers: {
-        L_NAV: (
+        Layer("nav"): (
             remaps: {
-                KC_J: Key(KC_DOWN),
-                KC_L: Key(KC_RGHT),
-                KC_H: Key(KC_LEFT),
-                KC_BSPC: Password,
-                KC_D: Key(KC_LCTL),
-                KC_S: Key(KC_LALT),
                 KC_A: Key(KC_LGUI),
+                KC_S: Key(KC_LALT),
+                KC_D: Key(KC_LCTL),
                 KC_F: Key(KC_LSFT),
+
+                KC_H: Key(KC_LEFT),
+                KC_J: Key(KC_DOWN),
                 KC_K: Key(KC_UP),
+                KC_L: Key(KC_RGHT),
+
+                KC_BSPC: CMD("/home/fib/.config/keyboard-middleware/password.sh"),
             },
         ),
     },
     game_mode: (
         remaps: {
-            KC_S: Socd(KC_S, KC_W),
-            KC_A: Socd(KC_A, KC_D),
-            KC_D: Socd(KC_D, KC_A),
-            KC_ESC: Key(KC_GRV),
-            KC_CAPS: Key(KC_ESC),
-            KC_W: Socd(KC_W, KC_S),
+            KC_W: SOCD(KC_W, [KC_S]),
+            KC_S: SOCD(KC_S, [KC_W]),
+            KC_A: SOCD(KC_A, [KC_D]),
+            KC_D: SOCD(KC_D, [KC_A]),
+            KC_F: Key(KC_F),
         },
     ),
-    keyboard_overrides: {},
+    
+    per_keyboard_inherits_global_layout: false,
+    per_keyboard_overrides: {
+        "362d:0210:0111:0003": (
+            remaps: Some({
+                KC_A: CMD("/home/fib/Soundboard/play.sh KC_A"),
+                KC_B: CMD("/home/fib/Soundboard/play.sh KC_B"),
+                KC_C: CMD("/home/fib/Soundboard/play.sh KC_C"),
+                KC_D: CMD("/home/fib/Soundboard/play.sh KC_D"),
+                KC_E: CMD("/home/fib/Soundboard/play.sh KC_E"),
+                KC_F: CMD("/home/fib/Soundboard/play.sh KC_F"),
+                KC_G: CMD("/home/fib/Soundboard/play.sh KC_G"),
+                KC_H: CMD("/home/fib/Soundboard/play.sh KC_H"),
+                KC_I: CMD("/home/fib/Soundboard/play.sh KC_I"),
+                KC_J: CMD("/home/fib/Soundboard/play.sh KC_J"),
+                KC_K: CMD("/home/fib/Soundboard/play.sh KC_K"),
+                KC_L: CMD("/home/fib/Soundboard/play.sh KC_L"),
+                KC_M: CMD("/home/fib/Soundboard/play.sh KC_M"),
+                KC_N: CMD("/home/fib/Soundboard/play.sh KC_N"),
+                KC_O: CMD("/home/fib/Soundboard/play.sh KC_O"),
+                KC_P: CMD("/home/fib/Soundboard/play.sh KC_P"),
+                KC_Q: CMD("/home/fib/Soundboard/play.sh KC_Q"),
+                KC_R: CMD("/home/fib/Soundboard/play.sh KC_R"),
+                KC_S: CMD("/home/fib/Soundboard/play.sh KC_S"),
+                KC_T: CMD("/home/fib/Soundboard/play.sh KC_T"),
+                KC_U: CMD("/home/fib/Soundboard/play.sh KC_U"),
+                KC_V: CMD("/home/fib/Soundboard/play.sh KC_V"),
+                KC_W: CMD("/home/fib/Soundboard/play.sh KC_W"),
+                KC_X: CMD("/home/fib/Soundboard/play.sh KC_X"),
+                KC_Y: CMD("/home/fib/Soundboard/play.sh KC_Y"),
+                KC_Z: CMD("/home/fib/Soundboard/play.sh KC_Z"),
+                KC_BSPC: CMD("/home/fib/Soundboard/play.sh STOP"),
+            }),
+        ),
+    },
 )

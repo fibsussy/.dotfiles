@@ -16,9 +16,12 @@ return {
       ensure_installed = {
         'go', 'lua', 'python', 'rust', 'typescript', 'regex',
         'bash', 'markdown', 'markdown_inline', 'kdl', 'sql', 'terraform',
-        'html', 'css', 'javascript', 'yaml', 'json', 'toml',
+        'html', 'css', 'javascript', 'yaml', 'json', 'toml', 'ron',
       },
-      highlight = { enable = true },
+      highlight = {
+        enable = true,
+        additional_vim_regex_highlighting = false,
+      },
       indent = { enable = true },
       incremental_selection = {
         enable = true,
@@ -73,5 +76,9 @@ return {
       },
       auto_install = true,
     },
+    config = function(_, opts)
+      require('nvim-treesitter.configs').setup(opts)
+      vim.treesitter.language.register('ron', 'ron')
+    end,
   },
 }

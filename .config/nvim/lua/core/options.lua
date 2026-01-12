@@ -4,6 +4,8 @@ local opt = vim.opt
 vim.g.mapleader = ' '
 vim.g.localmapleader = ' '
 
+vim.filetype.add({ extension = { ron = "ron" } })
+
 o.clipboard = 'unnamedplus'
 
 o.tabstop = 2
