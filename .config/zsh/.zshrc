@@ -190,13 +190,56 @@ function load_environment_files() {
 }
 load_environment_files
 
-# Wrapper functions - simplified
 function download {
-    if [[ $1 =~ ^https?://(www\.)?(youtube\.com|youtu\.be)/ ]]; then
-        yt-dlp "$@"
-    else
-        gallery-dl -D . --cookies-from-browser firefox "$@"
-    fi
+    local highlight=false
+    local urls=()
+    local other_args=()
+
+    # separate --highlight and URLs
+    for arg in "$@"; do
+        if [[ "$arg" == "--highlight" ]]; then
+            highlight=true
+        elif [[ "$arg" =~ ^https?:// ]]; then
+            urls+=("$arg")
+        else
+            other_args+=("$arg")
+        fi
+    done
+
+    for url in "${urls[@]}"; do
+        if [[ "$url" =~ ^https?://(www\.)?(youtube\.com|youtu\.be)/ ]]; then
+            local start=""
+            if $highlight; then
+                # get first highlight start in seconds
+                start=$(yt-dlp "$url" --skip-download --print "sponsorblock_poi_highlight[0].start" 2>/dev/null)
+                # only keep numeric start
+                if ! [[ "$start" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
+                    start=""
+                fi
+            fi
+
+            # download video/audio
+            yt-dlp "$url" "${other_args[@]}" \
+                --merge-output-format mp4 \
+                --sponsorblock-mark poi_highlight \
+                --no-write-info-json \
+                --clean-info-json
+
+            # if highlight and start exists, and output is a video
+            if [[ -n "$start" ]]; then
+                local vidfile
+                vidfile=$(yt-dlp --get-filename "$url" "${other_args[@]}" -o "%(title)s.%(ext)s")
+                # only trim if the file exists
+                if [[ -f "$vidfile" ]]; then
+                    ffmpeg -ss "$start" -i "$vidfile" -c copy "highlight_trimmed_${vidfile}"
+                    mv "highlight_trimmed_${vidfile}" "$vidfile"
+                fi
+            fi
+
+        else
+            gallery-dl "$url" -D . --cookies-from-browser firefox "${other_args[@]}"
+        fi
+    done
 }
 
 function stow_dotfiles {

@@ -136,9 +136,9 @@ fi
 echo "Playing: $MATCHING_FILE (through virtual mic and speakers) at volume $VOLUME"
 
 # ------------------------------
-# Play audio through virtual mic AND speakers
+# Play audio through virtual sink AND speakers
 # ------------------------------
-pw-play --target="VirtualMicSink" --volume="$VOLUME" "$MATCHING_FILE" &
+pw-play --target="VirtualSink" --volume="$VOLUME" "$MATCHING_FILE" &
 PID1=$!
 
 pw-play --volume="$VOLUME" "$MATCHING_FILE" &

@@ -1,8 +1,11 @@
 dropbox.service
+fix-virtual-mic.service
 gamemoded.service
 keyboard-middleware-niri.service
 p11-kit-server.socket
+pipewire-pulse.service
 pipewire-pulse.socket
+pipewire.service
 pipewire.socket
 ssh-agent.socket
 wireplumber.service
