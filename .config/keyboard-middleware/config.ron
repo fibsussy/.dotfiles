@@ -34,23 +34,23 @@
         KC_L: MT(KC_L, KC_RALT),
         KC_SCLN: MT(KC_SCLN, KC_RGUI),
         
-        KC_LALT: TO(Layer("nav")),
+        KC_LALT: TO("nav"),
 
-        KC_CAPS: Key(KC_ESC),
-        KC_ESC: Key(KC_GRV),
+        KC_CAPS: KC_ESC,
+        KC_ESC: KC_GRV,
     },
     layers: {
-        Layer("nav"): (
+        "nav": (
             remaps: {
-                KC_A: Key(KC_LGUI),
-                KC_S: Key(KC_LALT),
-                KC_D: Key(KC_LCTL),
-                KC_F: Key(KC_LSFT),
+                KC_A: KC_LGUI,
+                KC_S: KC_LALT,
+                KC_D: KC_LCTL,
+                KC_F: KC_LSFT,
 
-                KC_H: Key(KC_LEFT),
-                KC_J: Key(KC_DOWN),
-                KC_K: Key(KC_UP),
-                KC_L: Key(KC_RGHT),
+                KC_H: KC_LEFT,
+                KC_J: KC_DOWN,
+                KC_K: KC_UP,
+                KC_L: KC_RGHT,
 
                 KC_BSPC: CMD("/home/fib/.config/keyboard-middleware/password.sh"),
             },
@@ -62,7 +62,7 @@
             KC_S: SOCD(KC_S, [KC_W]),
             KC_A: SOCD(KC_A, [KC_D]),
             KC_D: SOCD(KC_D, [KC_A]),
-            KC_F: Key(KC_F),
+            KC_F: KC_F,
         },
     ),
     
