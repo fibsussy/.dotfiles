@@ -38,7 +38,7 @@ layout {
     gaps 5
     background-color "transparent"
     center-focused-column "never"
-    always-center-single-column
+    // always-center-single-column
     default-column-display "normal"
     preset-column-widths {
         proportion 0.25

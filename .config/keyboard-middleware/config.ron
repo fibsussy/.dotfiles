@@ -70,6 +70,8 @@
     per_keyboard_overrides: {
         "362d:0210:0111:0003": (
             remaps: Some({
+                KC_SPC: CMD("/home/fib/Soundboard/play.sh STOP"),
+                KC_BSPC: CMD("/home/fib/Soundboard/play.sh STOP"),
                 KC_A: CMD("/home/fib/Soundboard/play.sh KC_A"),
                 KC_B: CMD("/home/fib/Soundboard/play.sh KC_B"),
                 KC_C: CMD("/home/fib/Soundboard/play.sh KC_C"),
@@ -96,8 +98,6 @@
                 KC_X: CMD("/home/fib/Soundboard/play.sh KC_X"),
                 KC_Y: CMD("/home/fib/Soundboard/play.sh KC_Y"),
                 KC_Z: CMD("/home/fib/Soundboard/play.sh KC_Z"),
-                KC_BSPC: CMD("/home/fib/Soundboard/play.sh STOP"),
-                KC_SPC: CMD("/home/fib/Soundboard/play.sh STOP"),
             }),
         ),
     },
