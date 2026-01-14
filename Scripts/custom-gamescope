@@ -1,0 +1,135 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# default mode: plain
+USE_SCOPE=0
+case "${1:-}" in
+  --scope)
+    USE_SCOPE=1
+    shift
+    ;;
+esac
+
+# defaults
+USE_VRR=0
+USE_EXPOSE_WL=0
+FULLSCREEN=1
+FORCE_GRAB=1
+USE_GAMEMODE=0
+HUD_MODE="no_display"
+FPS_CAP=""
+DRY_RUN=0
+W="" ; H=""
+SCALE_MODE=""   # new: -S option pass-through
+FIXED_RES=1
+
+GAME_ARGS=()
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --720p) W=1280; H=720 ;;
+    --900p) W=1600; H=900 ;;
+    --1080p) W=1920; H=1080 ;;
+    --1440p) W=2560; H=1440 ;;
+    --res=*) r="${1#--res=}"; W="${r%x*}"; H="${r#*x}" ;;
+    --hud) HUD_MODE="default" ;;
+    --hud=*) HUD_MODE="${1#--hud=}" ;;
+    --no-hud) HUD_MODE="no_display" ;;
+    --vrr) USE_VRR=1 ;;
+    --no-vrr) USE_VRR=0 ;;
+    --expose-wayland) USE_EXPOSE_WL=1 ;;
+    --no-expose-wayland) USE_EXPOSE_WL=0 ;;
+    --windowed) FULLSCREEN=0 ;;
+    --no-grab) FORCE_GRAB=0 ;;
+    --fps=*) FPS_CAP="${1#--fps=}" ;;
+    --gamemode) USE_GAMEMODE=1 ;;
+    --no-gamemode) USE_GAMEMODE=0 ;;
+    -S) SCALE_MODE="$2"; shift ;;  # pass-through
+    --no-fixed-res) FIXED_RES=0 ;;
+    --dry) DRY_RUN=1 ;;
+    --)
+      shift
+      GAME_ARGS+=("$@")
+      break
+      ;;
+    *) GAME_ARGS+=("$1") ;;
+  esac
+  shift || true
+done
+
+if [[ ${#GAME_ARGS[@]} -eq 0 ]]; then
+  echo "Usage: $0 [--scope] [opts] -- <cmd>" >&2
+  exit 1
+fi
+
+# resolution auto-detect
+if [[ -z "$W" || -z "$H" ]]; then
+  if out="$(niri msg focused-output 2>/dev/null | grep 'Current mode:' || true)"; then
+    read -r W H <<<"$(sed -E 's/.* ([0-9]+)x([0-9]+).*/\1 \2/' <<<"$out")"
+  fi
+fi
+[[ -n "$W" ]] || W=1920
+[[ -n "$H" ]] || H=1080
+
+# environment
+export mesa_glthread=true
+export RADV_PERFTEST=gpl
+export IS_GAME=1
+
+if [[ "$HUD_MODE" != "no_display" ]]; then
+  export MANGOHUD=1
+else
+  unset MANGOHUD || true
+fi
+
+# dry-run output
+if [[ "$DRY_RUN" -eq 1 ]]; then
+  if [[ "$USE_SCOPE" -eq 1 ]]; then
+    printf 'DRY (scope) would run: gamescope '
+    if [[ "$FIXED_RES" -eq 1 ]]; then
+      printf -- "-W %s -H %s -w %s -h %s " "$W" "$H" "$W" "$H"
+    else
+      printf -- "-w %s -h %s " "$W" "$H"
+    fi
+    [[ $FULLSCREEN -eq 1 ]] && printf -- "-f "
+    [[ $USE_VRR -eq 1 ]] && printf -- "--adaptive-sync "
+    [[ $USE_EXPOSE_WL -eq 1 ]] && printf -- "--expose-wayland "
+    [[ $FORCE_GRAB -eq 1 ]] && printf -- "--force-grab-cursor --cursor=disabled "
+    [[ -n "$SCALE_MODE" ]] && printf -- "-S %s " "$SCALE_MODE"
+    [[ -n "$FPS_CAP" ]] && printf -- "--fps %s " "$FPS_CAP"
+    printf -- "-- "
+    printf '%q ' "${GAME_ARGS[@]}"
+    echo
+  else
+    printf 'DRY (plain) would run: '
+    printf '%q ' "${GAME_ARGS[@]}"
+    echo
+  fi
+  exit 0
+fi
+
+# launch plain mode
+if [[ "$USE_SCOPE" -eq 0 ]]; then
+  "${GAME_ARGS[@]}"
+  exit $?
+fi
+
+# build gamescope command
+CMD=()
+[[ "$USE_GAMEMODE" -eq 1 ]] && CMD+=(gamemoderun)
+
+if [[ "$FIXED_RES" -eq 1 ]]; then
+  CMD+=(gamescope -W "$W" -H "$H" -w "$W" -h "$H")
+else
+  CMD+=(gamescope -w "$W" -h "$H")
+fi
+
+[[ "$FULLSCREEN" -eq 1 ]] && CMD+=(-f)
+[[ "$USE_VRR" -eq 1 ]] && CMD+=(--adaptive-sync)
+[[ "$USE_EXPOSE_WL" -eq 1 ]] && CMD+=(--expose-wayland)
+[[ "$FORCE_GRAB" -eq 1 ]] && CMD+=(--force-grab-cursor --cursor=disabled)
+[[ -n "$SCALE_MODE" ]] && CMD+=(-S "$SCALE_MODE")
+[[ -n "$FPS_CAP" ]] && CMD+=(--fps "$FPS_CAP")
+CMD+=(-- "${GAME_ARGS[@]}")
+
+exec "${CMD[@]}"
