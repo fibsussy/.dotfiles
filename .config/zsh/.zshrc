@@ -57,6 +57,14 @@ setopt EXTENDED_GLOB        # Enable extended globbing
 # Vi Keybindings
 bindkey -v                  # Enable vi mode
 KEYTIMEOUT=1                # Fast mode switching
+
+# Ensure vi keybindings work in both modes
+bindkey '^?' backward-delete-char
+bindkey '^H' backward-delete-char
+bindkey '^W' backward-kill-word
+bindkey '^U' kill-line
+bindkey '^Y' yank
+
 autoload edit-command-line
 zle -N edit-command-line
 bindkey '^e' edit-command-line  # Edit command in editor
@@ -91,7 +99,10 @@ SAVEHIST=10000
 setopt appendhistory share_history
 setopt hist_expire_dups_first  # Expire duplicates first
 setopt hist_ignore_dups        # Ignore consecutive duplicates
+setopt hist_ignore_all_dups    # Ignore all duplicates in history
 setopt hist_ignore_space       # Ignore commands starting with space
+setopt hist_find_no_dups       # Don't show duplicates when searching
+setopt hist_reduce_blanks      # Remove extra blanks
 setopt hist_verify             # Verify history expansion
 
 
@@ -257,7 +268,7 @@ function stow_dotfiles {
 if (( $+commands[fzf] )); then
     __fzf_history__() {
         local selected
-        selected=$(fc -rl 1 | tac | fzf --tac --no-sort --exact --query="$LBUFFER" | awk '{$1=""; print substr($0,2)}')
+        selected=$(fc -rl 1 | awk '!seen[$0]++' | tac | fzf --tac --no-sort --exact --query="$LBUFFER" | awk '{$1=""; print substr($0,2)}')
         [[ -n $selected ]] && LBUFFER=$selected
         zle reset-prompt
     }
