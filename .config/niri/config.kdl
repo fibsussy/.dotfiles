@@ -29,7 +29,7 @@ input {
 
 output "DP-1" {
     mode "1920x1080"
-    // variable-refresh-rate
+    variable-refresh-rate
     focus-at-startup
 }
 
@@ -185,7 +185,7 @@ binds {
 
     // === Application Launchers ===
     Mod+T hotkey-overlay-title="Open Terminal" {
-        spawn "kitty" "fish" "-c" "tmux new -A"
+        spawn "kitty" "sh" "-c" "tmux new -A || tmux a || tmux"
     }
     Mod+Space hotkey-overlay-title="Application Launcher" {
         spawn "dms" "ipc" "call" "spotlight" "toggle";

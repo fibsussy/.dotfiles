@@ -287,6 +287,26 @@ if (( $+commands[zoxide] )); then
     eval "$(zoxide init zsh 2>/dev/null)" 2>/dev/null || true
 fi
 
+# Enable bash completion compatibility
+autoload -Uz bashcompinit
+bashcompinit
+
+# install.sh completion
+_install() {
+    local cur prev opts
+    COMPREPLY=()
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    prev="${COMP_WORDS[COMP_CWORD-1]}"
+    
+    opts="local bin --help -h remote"
+    
+    if [[ ${cur} == * ]] ; then
+        COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+        return 0
+    fi
+}
+complete -F _install install.sh
+
 # Load theme last
 source /usr/share/zsh-theme-powerlevel10k/powerlevel10k.zsh-theme
 [[ -f $ZDOTDIR/.p10k.zsh ]] && source $ZDOTDIR/.p10k.zsh
