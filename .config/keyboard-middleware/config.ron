@@ -82,7 +82,7 @@
         },
     ),
     
-    per_keyboard_inherits_global_layout: true,
+    per_keyboard_inherits_global_layout: false,
     per_keyboard_overrides: {
         "362d:0210:0111:0003": (
             remaps: Some({

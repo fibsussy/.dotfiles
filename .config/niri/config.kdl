@@ -101,7 +101,7 @@ hotkey-overlay {
 prefer-no-csd
 screenshot-path "~/Pictures/Screenshots/Screenshot from %Y-%m-%d %H-%M-%S.png"
 animations {
-  // off
+  off
   slowdown 1
   workspace-switch {
     duration-ms 50
@@ -332,15 +332,15 @@ binds {
     Mod+Ctrl+Shift+WheelScrollUp   { move-column-left; }
 
     // === Numbered Columns: Focus (Mod+1-9 = column nav) ===
-    Mod+1 { spawn-sh "niri msg action focus-column 1; niri msg action center-column"; }
-    Mod+2 { spawn-sh "niri msg action focus-column 2; niri msg action center-column"; }
-    Mod+3 { spawn-sh "niri msg action focus-column 3; niri msg action center-column"; }
-    Mod+4 { spawn-sh "niri msg action focus-column 4; niri msg action center-column"; }
-    Mod+5 { spawn-sh "niri msg action focus-column 5; niri msg action center-column"; }
-    Mod+6 { spawn-sh "niri msg action focus-column 6; niri msg action center-column"; }
-    Mod+7 { spawn-sh "niri msg action focus-column 7; niri msg action center-column"; }
-    Mod+8 { spawn-sh "niri msg action focus-column 8; niri msg action center-column"; }
-    Mod+9 { spawn-sh "niri msg action focus-column 9; niri msg action center-column"; }
+    Mod+1 { focus-column 1; }
+    Mod+2 { focus-column 2; }
+    Mod+3 { focus-column 3; }
+    Mod+4 { focus-column 4; }
+    Mod+5 { focus-column 5; }
+    Mod+6 { focus-column 6; }
+    Mod+7 { focus-column 7; }
+    Mod+8 { focus-column 8; }
+    Mod+9 { focus-column 9; }
 
     // === Numbered Columns: Move Inside Workspace (Mod+Shift+1-9) ===
     Mod+Return hotkey-overlay-title="Move with Column 1" {

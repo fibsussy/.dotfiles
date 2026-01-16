@@ -94,13 +94,16 @@ fi
 
 PATTERN="$1"
 
-# Find matching audio file
-MATCHING_FILE=$(ls "$SCRIPT_DIR"/"$PATTERN"* 2>/dev/null | head -n1)
+# Find matching audio files
+MATCHING_FILES=($SCRIPT_DIR/$PATTERN*)
 
-if [ -z "$MATCHING_FILE" ]; then
+if [ ${#MATCHING_FILES[@]} -eq 0 ] || [ ! -f "${MATCHING_FILES[0]}" ]; then
     echo "No file found matching pattern: $PATTERN"
     exit 1
 fi
+
+# Randomly select one matching file if there are multiple
+MATCHING_FILE=${MATCHING_FILES[$RANDOM % ${#MATCHING_FILES[@]}]}
 
 # ------------------------------
 # Cleanup function to kill spawned process
