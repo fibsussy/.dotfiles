@@ -31,6 +31,7 @@ flatpak
 freecad
 fwupd
 gamemode
+gammastep
 git-crypt
 github-cli
 gitleaks
@@ -56,6 +57,8 @@ libspnav
 linux
 linux-firmware
 linux-headers
+linux-lqx
+linux-lqx-headers
 linux-zen
 linux-zen-headers
 liquidctl
@@ -68,6 +71,7 @@ mesa-utils
 mokutil
 mpc
 mpd
+mpv
 neovim
 networkmanager
 niri

@@ -103,18 +103,15 @@ if [ -z "$MATCHING_FILE" ]; then
 fi
 
 # ------------------------------
-# Cleanup function to kill spawned processes
+# Cleanup function to kill spawned process
 # ------------------------------
 cleanup() {
     if [ -n "$PID1" ] && kill -0 "$PID1" 2>/dev/null; then
         kill -TERM "$PID1" 2>/dev/null
     fi
-    if [ -n "$PID2" ] && kill -0 "$PID2" 2>/dev/null; then
-        kill -TERM "$PID2" 2>/dev/null
-    fi
-    # Remove only our PIDs from the file
+    # Remove only our PID from file
     if [ -f "$PID_FILE" ]; then
-        grep -v -e "^$PID1$" -e "^$PID2$" "$PID_FILE" > "$PID_FILE.tmp" 2>/dev/null
+        grep -v -e "^$PID1$" "$PID_FILE" > "$PID_FILE.tmp" 2>/dev/null
         if [ -s "$PID_FILE.tmp" ]; then
             mv "$PID_FILE.tmp" "$PID_FILE"
         else
@@ -136,24 +133,20 @@ fi
 echo "Playing: $MATCHING_FILE (through virtual mic and speakers) at volume $VOLUME"
 
 # ------------------------------
-# Play audio through virtual sink AND speakers
+# Play audio through loopback input (which feeds both speakers and virtual mic)
 # ------------------------------
-pw-play --target="VirtualSink" --volume="$VOLUME" "$MATCHING_FILE" &
+pw-play --target="input.loopmix" --volume="$VOLUME" "$MATCHING_FILE" &
 PID1=$!
 
-pw-play --volume="$VOLUME" "$MATCHING_FILE" &
-PID2=$!
-
-# Store PIDs for STOP command (append to support multiple instances)
+# Store PID for STOP command (append to support multiple instances)
 echo "$PID1" >> "$PID_FILE"
-echo "$PID2" >> "$PID_FILE"
 
-# Wait for both processes to complete
-wait $PID1 $PID2
+# Wait for process to complete
+wait $PID1
 
 # Clean up our PIDs from the file when done naturally
 if [ -f "$PID_FILE" ]; then
-    grep -v -e "^$PID1$" -e "^$PID2$" "$PID_FILE" > "$PID_FILE.tmp" 2>/dev/null
+    grep -v -e "^$PID1$" "$PID_FILE" > "$PID_FILE.tmp" 2>/dev/null
     if [ -s "$PID_FILE.tmp" ]; then
         mv "$PID_FILE.tmp" "$PID_FILE"
     else

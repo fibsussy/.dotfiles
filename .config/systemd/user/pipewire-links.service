@@ -1,0 +1,12 @@
+[Unit]
+Description=PipeWire automatic links
+After=pipewire.service
+Requires=pipewire.service
+
+[Service]
+Type=oneshot
+ExecStart=%h/.config/pipewire/links.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=pipewire.service
