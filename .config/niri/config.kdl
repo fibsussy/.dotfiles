@@ -29,7 +29,7 @@ input {
 
 output "DP-1" {
     mode "1920x1080"
-    // variable-refresh-rate
+    variable-refresh-rate
     focus-at-startup
 }
 
