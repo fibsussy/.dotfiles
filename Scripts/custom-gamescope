@@ -21,6 +21,9 @@ FPS_CAP=""
 DRY_RUN=0
 W="" ; H=""
 SCALE_MODE=""   # new: -S option pass-through
+SHARPNESS=""     # new: --sharpness option
+USE_VKBASALT=0   # new: --vkbasalt option
+FSR_SHARPNESS="" # new: --fsr option
 FIXED_RES=1
 
 GAME_ARGS=()
@@ -45,6 +48,9 @@ while [[ $# -gt 0 ]]; do
     --gamemode) USE_GAMEMODE=1 ;;
     --no-gamemode) USE_GAMEMODE=0 ;;
     -S) SCALE_MODE="$2"; shift ;;  # pass-through
+    --sharpness) SHARPNESS="$2"; shift ;;
+    --vkbasalt) USE_VKBASALT=1 ;;
+    --fsr) FSR_SHARPNESS="$2"; shift ;;
     --no-fixed-res) FIXED_RES=0 ;;
     --dry) DRY_RUN=1 ;;
     --)
@@ -76,6 +82,14 @@ export mesa_glthread=true
 export RADV_PERFTEST=gpl
 export IS_GAME=1
 
+# vkbasalt config
+if [[ "$USE_VKBASALT" -eq 1 ]]; then
+  export ENABLE_VKBASALT=1
+  export VKBASALT_CONFIG_FILE="$HOME/.config/vkBasalt/vkBasalt.conf"
+else
+  export ENABLE_VKBASALT=0
+fi
+
 if [[ "$HUD_MODE" != "no_display" ]]; then
   export MANGOHUD=1
 else
@@ -96,6 +110,8 @@ if [[ "$DRY_RUN" -eq 1 ]]; then
     [[ $USE_EXPOSE_WL -eq 1 ]] && printf -- "--expose-wayland "
     [[ $FORCE_GRAB -eq 1 ]] && printf -- "--force-grab-cursor --cursor=disabled "
     [[ -n "$SCALE_MODE" ]] && printf -- "-S %s " "$SCALE_MODE"
+    [[ -n "$SHARPNESS" ]] && printf -- "--sharpness %s " "$SHARPNESS"
+    [[ -n "$FSR_SHARPNESS" ]] && printf -- "--fsr-sharpness %s " "$FSR_SHARPNESS"
     [[ -n "$FPS_CAP" ]] && printf -- "--fps %s " "$FPS_CAP"
     printf -- "-- "
     printf '%q ' "${GAME_ARGS[@]}"
@@ -129,6 +145,8 @@ fi
 [[ "$USE_EXPOSE_WL" -eq 1 ]] && CMD+=(--expose-wayland)
 [[ "$FORCE_GRAB" -eq 1 ]] && CMD+=(--force-grab-cursor --cursor=disabled)
 [[ -n "$SCALE_MODE" ]] && CMD+=(-S "$SCALE_MODE")
+[[ -n "$SHARPNESS" ]] && CMD+=(--sharpness "$SHARPNESS")
+[[ -n "$FSR_SHARPNESS" ]] && CMD+=(--fsr-sharpness "$FSR_SHARPNESS")
 [[ -n "$FPS_CAP" ]] && CMD+=(--fps "$FPS_CAP")
 CMD+=(-- "${GAME_ARGS[@]}")
 
