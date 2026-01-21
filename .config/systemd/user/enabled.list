@@ -1,6 +1,5 @@
 dropbox.service
 gamemoded.service
-keyboard-middleware-niri.service
 p11-kit-server.socket
 pipewire-links.service
 pipewire-pulse.service

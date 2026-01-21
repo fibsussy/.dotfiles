@@ -1,11 +1,17 @@
+cargo-workflow-test
 chameleos
 dms-shell-bin
 dropbox-cli
 gallery-dl
 gamescope-nvidia
+hyprscrolling-orchestrator
 jstest-gtk-git
+keymux-bin
+lib32-vkbasalt
 opencode-bin
 paru-bin
+steamcmd
 ttf-twemoji
 ttf-twemoji-color
+vkbasalt
 zsh-theme-powerlevel10k-bin-git

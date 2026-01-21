@@ -68,6 +68,7 @@ mate-polkit
 matugen
 mesa-demos
 mesa-utils
+mission-center
 mokutil
 mpc
 mpd
