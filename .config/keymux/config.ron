@@ -68,7 +68,7 @@
                 KC_K: KC_UP,
                 KC_L: KC_RGHT,
 
-                KC_BSPC: CMD("/home/fib/.config/keyboard-middleware/password.sh"),
+                KC_BSPC: CMD("/home/fib/.config/keymux/password.sh"),
             },
         ),
     },
