@@ -3,6 +3,7 @@ cpupower.service
 fancontrol.service
 fstrim.timer
 getty@.service
+keymux.service
 libvirtd-admin.socket
 libvirtd-ro.socket
 libvirtd.service

@@ -6,7 +6,7 @@ gallery-dl
 gamescope-nvidia
 hyprscrolling-orchestrator
 jstest-gtk-git
-keymux-bin
+keymux-git
 lib32-vkbasalt
 opencode-bin
 paru-bin

@@ -1,5 +1,9 @@
 dropbox.service
 gamemoded.service
+git-maintenance@daily.timer
+git-maintenance@hourly.timer
+git-maintenance@weekly.timer
+keymux-niri.service
 p11-kit-server.socket
 pipewire-links.service
 pipewire-pulse.service
