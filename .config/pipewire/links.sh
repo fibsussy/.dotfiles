@@ -1,5 +1,14 @@
 #!/usr/bin/env bash
 
+# Find first device with Komplete in the name
+find_komplete_device() {
+    local type=$1
+    pw-cli list-objects Node | grep "Komplete" | grep "$type" | head -1 | sed 's/.*node.name = "\([^"]*\)".*/\1/'
+}
+
+KOMPLETE_INPUT=$(find_komplete_device "alsa_input")
+KOMPLETE_OUTPUT=$(find_komplete_device "alsa_output")
+
 wait_for_port() {
     local port=$1
     for i in {1..20}; do
@@ -21,12 +30,14 @@ link_if_missing() {
 # Wait for all ports
 wait_for_port input.loopmix:monitor_1
 wait_for_port input.loopmix:monitor_2
-wait_for_port alsa_input.usb-Native_Instruments_Komplete_Audio_1_0000607B-00.analog-stereo:capture_FL
+wait_for_port input.loopmix:playback_3
+wait_for_port input.loopmix:playback_4
+wait_for_port "${KOMPLETE_INPUT}:capture_FL"
 
 # Link them
-link_if_missing input.loopmix:monitor_1 alsa_output.usb-Native_Instruments_Komplete_Audio_1_0000607B-00.analog-stereo:playback_FL
-link_if_missing input.loopmix:monitor_2 alsa_output.usb-Native_Instruments_Komplete_Audio_1_0000607B-00.analog-stereo:playback_FR
-link_if_missing alsa_input.usb-Native_Instruments_Komplete_Audio_1_0000607B-00.analog-stereo:capture_FL input.loopmix:playback_3
-link_if_missing alsa_input.usb-Native_Instruments_Komplete_Audio_1_0000607B-00.analog-stereo:capture_FL input.loopmix:playback_4
+link_if_missing input.loopmix:monitor_1 "${KOMPLETE_OUTPUT}:playback_FL"
+link_if_missing input.loopmix:monitor_2 "${KOMPLETE_OUTPUT}:playback_FR"
+link_if_missing "${KOMPLETE_INPUT}:capture_FL" input.loopmix:playback_3
+link_if_missing "${KOMPLETE_INPUT}:capture_FL" input.loopmix:playback_4
 
 exit 0
