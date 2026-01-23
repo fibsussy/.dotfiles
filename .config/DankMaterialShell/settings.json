@@ -344,8 +344,12 @@
   "niriOutputSettings": {
     "DP-1": {
       "focusAtStartup": true,
-      "vrrOnDemand": true,
+      "vrrOnDemand": false,
       "hotCorners": null,
+      "layout": null
+    },
+    "DP-2": {
+      "focusAtStartup": true,
       "layout": null
     }
   },
