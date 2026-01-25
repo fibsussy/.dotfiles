@@ -396,7 +396,9 @@ binds {
     XF86Launch1 { screenshot; }
     Ctrl+XF86Launch1 { screenshot-screen; }
     Alt+XF86Launch1 { screenshot-window; }
-    Print { screenshot; }
+    Print {
+        spawn-sh "tmp=$(mktemp /tmp/screenshot.XXXXXX.png); niri msg action screenshot -p false --path \"$tmp\"; while [ ! -s \"$tmp\" ]; do sleep 0.05; done; satty --filename \"$tmp\"; rm -- \"$tmp\""
+    }
     Ctrl+Print { screenshot-screen; }
     Alt+Print { screenshot-window; }
     Shift+Print {
