@@ -399,8 +399,12 @@ binds {
     Print {
         spawn-sh "tmp=$(mktemp /tmp/screenshot.XXXXXX.png); niri msg action screenshot -p false --path \"$tmp\"; while [ ! -s \"$tmp\" ]; do sleep 0.05; done; satty --filename \"$tmp\"; rm -- \"$tmp\""
     }
-    Ctrl+Print { screenshot-screen; }
-    Alt+Print { screenshot-window; }
+    Ctrl+Print {
+        spawn-sh "tmp=$(mktemp /tmp/screenshot.XXXXXX.png); niri msg action screenshot-screen -p false --path \"$tmp\"; while [ ! -s \"$tmp\" ]; do sleep 0.05; done; satty --filename \"$tmp\"; rm -- \"$tmp\""
+    }
+    Alt+Print {
+        spawn-sh "tmp=$(mktemp /tmp/screenshot.XXXXXX.png); niri msg action screenshot-window --path \"$tmp\"; while [ ! -s \"$tmp\" ]; do sleep 0.05; done; satty --filename \"$tmp\"; rm -- \"$tmp\""
+    }
     Shift+Print {
         spawn-sh "tmp=$(mktemp /tmp/ocrshot.XXXXXX.png); niri msg action screenshot -p false --path \"$tmp\"; while [ ! -s \"$tmp\" ]; do sleep 0.05; done; magick \"$tmp\" -resize 300% -type Grayscale -contrast-stretch 0% -sharpen 0x1.0 \"$tmp\"; tesseract \"$tmp\" stdout -l eng --oem 1 --psm 3 --dpi 300 2>/dev/null | wl-copy; rm -- \"$tmp\""
     }
