@@ -33,8 +33,8 @@ return {
     opts = {
       workspaces = {
         {
-          -- name = "Notes",
-          -- path = vim.fn.expand("~") .. "/Notes",
+          name = "Notes",
+          path = vim.fn.expand("~") .. "/Notes",
         },
       },
     },
