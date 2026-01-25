@@ -399,7 +399,8 @@
           "id": "gpuTemp",
           "enabled": true,
           "selectedGpuIndex": 0,
-          "pciId": "10de:2f04"
+          "pciId": "10de:2f04",
+          "minimumWidth": true
         },
         {
           "id": "notificationButton",
@@ -411,7 +412,14 @@
         },
         {
           "id": "controlCenterButton",
-          "enabled": true
+          "enabled": true,
+          "showAudioPercent": true,
+          "showBrightnessIcon": true,
+          "showBrightnessPercent": true,
+          "showMicIcon": false,
+          "showMicPercent": false,
+          "showBatteryIcon": false,
+          "showPrinterIcon": true
         }
       ],
       "spacing": 0,
