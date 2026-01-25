@@ -19,8 +19,6 @@ input {
         accel-profile "flat"
         accel-speed -0.8
     }
-    trackpoint {}
-
     warp-mouse-to-focus
     focus-follows-mouse
     workspace-auto-back-and-forth
@@ -208,12 +206,13 @@ binds {
     Mod+Alt+L hotkey-overlay-title="Lock Screen" {
         spawn "dms" "ipc" "call" "lock" "lock";
     }
-    Ctrl+Alt+Backspace hotkey-overlay-title="Task Manager" {
+    Ctrl+Alt+Backspace hotkey-overlay-title="Power Menu" {
         spawn "dms" "ipc" "call" "powermenu" "toggle";
     }
-    Ctrl+Alt+Escape hotkey-overlay-title="Task Manager" {
-        spawn "dms" "ipc" "call" "processlist" "toggle";
+    Ctrl+Alt+Escape hotkey-overlay-title="System Monitor (btop)" {
+        spawn "kitty" "sh" "-c" "btop"
     }
+
     Ctrl+Alt+Delete { quit; }
 
     // === Audio Controls ===
@@ -276,8 +275,8 @@ binds {
 
     // === Monitor Navigation ===
     Mod+Ctrl+Left  { focus-monitor-left; }
-    // Mod+Ctrl+Down  { focus-monitor-down; }
-    // Mod+Ctrl+Up    { focus-monitor-up; }
+    Mod+Ctrl+Down  { focus-monitor-down; }
+    Mod+Ctrl+Up    { focus-monitor-up; }
     Mod+Ctrl+Right { focus-monitor-right; }
     Mod+Ctrl+H     { focus-monitor-left; }
     Mod+Ctrl+J     { focus-monitor-down; }
@@ -299,10 +298,8 @@ binds {
     Mod+Page_Up        { focus-workspace-up; }
     Mod+U              { focus-workspace-down; }
     Mod+I              { focus-workspace-up; }
-    Mod+Ctrl+Down      { move-column-to-workspace-down; }
-    Mod+Ctrl+Up        { move-column-to-workspace-up; }
-    Mod+Ctrl+U         { move-column-to-workspace-down; }
-    Mod+Ctrl+I         { move-column-to-workspace-up; }
+    Mod+Shift+Ctrl+U         { move-column-to-workspace-down; }
+    Mod+Shift+Ctrl+I         { move-column-to-workspace-up; }
 
     // === Move Workspaces ===
     Mod+Shift+Page_Down { move-workspace-down; }
