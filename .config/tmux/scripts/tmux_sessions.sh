@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Get session info for navigation
-# Usage: ./session_info.sh current|total|next|prev
+# Combined session index/info functionality
+# Usage: ./tmux_sessions.sh [current|total|next|prev|list|info]
 
 get_current_session_index() {
     local attached=$(tmux display -p "#{session_name}")
@@ -33,6 +33,14 @@ get_total_sessions() {
 }
 
 case "$1" in
+    "current")
+        # Return 1-based index for status line
+        current_index=$(get_current_session_index)
+        echo $((current_index + 1))
+        ;;
+    "total")
+        get_total_sessions
+        ;;
     "list"|"info")
         index=0
         attached_session=$(tmux display -p "#{session_name}")
@@ -47,19 +55,12 @@ case "$1" in
             ((index++))
         done < <(tmux list-sessions -F "#{session_created} #{session_name} #{session_windows}" | sort -n)
         ;;
-    "current")
-        get_current_session_index
-        ;;
-    "total")
-        get_total_sessions
-        ;;
     "next")
         current=$(get_current_session_index)
         total=$(get_total_sessions)
         if [ "$current" -lt "$((total - 1))" ]; then
             target_index=$((current + 1))
-            session_line=$(tmux list-sessions | sed -n "$((target_index + 1))p")
-            session_name=$(echo "$session_line" | cut -d: -f1)
+            session_name=$(get_session_name $target_index)
             if [ "$session_name" = "~" ]; then
                 tmux switch-client -t "\\~"
             elif [ -n "$session_name" ]; then
@@ -91,5 +92,9 @@ case "$1" in
                 tmux switch-client -t "$session_name"
             fi
         fi
+        ;;
+    *)
+        echo "Usage: $0 [current|total|next|prev|list|info]"
+        exit 1
         ;;
 esac
