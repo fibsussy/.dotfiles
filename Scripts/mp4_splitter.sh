@@ -35,5 +35,6 @@ for i in $(seq 0 $((parts - 1))); do
     -i "$input" \
     -t "$part_duration" \
     -c copy \
+    -avoid_negative_ts make_zero \
     "$out"
 done
