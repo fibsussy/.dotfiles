@@ -96,3 +96,6 @@
       git reset --hard origin/$(git branch --show-current); \
     fi \
     }; f"
+[maintenance]
+	repo = /home/fib/Code/fibsussy/keymux
+	repo = /home/fib/.dotfiles
