@@ -6,7 +6,7 @@
   },
   "niriWindows": {
     "enabled": true,
-    "noTrigger": false,
+    "noTrigger": true,
     "trigger": "!"
   },
   "dankActions": {
@@ -15,11 +15,11 @@
       {
         "icon": "IP",
         "displayText": "",
-        "displayCommand": "ip -4 addr show up 2>>/tmp/ipaddr.sh.log | grep -oP '(?<=inet\\s)\\d+\\.\\d+\\.\\d+\\.\\d+' | grep -v '127.0.0.1' | head -n 1\n",
-        "clickCommand": "",
+        "displayCommand": "~/Scripts/ipaddr.sh | jq -r \".ipv4\"",
+        "clickCommand": "notify-send \"$(~/Scripts/ipaddr.sh | jq -r '.tooltip' | tr '\\r' '\\n')\"",
         "middleClickCommand": "",
         "rightClickCommand": "",
-        "updateInterval": 5,
+        "updateInterval": 10,
         "showIcon": false,
         "showText": true,
         "id": "variant_1763832184872",
@@ -38,5 +38,11 @@
   "wallpaperDiscovery": {
     "enabled": true,
     "downloadLocation": "~/Pictures/Wallpaper"
+  },
+  "displayManager": {
+    "enabled": true
+  },
+  "desktopCommand": {
+    "enabled": false
   }
 }
