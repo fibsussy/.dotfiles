@@ -1,4 +1,3 @@
-dropbox.service
 gamemoded.service
 git-maintenance@daily.timer
 git-maintenance@hourly.timer

@@ -39,6 +39,7 @@ gnome-font-viewer
 grub
 gst-plugin-pipewire
 hyprpicker
+imagemagick
 intel-ucode
 interception-tools
 inxi
@@ -117,6 +118,8 @@ showmethekey
 sof-firmware
 steam
 stow
+tesseract
+tesseract-data-eng
 tree
 ttf-0xproto-nerd
 ttf-3270-nerd
@@ -178,6 +181,7 @@ unzip
 vde2
 virt-manager
 virt-viewer
+vlc-plugins-all
 vulkan-mesa-layers
 vulkan-tools
 wayland-protocols
@@ -193,6 +197,7 @@ wtype
 xdg-desktop-portal-gnome
 xdg-desktop-portal-gtk
 xwayland-satellite
+zip
 zoxide
 zram-generator
 zsh
