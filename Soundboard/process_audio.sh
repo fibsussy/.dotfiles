@@ -44,7 +44,7 @@ for file in *.mp3; do
             filter_chain="silenceremove=start_periods=1:start_silence=0.1:start_threshold=-55dB:window=0.02,loudnorm=I=-13:TP=-1.5:LRA=10"
         fi
         
-        ffmpeg -i "$file" -af "$filter_chain" "$new_file" -y
+        ffmpeg -i "$file" -af "$filter_chain,pan=mono|c0<c0+c1" "$new_file" -y
         
         if [ $? -eq 0 ]; then
             echo "✓ Successfully processed: $file"

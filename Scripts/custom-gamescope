@@ -25,6 +25,7 @@ SHARPNESS=""     # new: --sharpness option
 USE_VKBASALT=0   # new: --vkbasalt option
 FSR_SHARPNESS="" # new: --fsr option
 FIXED_RES=1
+AGGRESSIVE_MEM=0 # new: --aggressive-memory option
 
 GAME_ARGS=()
 
@@ -52,6 +53,7 @@ while [[ $# -gt 0 ]]; do
     --vkbasalt) USE_VKBASALT=1 ;;
     --fsr) FSR_SHARPNESS="$2"; shift ;;
     --no-fixed-res) FIXED_RES=0 ;;
+    --aggressive-memory) AGGRESSIVE_MEM=1 ;;
     --dry) DRY_RUN=1 ;;
     --)
       shift
@@ -82,6 +84,11 @@ export mesa_glthread=true
 export RADV_PERFTEST=gpl
 export IS_GAME=1
 
+# swap optimization - lock game memory in RAM
+if [[ "$USE_GAMEMODE" -eq 1 ]] && command -v mlock >/dev/null 2>&1; then
+  export LD_PRELOAD="${LD_PRELOAD:+$LD_PRELOAD:}libmlock.so"
+fi
+
 # vkbasalt config
 if [[ "$USE_VKBASALT" -eq 1 ]]; then
   export ENABLE_VKBASALT=1
@@ -99,7 +106,16 @@ fi
 # dry-run output
 if [[ "$DRY_RUN" -eq 1 ]]; then
   if [[ "$USE_SCOPE" -eq 1 ]]; then
-    printf 'DRY (scope) would run: gamescope '
+    printf 'DRY (scope) would run: '
+    # Show gamemoderun if enabled
+    [[ "$USE_GAMEMODE" -eq 1 ]] && printf 'gamemoderun '
+    # Show aggressive memory if enabled
+    if [[ "$USE_GAMEMODE" -eq 1 && "$AGGRESSIVE_MEM" -eq 1 ]]; then
+      printf 'sudo cgexec -g memory:games-premium '
+    elif [[ "$USE_GAMEMODE" -eq 1 ]]; then
+      printf 'sudo cgexec -g memory:games-premium '
+    fi
+    printf 'gamescope '
     if [[ "$FIXED_RES" -eq 1 ]]; then
       printf -- "-W %s -H %s -w %s -h %s " "$W" "$H" "$W" "$H"
     else
@@ -118,6 +134,8 @@ if [[ "$DRY_RUN" -eq 1 ]]; then
     echo
   else
     printf 'DRY (plain) would run: '
+    # Show gamemoderun if enabled
+    [[ "$USE_GAMEMODE" -eq 1 ]] && printf 'gamemoderun '
     printf '%q ' "${GAME_ARGS[@]}"
     echo
   fi
@@ -126,13 +144,17 @@ fi
 
 # launch plain mode
 if [[ "$USE_SCOPE" -eq 0 ]]; then
-  "${GAME_ARGS[@]}"
-  exit $?
+  # For plain mode, just run the game directly
+  exec "${GAME_ARGS[@]}"
 fi
 
 # build gamescope command
 CMD=()
-[[ "$USE_GAMEMODE" -eq 1 ]] && CMD+=(gamemoderun)
+
+# Use gamemoderun for CPU/GPU optimization
+if [[ "$USE_GAMEMODE" -eq 1 ]]; then
+  CMD+=(gamemoderun)
+fi
 
 if [[ "$FIXED_RES" -eq 1 ]]; then
   CMD+=(gamescope -W "$W" -H "$H" -w "$W" -h "$H")
@@ -150,4 +172,124 @@ fi
 [[ -n "$FPS_CAP" ]] && CMD+=(--fps "$FPS_CAP")
 CMD+=(-- "${GAME_ARGS[@]}")
 
-exec "${CMD[@]}"
+
+
+# Run gamescope
+"${CMD[@]}" &
+GAMESCOPE_PID=$!
+
+# Set up aggressive memory mode AFTER starting gamescope
+if [[ "$USE_GAMEMODE" -eq 1 && "$AGGRESSIVE_MEM" -eq 1 ]]; then
+  # Save original swappiness
+  ORIGINAL_SWAPPINESS=$(cat /proc/sys/vm/swappiness 2>/dev/null || echo 60)
+  
+  notify-send "Game Protection" "Aggressive memory mode activated" -u normal
+  echo "🚀 Aggressive memory mode: optimizing memory for gaming..."
+  
+  # Extract game name dynamically from the command we're running
+  GAME_BASENAME=$(basename "${GAME_ARGS[0]}" | sed 's/\.[^.]*$//')
+  echo "🎮 Detected game: $GAME_BASENAME"
+  
+  # Single pkexec call to set everything up and get sudo access
+  pkexec bash -c '
+    # Set high swappiness to force other apps to swap and make room
+    sysctl vm.swappiness=80 2>/dev/null || true
+    
+    # Protect the game we are running FIRST
+    for pid in $(pgrep -u '$USER' -f "'$GAME_BASENAME'" 2>/dev/null); do
+      echo -1000 | tee "/proc/$pid/oom_score_adj" 2>/dev/null && echo "🛡️ Protected game PID $pid"
+    done
+    
+    # Also protect gamescope
+    for pid in $(pgrep -u '$USER' "gamescope" 2>/dev/null); do
+      echo -1000 | tee "/proc/$pid/oom_score_adj" 2>/dev/null && echo "🛡️ Protected gamescope PID $pid"
+    done
+    
+    # Penalize memory-heavy apps to free up 1-2GB overhead
+    for app in firefox discord chrome steam spotify; do
+      for pid in $(pgrep -u '$USER' "$app" 2>/dev/null | head -3); do
+        echo 500 | tee "/proc/$pid/oom_score_adj" 2>/dev/null || true
+        echo "⚠️ Penalized $app PID $pid to free memory"
+      done
+    done
+  '
+  
+  # Refresh sudo credentials for the rest of the session
+  sudo -v
+  
+  # Protect this script and all children (including the game)
+  echo $$ | sudo tee /proc/self/oom_score_adj >/dev/null
+  echo "🛡️ Protected script PID $$ and all children"
+  
+  # Wait a moment for game to start
+  sleep 3
+  
+  # Protect the game processes directly and keep checking for new ones
+  echo "🔍 Monitoring for new game processes..."
+  while true; do
+    protected_any=0
+    
+    # Get all game processes
+    for pid in $(pgrep -u $USER -f "$GAME_BASENAME" 2>/dev/null); do
+      current_score=$(cat "/proc/$pid/oom_score_adj" 2>/dev/null || echo 0)
+      if [[ "$current_score" != "-1000" ]]; then
+        echo -1000 | sudo tee "/proc/$pid/oom_score_adj" 2>/dev/null && echo "🛡️ Protected game PID $pid (was $current_score)"
+        protected_any=1
+      fi
+    done
+    
+    # If no new processes found in the last check, break
+    if [[ "$protected_any" -eq 0 ]]; then
+      echo "✅ No new game processes found, monitoring complete"
+      break
+    fi
+    
+    sleep 10
+  done
+  
+  # Also protect gamescope
+  for pid in $(pgrep -u $USER "gamescope" 2>/dev/null); do
+    echo -1000 | sudo tee "/proc/$pid/oom_score_adj" 2>/dev/null && echo "🛡️ Protected gamescope PID $pid"
+  done
+  
+  # Cleanup function to restore original settings
+  cleanup() {
+    notify-send "Game Protection" "Restoring memory settings" -u normal
+    echo "🔄 Restoring original swappiness ($ORIGINAL_SWAPPINESS)..."
+    
+    # Use sudo (should still have auth) to restore settings
+    echo "$ORIGINAL_SWAPPINESS" | sudo tee /proc/sys/vm/swappiness 2>/dev/null || true
+    
+    # Reset OOM scores for all processes to default
+    for pid in $(pgrep -u $USER 2>/dev/null); do
+      if [[ -f "/proc/$pid/oom_score_adj" ]]; then
+        echo 0 | sudo tee "/proc/$pid/oom_score_adj" 2>/dev/null || true
+      fi
+    done
+  }
+  
+  # Set up cleanup on game exit
+  trap "cleanup" EXIT INT TERM
+fi
+
+wait $GAMESCOPE_PID
+
+# Cleanup after game exits
+if [[ "$USE_GAMEMODE" -eq 1 && "$AGGRESSIVE_MEM" -eq 1 ]]; then
+  notify-send "Game Protection" "Restoring memory settings" -u normal
+  echo "🔄 Restoring original swappiness ($ORIGINAL_SWAPPINESS)..."
+  
+  # Use pkexec to restore settings (ensure we have permissions)
+  pkexec bash -c "
+    echo '$ORIGINAL_SWAPPINESS' | tee /proc/sys/vm/swappiness 2>/dev/null || true
+    echo 'Swappiness restored to $ORIGINAL_SWAPPINESS'
+    
+    # Reset OOM scores for all processes to default
+    for pid in \$(pgrep -u $USER 2>/dev/null); do
+      if [[ -f '/proc/\$pid/oom_score_adj' ]]; then
+        echo 0 | tee '/proc/\$pid/oom_score_adj' 2>/dev/null || true
+      fi
+    done
+    echo 'OOM scores reset to default'
+  "
+fi
