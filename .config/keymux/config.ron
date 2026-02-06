@@ -112,6 +112,7 @@
             KC_A: SOCD(KC_A, [KC_D]),
             KC_D: SOCD(KC_D, [KC_A]),
             KC_F: KC_F,
+            KC_LALT: KC_LALT,
         },
     ),
     
