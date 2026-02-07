@@ -43,6 +43,7 @@ return {
   {
     "williamboman/mason.nvim",
     cmd = "Mason",
+    event = "VeryLazy",
     opts = {
       ui = {
         icons = {
@@ -59,6 +60,7 @@ return {
   {
     "williamboman/mason-lspconfig.nvim",
     dependencies = { "williamboman/mason.nvim" },
+    event = "VeryLazy",
     config = function()
       require("mason-lspconfig").setup({
         automatic_installation = false,

@@ -6,9 +6,7 @@ return {
     keys = {
       { "<leader>e", "<cmd> Oil <cr>", desc = "Open Oil (explorer)" },
     },
-    dependencies = {
-      "nvim-tree/nvim-web-devicons",
-    },
+
     opts = {
       columns = { "icon" },
       default_file_explorer = true,

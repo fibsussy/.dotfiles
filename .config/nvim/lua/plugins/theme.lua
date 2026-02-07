@@ -95,27 +95,30 @@ vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI" }, {
 
 return {
   {
+    "rose-pine/neovim",
+    name = "rose-pine",
+    lazy = false,
+    priority = 1000,
+    config = function()
+      vim.api.nvim_create_autocmd("VimEnter", {
+        callback = function()
+          vim.cmd("colorscheme rose-pine")
+          set_custom_highlights()
+        end,
+      })
+    end
+  },
+  {
     "catppuccin/nvim",
     name = "catppuccin",
-    lazy = false,
-    priority = 99999,
+    lazy = true,
     opts = {
       transparent_background = true,
     },
   },
   {
     "folke/tokyonight.nvim",
-    lazy = false,
-    priority = 99999,
+    lazy = true,
     opts = {},
   },
-
-  {
-    "rose-pine/neovim",
-    name = "rose-pine",
-    config = function()
-      vim.cmd("colorscheme rose-pine")
-    end
-  },
-
 }

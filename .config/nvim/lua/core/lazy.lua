@@ -23,5 +23,25 @@ require("lazy").setup({
     enabled = false,
     notify = false,
   },
+  performance = {
+    rtp = {
+      disabled_plugins = {
+        "gzip",
+        "matchit",
+        "matchparen",
+        "netrwPlugin",
+        "tarPlugin",
+        "tohtml",
+        "tutor",
+        "zipPlugin",
+        "spellfile",
+        "shada",
+      },
+    },
+    reset_packpath = true,
+  },
+  ui = {
+    size = { width = 0.8, height = 0.8 },
+  },
 })
 

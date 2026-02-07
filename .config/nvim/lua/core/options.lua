@@ -28,7 +28,7 @@ opt.isfname:append "@-@"
 
 opt.fillchars = { eob = " " }
 
-o.updatetime = 1
+o.updatetime = 50
 
 o.colorcolumn = "0"
 
