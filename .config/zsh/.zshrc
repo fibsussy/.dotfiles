@@ -108,6 +108,8 @@ setopt hist_verify             # Verify history expansion
 
 
 
+
+
 # Completion system - fast and cached
 autoload -Uz compinit
 local zcd="${XDG_CACHE_HOME:-$HOME/.cache}/zsh/zcompdump"
@@ -267,7 +269,16 @@ function stow_dotfiles {
 if (( $+commands[fzf] )); then
     __fzf_history__() {
         local selected
-        selected=$(fc -rl 1 | awk '!seen[$0]++' | tac | fzf --tac --no-sort --exact --query="$LBUFFER" | awk '{$1=""; print substr($0,2)}')
+        selected=$(fc -rl 1 | awk '!seen[$0]++' | tac | sed 's/^[[:space:]]*[0-9]*[[:space:]]*//' | 
+            awk '{
+                cmd = $0
+                gsub(/^[[:space:]]+|[[:space:]]+$/, "", cmd)
+                if (match(cmd, /^[a-zA-Z_][a-zA-Z0-9_-]*$/)) {
+                    if (system("command -v " cmd " >/dev/null 2>&1") == 0) print $0
+                } else {
+                    print $0
+                }
+            }' | fzf --tac --no-sort --exact --query="$LBUFFER")
         [[ -n $selected ]] && LBUFFER=$selected
         zle reset-prompt
     }
