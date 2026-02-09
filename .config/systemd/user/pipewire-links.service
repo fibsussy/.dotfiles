@@ -6,7 +6,7 @@ PartOf=pipewire.service
 
 [Service]
 Type=simple
-ExecStart=%h/.config/pipewire/links.sh
+ExecStart=%h/.cargo/bin/rust-script %h/.config/pipewire/links.rs
 Restart=on-failure
 RestartSec=3
 
