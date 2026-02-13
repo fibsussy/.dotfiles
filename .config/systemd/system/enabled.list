@@ -16,6 +16,7 @@ nvidia-hibernate.service
 nvidia-resume.service
 nvidia-suspend.service
 nvidia-suspend-then-hibernate.service
+ollama.service
 remote-fs.target
 sddm.service
 sshd.service

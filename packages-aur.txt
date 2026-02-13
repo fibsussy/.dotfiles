@@ -1,3 +1,4 @@
+bridge-utils
 chameleos
 crush-bin
 dms-shell-bin

@@ -6,7 +6,6 @@ bat
 bc
 bluez
 bluez-utils
-bridge-utils
 btop
 cabextract
 chromium
@@ -18,6 +17,8 @@ dgop
 discord
 dmidecode
 dnsmasq
+dotnet-sdk
+dotnet-sdk-8.0
 earlyoom
 edk2-ovmf
 efibootmgr
@@ -81,6 +82,7 @@ nvidia-open-dkms
 nvidia-prime
 nvidia-settings
 obs-studio
+ollama-cuda
 openssh
 otf-aurulent-nerd
 otf-codenewroman-nerd
@@ -110,6 +112,7 @@ qpwgraph
 qt5-wayland
 quickshell
 ripgrep
+rust-script
 rustup
 samba
 satty
