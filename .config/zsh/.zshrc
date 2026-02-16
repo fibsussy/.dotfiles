@@ -270,15 +270,8 @@ if (( $+commands[fzf] )); then
     __fzf_history__() {
         local selected
         selected=$(fc -rl 1 | awk '!seen[$0]++' | tac | sed 's/^[[:space:]]*[0-9]*[[:space:]]*//' | 
-            awk '{
-                cmd = $0
-                gsub(/^[[:space:]]+|[[:space:]]+$/, "", cmd)
-                if (match(cmd, /^[a-zA-Z_][a-zA-Z0-9_-]*$/)) {
-                    if (system("command -v " cmd " >/dev/null 2>&1") == 0) print $0
-                } else {
-                    print $0
-                }
-            }' | fzf --tac --no-sort --exact --query="$LBUFFER")
+            awk 'NR <= 20 && match($0, /^[a-zA-Z_][a-zA-Z0-9_-]*$/) { cmd = $0; if (system("command -v " cmd " >/dev/null 2>&1") != 0) next } { print }' | 
+            fzf --tac --no-sort --exact --query="$LBUFFER")
         [[ -n $selected ]] && LBUFFER=$selected
         zle reset-prompt
     }
