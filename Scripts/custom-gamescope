@@ -26,6 +26,10 @@ USE_VKBASALT=0   # new: --vkbasalt option
 FSR_SHARPNESS="" # new: --fsr option
 FIXED_RES=1
 AGGRESSIVE_MEM=0 # new: --aggressive-memory option
+USE_STEAM=0 # new: --steam option (preserve Steam overlay)
+USE_NTSYNC=0 # new: --ntsync option
+USE_DLSS=0 # new: --dlss option
+USE_HDR=0 # new: --hdr option
 
 GAME_ARGS=()
 
@@ -54,6 +58,10 @@ while [[ $# -gt 0 ]]; do
     --fsr) FSR_SHARPNESS="$2"; shift ;;
     --no-fixed-res) FIXED_RES=0 ;;
     --aggressive-memory) AGGRESSIVE_MEM=1 ;;
+    --steam) USE_STEAM=1 ;;
+    --ntsync) USE_NTSYNC=1 ;;
+    --dlss) USE_DLSS=1 ;;
+    --hdr) USE_HDR=1 ;;
     --dry) DRY_RUN=1 ;;
     --)
       shift
@@ -67,6 +75,14 @@ done
 
 if [[ ${#GAME_ARGS[@]} -eq 0 ]]; then
   echo "Usage: $0 [--scope] [opts] -- <cmd>" >&2
+  echo "  --scope              Use gamescope" >&2
+  echo "  --steam              Keep Steam overlay (may cause stutter)" >&2
+  echo "  --ntsync             Enable NTSync for better frame pacing" >&2
+  echo "  --dlss               Upgrade DLSS to latest version" >&2
+  echo "  --hdr                Enable HDR output" >&2
+  echo "  --hud[=mode]         Enable MangoHud (default/full/minimal)" >&2
+  echo "  --vrr                Enable VRR/adaptive-sync" >&2
+  echo "  --gamemode           Use gamemode" >&2
   exit 1
 fi
 
@@ -86,8 +102,19 @@ export IS_GAME=1
 export __GL_THREADED_OPTIMIZATION=1
 export __GL_YIELD=NOTHING
 
-# swap optimization - lock game memory in RAM
-if [[ "$USE_GAMEMODE" -eq 1 ]] && command -v mlock >/dev/null 2>&1; then
+# Fix stuttering caused by Steam Game Recorder (Steam's LD_PRELOAD injection)
+# Use --steam to preserve Steam overlay (but may cause stutter)
+if [[ "$USE_STEAM" -eq 0 ]]; then
+  export LD_PRELOAD=""
+fi
+
+# Proton performance options
+[[ "$USE_NTSYNC" -eq 1 ]] && export PROTON_USE_NTSYNC=1
+[[ "$USE_DLSS" -eq 1 ]] && export PROTON_DLSS_UPGRADE=1
+[[ "$USE_HDR" -eq 1 ]] && export PROTON_ENABLE_HDR=1
+
+# Lock game memory in RAM (only when aggressive-memory is used)
+if [[ "$AGGRESSIVE_MEM" -eq 1 ]] && command -v mlock >/dev/null 2>&1; then
   export LD_PRELOAD="${LD_PRELOAD:+$LD_PRELOAD:}libmlock.so"
 fi
 
@@ -107,6 +134,11 @@ fi
 
 # dry-run output
 if [[ "$DRY_RUN" -eq 1 ]]; then
+  # Show enabled env vars
+  [[ "$USE_NTSYNC" -eq 1 ]] && echo "PROTON_USE_NTSYNC=1"
+  [[ "$USE_DLSS" -eq 1 ]] && echo "PROTON_DLSS_UPGRADE=1"
+  [[ "$USE_HDR" -eq 1 ]] && echo "PROTON_ENABLE_HDR=1"
+  
   if [[ "$USE_SCOPE" -eq 1 ]]; then
     printf 'DRY (scope) would run: '
     # Show gamemoderun if enabled
