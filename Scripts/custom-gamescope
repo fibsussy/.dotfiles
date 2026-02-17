@@ -83,6 +83,8 @@ fi
 export mesa_glthread=true
 export RADV_PERFTEST=gpl
 export IS_GAME=1
+export __GL_THREADED_OPTIMIZATION=1
+export __GL_YIELD=NOTHING
 
 # swap optimization - lock game memory in RAM
 if [[ "$USE_GAMEMODE" -eq 1 ]] && command -v mlock >/dev/null 2>&1; then
@@ -183,7 +185,6 @@ if [[ "$USE_GAMEMODE" -eq 1 && "$AGGRESSIVE_MEM" -eq 1 ]]; then
   # Save original swappiness
   ORIGINAL_SWAPPINESS=$(cat /proc/sys/vm/swappiness 2>/dev/null || echo 60)
   
-  notify-send "Game Protection" "Aggressive memory mode activated" -u normal
   echo "🚀 Aggressive memory mode: optimizing memory for gaming..."
   
   # Extract game name dynamically from the command we're running
@@ -254,7 +255,6 @@ if [[ "$USE_GAMEMODE" -eq 1 && "$AGGRESSIVE_MEM" -eq 1 ]]; then
   
   # Cleanup function to restore original settings
   cleanup() {
-    notify-send "Game Protection" "Restoring memory settings" -u normal
     echo "🔄 Restoring original swappiness ($ORIGINAL_SWAPPINESS)..."
     
     # Use sudo (should still have auth) to restore settings
@@ -276,7 +276,6 @@ wait $GAMESCOPE_PID
 
 # Cleanup after game exits
 if [[ "$USE_GAMEMODE" -eq 1 && "$AGGRESSIVE_MEM" -eq 1 ]]; then
-  notify-send "Game Protection" "Restoring memory settings" -u normal
   echo "🔄 Restoring original swappiness ($ORIGINAL_SWAPPINESS)..."
   
   # Use pkexec to restore settings (ensure we have permissions)
