@@ -1,0 +1,50 @@
+// DMS Window Rules - Managed by DankMaterialShell
+// Do not edit manually - changes may be overwritten
+
+// @id=dms_rule_0 @name=General
+window-rule {
+    opacity 1.00
+    geometry-corner-radius 12
+    clip-to-geometry true
+}
+
+// @id=dms_rule_1 @name=is-active=false
+window-rule {
+    match is-active=false
+    opacity 0.90
+}
+
+// @id=dms_rule_2 @name=
+window-rule {
+    match app-id="^org\\.gnome\\."
+    draw-border-with-background false
+}
+
+// @id=dms_rule_3 @name=
+window-rule {
+    match app-id="^nm-connection-editor$"
+    default-column-width { proportion 0.5; }
+}
+
+// @id=dms_rule_4 @name=
+window-rule {
+    match app-id="^xdg-desktop-portal$"
+}
+
+// @id=dms_rule_5 @name=
+window-rule {
+    match app-id="kitty"
+    draw-border-with-background false
+}
+
+// @id=dms_rule_6 @name=
+window-rule {
+    match app-id="firefox"
+    opacity 1.00
+}
+
+// @id=dms_rule_7 @name=vrr
+window-rule {
+    match app-id="gamescope"
+    variable-refresh-rate true
+}
