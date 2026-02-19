@@ -13,4 +13,5 @@ steamcmd
 ttf-twemoji
 ttf-twemoji-color
 vkbasalt
+yt-transcriber
 zsh-theme-powerlevel10k-bin-git

@@ -1,6 +1,7 @@
 7zip
 accountsservice
 amd-ucode
+audacity
 base
 bat
 bc
@@ -78,6 +79,7 @@ mpv
 neovim
 networkmanager
 niri
+nmap
 nvidia-open-dkms
 nvidia-prime
 nvidia-settings
@@ -112,6 +114,7 @@ qpwgraph
 qt5-wayland
 quickshell
 ripgrep
+rsync
 rust-script
 rustup
 samba
@@ -200,6 +203,7 @@ wtype
 xdg-desktop-portal-gnome
 xdg-desktop-portal-gtk
 xwayland-satellite
+yazi
 zip
 zoxide
 zram-generator
