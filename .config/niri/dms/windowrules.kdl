@@ -11,7 +11,7 @@ window-rule {
 // @id=dms_rule_1 @name=is-active=false
 window-rule {
     match is-active=false
-    opacity 0.90
+    opacity 0.80
 }
 
 // @id=dms_rule_2 @name=
