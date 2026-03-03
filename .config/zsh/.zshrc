@@ -146,7 +146,6 @@ function tmux_force {
 
 alias sudo='sudo ' # allows aliases with sudo
 alias tm='trash'
-alias cd='z'
 alias ..='cd ..'
 alias ...='cd ../..'
 alias .3='cd ../../..'
