@@ -25,6 +25,7 @@ SHARPNESS=""     # new: --sharpness option
 USE_VKBASALT=0   # new: --vkbasalt option
 USE_VKPOST=0     # new: --vkpost option
 USE_EFFECTS=0    # new: --effects option (sharpness + contrast)
+USE_EFFECTS_2=0  # new: --effects2 option (contrast heavy for saturated games)
 FSR_SHARPNESS="" # new: --fsr option
 FIXED_RES=1
 AGGRESSIVE_MEM=0 # new: --aggressive-memory option
@@ -59,6 +60,7 @@ while [[ $# -gt 0 ]]; do
     --vkbasalt) USE_VKBASALT=1 ;;
     --vkpost) USE_VKPOST=1 ;;
     --effects) USE_EFFECTS=1 ;;
+    --effects2) USE_EFFECTS_2=1 ;;
     --fsr) FSR_SHARPNESS="$2"; shift ;;
     --no-fixed-res) FIXED_RES=0 ;;
     --aggressive-memory) AGGRESSIVE_MEM=1 ;;
@@ -87,6 +89,7 @@ if [[ ${#GAME_ARGS[@]} -eq 0 ]]; then
   echo "  --hud[=mode]         Enable MangoHud (default/full/minimal)" >&2
   echo "  --vkpost             Enable vkpost (sharpening)" >&2
   echo "  --effects            Enable sharpening + contrast (Recommended)" >&2
+  echo "  --effects2           Enable high-contrast mode for saturated games (The Finals, OW)" >&2
   echo "  --vrr                Enable VRR/adaptive-sync" >&2
   echo "  --gamemode           Use gamemode" >&2
   exit 1
@@ -131,8 +134,10 @@ if [[ "$USE_VKBASALT" -eq 1 ]]; then
   export VK_ADD_LAYERS="VK_LAYER_VKBASALT_post_processing"
 elif [[ "$USE_VKPOST" -eq 1 || "$USE_EFFECTS" -eq 1 ]]; then
   export ENABLE_VKPOST=1
-  export VK_POST_CONFIG_FILE="$HOME/.config/vkPost/vkPost.conf"
-  export VK_ADD_LAYERS="VK_LAYER_VKPOST_post_processing"
+  export VKPOST_CONFIG_FILE="$HOME/.config/vkPost/vkPost.conf"
+elif [[ "$USE_EFFECTS_2" -eq 1 ]]; then
+  export ENABLE_VKPOST=1
+  export VKPOST_CONFIG_FILE="$HOME/.config/vkPost/vkPost2.conf"
 else
   export ENABLE_VKBASALT=0
   export ENABLE_VKPOST=0
