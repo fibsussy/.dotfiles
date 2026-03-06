@@ -12,7 +12,7 @@ return {
       },
     },
     bigfile = { enabled = true },
-    dashboard = { enabled = true },
+    dashboard = { enabled = false },
     notifier = {
       enabled = true,
       timeout = 3000,

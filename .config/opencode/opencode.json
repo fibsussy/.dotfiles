@@ -12,6 +12,7 @@
       "git branch": "allow",
       "git remote -v": "allow",
       "git stash list": "allow"
-    }
+    },
+    "external_directory": "allow"
   }
 }
