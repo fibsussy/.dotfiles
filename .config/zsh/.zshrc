@@ -137,13 +137,6 @@ bindkey -M menuselect 'k' vi-up-line-or-history
 bindkey -M menuselect 'l' vi-forward-char
 bindkey -M menuselect 'j' vi-down-line-or-history
 
-
-
-function tmux_force {
-    [[ -n "$TMUX" ]] && { echo "Already in tmux"; return 1; }
-    tmux attach -t '\~' 2>/dev/null || tmux new -s '~' -c '~'
-}
-
 alias sudo='sudo ' # allows aliases with sudo
 alias tm='trash'
 alias ..='cd ..'

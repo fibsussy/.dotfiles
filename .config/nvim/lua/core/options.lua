@@ -19,6 +19,7 @@ o.wrap = false
 o.swapfile = false
 o.backup = false
 o.undodir = os.getenv "HOME" .. "/.vim/undodir"
+vim.fn.mkdir(o.undodir, "p")
 o.undofile = true
 
 o.termguicolors = true

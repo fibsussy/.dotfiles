@@ -191,7 +191,13 @@
   "appLauncherViewMode": "grid",
   "spotlightModalViewMode": "list",
   "browserPickerViewMode": "grid",
-  "browserUsageHistory": {},
+  "browserUsageHistory": {
+    "firefox": {
+      "count": 5,
+      "lastUsed": 1772698390141,
+      "name": "Firefox"
+    }
+  },
   "appPickerViewMode": "grid",
   "filePickerUsageHistory": {},
   "sortAppsAlphabetically": false,
@@ -411,17 +417,7 @@
   },
   "hyprlandOutputSettings": {},
   "displayProfiles": {
-    "niri": {
-      "profile_1771423859714_vcb1hf": {
-        "id": "profile_1771423859714_vcb1hf",
-        "name": "Default",
-        "outputSet": [
-          "DP-1"
-        ],
-        "createdAt": 1771423859714,
-        "updatedAt": 1771423859714
-      }
-    }
+    "niri": {}
   },
   "activeDisplayProfile": {
     "niri": "profile_1771423859714_vcb1hf"
