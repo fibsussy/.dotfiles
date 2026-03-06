@@ -1,2 +1,14 @@
 discord/
 mozilla/
+QtProject.conf
+DankMaterialShell/.changelog-*
+DankMaterialShell/.firstlaunch
+cosmic/
+dconf/user
+dgop/colors.json
+parallel/tmp/
+pulse/cookie
+vlc/vlc-qt-interface.conf
+vlc/vlcrc
+rncbc.org/
+autostart/
