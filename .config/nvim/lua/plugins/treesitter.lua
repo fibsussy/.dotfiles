@@ -10,7 +10,6 @@ return {
 
   {
     'nvim-treesitter/nvim-treesitter',
-    event = "VeryLazy",
     build = ":TSUpdate",
     opts = {
       ensure_installed = {
@@ -77,7 +76,7 @@ return {
       auto_install = true,
     },
     config = function(_, opts)
-      require('nvim-treesitter.configs').setup(opts)
+      require('nvim-treesitter.config').setup(opts)
       vim.treesitter.language.register('ron', 'ron')
     end,
   },
