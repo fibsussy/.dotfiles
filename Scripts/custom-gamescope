@@ -242,7 +242,7 @@ if [[ "$USE_GAMEMODE" -eq 1 && "$AGGRESSIVE_MEM" -eq 1 ]]; then
   echo "🎮 Detected game: $GAME_BASENAME"
   
   # Single pkexec call to set everything up and get sudo access
-  pkexec bash -c '
+  sudo bash -c '
     # Set high swappiness to force other apps to swap and make room
     sysctl vm.swappiness=80 2>/dev/null || true
     
@@ -329,7 +329,7 @@ if [[ "$USE_GAMEMODE" -eq 1 && "$AGGRESSIVE_MEM" -eq 1 ]]; then
   echo "🔄 Restoring original swappiness ($ORIGINAL_SWAPPINESS)..."
   
   # Use pkexec to restore settings (ensure we have permissions)
-  pkexec bash -c "
+  sudo bash -c "
     echo '$ORIGINAL_SWAPPINESS' | tee /proc/sys/vm/swappiness 2>/dev/null || true
     echo 'Swappiness restored to $ORIGINAL_SWAPPINESS'
     
