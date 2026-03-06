@@ -13,10 +13,6 @@ return {
       { "<M-Right>", desc = "Smart Navigate Right" },
       { "<M-Up>", desc = "Smart Navigate Up" },
       { "<M-Down>", desc = "Smart Navigate Down" },
-      { "<C-Left>", "<cmd>NavigatorLeft<cr>", desc = "Navigator: Window Left" },
-      { "<C-Down>", "<cmd>NavigatorDown<cr>", desc = "Navigator: Window Down" },
-      { "<C-Up>", "<cmd>NavigatorUp<cr>", desc = "Navigator: Window Up" },
-      { "<C-Right>", "<cmd>NavigatorRight<cr>", desc = "Navigator: Window Right" },
     },
     opts = {
       auto_save = nil,
