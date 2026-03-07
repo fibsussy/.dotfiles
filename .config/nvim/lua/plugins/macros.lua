@@ -6,11 +6,18 @@ vim.api.nvim_create_user_command(
       return
     end
 
+    local pattern = vim.fn.escape(input, '/')
     local cmd
     if opts.range ~= 0 then
-      cmd = string.format('%d,%dg/%s/normal! @q', opts.line1, opts.line2, vim.fn.escape(input, '/'))
+      cmd = string.format(
+        '%d,%dg/%s/execute "normal! " . (match(getline("."), "%s") + 1) . "|@q"',
+        opts.line1, opts.line2, pattern, input
+      )
     else
-      cmd = string.format('g/%s/normal! @q', vim.fn.escape(input, '/'))
+      cmd = string.format(
+        'g/%s/execute "normal! " . (match(getline("."), "%s") + 1) . "|@q"',
+        pattern, input
+      )
     end
 
     vim.cmd(cmd)
@@ -18,7 +25,7 @@ vim.api.nvim_create_user_command(
   { nargs = 0, range = true }
 )
 
-vim.keymap.set('n', '<leader>mr', ':RunMacroOnSearch<CR>', { desc = 'Run macro on search results' })
-vim.keymap.set('x', '<leader>mr', ':RunMacroOnSearch<CR>', { desc = 'Run macro on search results' })
+vim.keymap.set('n', '<leader>q', ':RunMacroOnSearch<CR>', { desc = 'Run macro on search results' })
+vim.keymap.set('x', '<leader>q', ':RunMacroOnSearch<CR>', { desc = 'Run macro on search results' })
 
 return {}
