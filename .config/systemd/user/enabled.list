@@ -1,3 +1,4 @@
+gamemoded.service
 keymux-niri.service
 p11-kit-server.socket
 pipewire-links.service
