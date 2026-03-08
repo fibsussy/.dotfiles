@@ -66,6 +66,7 @@ otf-hermit-nerd
 otf-monaspace-nerd
 otf-opendyslexic-nerd
 otf-overpass-nerd
+pavucontrol
 pipewire
 pipewire-alsa
 pipewire-jack

@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 set -e
 
-
 if ! pacman -Qq yay >/dev/null 2>&1; then
     (
         tmpdir=$(mktemp -d)
@@ -12,13 +11,5 @@ if ! pacman -Qq yay >/dev/null 2>&1; then
         cd yay-bin
         makepkg -si
     )
-fi
-
-if ! pacman -Qq keyboard-middleware >/dev/null 2>&1; then
-    curl -fsSL https://raw.githubusercontent.com/fibsussy/keyboard-middleware/main/install.sh | bash
-fi
-
-if ! pacman -Qq tmux-leap >/dev/null 2>&1; then
-    curl -fsSL https://raw.githubusercontent.com/fibsussy/tmux-leap/main/install.sh | bash
 fi
 

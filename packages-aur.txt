@@ -5,11 +5,12 @@ dropbox-cli
 gallery-dl
 gamescope-nvidia
 google-breakpad
-keymux-bin
+keymux
 opencode-bin
 quickshell-git
 reshade-shaders-git
 steamcmd
+tmux-leap
 ttf-twemoji
 ttf-twemoji-color
 vkbasalt
