@@ -137,6 +137,7 @@ bindkey -M menuselect 'k' vi-up-line-or-history
 bindkey -M menuselect 'l' vi-forward-char
 bindkey -M menuselect 'j' vi-down-line-or-history
 
+alias makepkg-atomic='~/Scripts/makepkg-atomic.sh'
 alias sudo='sudo ' # allows aliases with sudo
 alias tm='trash'
 alias ..='cd ..'
