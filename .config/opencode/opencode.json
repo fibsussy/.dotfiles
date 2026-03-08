@@ -11,7 +11,10 @@
       "git show": "allow",
       "git branch": "allow",
       "git remote -v": "allow",
-      "git stash list": "allow"
+      "git stash list": "allow",
+      "pacman": "ask",
+      "yay": "ask",
+      "paru": "ask"
     },
     "external_directory": "allow"
   }
