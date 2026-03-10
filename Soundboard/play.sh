@@ -1,29 +1,17 @@
 #!/bin/bash
 
-# ------------------------------
-# Setup script paths
-# ------------------------------
 SCRIPT_PATH="$(realpath "${BASH_SOURCE[0]}")"
 SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
 PID_FILE="$SCRIPT_DIR/.soundboard.pids"
 VOL_FILE="$SCRIPT_DIR/.soundboard.volume"
 
-# ------------------------------
-# Find lowest real logged-in user (UID >= 1000)
-# ------------------------------
-TARGET_USER=$(awk -F: '$3 >= 1000 && $3 < 65534 {print $1}' /etc/passwd | head -n1)
-
-# If running as root, re-exec as TARGET_USER for audio access
 if [ "$(id -u)" -eq 0 ] && [ "$SUDO_USER" != "$TARGET_USER" ]; then
+    TARGET_USER=$(awk -F: '$3 >= 1000 && $3 < 65534 {print $1}' /etc/passwd | head -n1)
     exec runuser -u "$TARGET_USER" -- "$SCRIPT_PATH" "$@"
 fi
 
-# ------------------------------
-# VOL command: set volume (0.0 to 1.0)
-# ------------------------------
 if [ "$1" = "VOL" ]; then
     if [ -z "$2" ]; then
-        # Show current volume
         if [ -f "$VOL_FILE" ]; then
             CURRENT_VOL=$(cat "$VOL_FILE")
             echo "Current volume: $CURRENT_VOL"
@@ -35,14 +23,12 @@ if [ "$1" = "VOL" ]; then
 
     VOL_VALUE="$2"
     
-    # Validate volume is between 0 and 1
     if ! [[ "$VOL_VALUE" =~ ^[0-9]*\.?[0-9]+$ ]]; then
         echo "Error: Volume must be a number between 0.0 and 1.0"
         echo "Usage: $0 VOL <0.0-1.0>"
         exit 1
     fi
     
-    # Check range with awk
     if ! awk -v vol="$VOL_VALUE" 'BEGIN { exit (vol >= 0 && vol <= 1) ? 0 : 1 }'; then
         echo "Error: Volume must be between 0.0 and 1.0"
         echo "Usage: $0 VOL <0.0-1.0>"
@@ -54,9 +40,6 @@ if [ "$1" = "VOL" ]; then
     exit 0
 fi
 
-# ------------------------------
-# STOP command: kill all tracked pw-play processes
-# ------------------------------
 if [ "$1" = "STOP" ]; then
     echo "Stopping all pw-play processes..."
 
@@ -66,7 +49,6 @@ if [ "$1" = "STOP" ]; then
         exit 0
     fi
 
-    # Read PIDs and kill them
     while read -r pid; do
         if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
             echo "Killing PID $pid"
@@ -74,15 +56,11 @@ if [ "$1" = "STOP" ]; then
         fi
     done < "$PID_FILE"
 
-    # Clean up PID file
     rm -f "$PID_FILE"
     echo "Done."
     exit 0
 fi
 
-# ------------------------------
-# Usage check
-# ------------------------------
 if [ $# -eq 0 ]; then
     echo "Usage: $0 <pattern | STOP | VOL [value]>"
     echo "Example: $0 KC_A"
@@ -94,7 +72,6 @@ fi
 
 PATTERN="$1"
 
-# Find matching audio files
 MATCHING_FILES=($SCRIPT_DIR/$PATTERN*)
 
 if [ ${#MATCHING_FILES[@]} -eq 0 ] || [ ! -f "${MATCHING_FILES[0]}" ]; then
@@ -102,17 +79,12 @@ if [ ${#MATCHING_FILES[@]} -eq 0 ] || [ ! -f "${MATCHING_FILES[0]}" ]; then
     exit 1
 fi
 
-# Randomly select one matching file if there are multiple
 MATCHING_FILE=${MATCHING_FILES[$RANDOM % ${#MATCHING_FILES[@]}]}
 
-# ------------------------------
-# Cleanup function to kill spawned process
-# ------------------------------
 cleanup() {
     if [ -n "$PID1" ] && kill -0 "$PID1" 2>/dev/null; then
         kill -TERM "$PID1" 2>/dev/null
     fi
-    # Remove only our PID from file
     if [ -f "$PID_FILE" ]; then
         grep -v -e "^$PID1$" "$PID_FILE" > "$PID_FILE.tmp" 2>/dev/null
         if [ -s "$PID_FILE.tmp" ]; then
@@ -125,29 +97,19 @@ cleanup() {
 
 trap cleanup EXIT INT TERM
 
-# ------------------------------
-# Load volume setting
-# ------------------------------
 VOLUME="1.0"
 if [ -f "$VOL_FILE" ]; then
     VOLUME=$(cat "$VOL_FILE")
 fi
 
-echo "Playing: $MATCHING_FILE (through virtual mic and speakers) at volume $VOLUME"
+echo "Playing: $MATCHING_FILE at volume $VOLUME"
 
-# ------------------------------
-# Play audio through loopback input (which feeds both speakers and virtual mic)
-# ------------------------------
-pw-play --target="input.loopmix" --volume="$VOLUME" "$MATCHING_FILE" &
+VOLUME_INT=$(awk "BEGIN {printf \"%.0f\", $VOLUME * 65536}")
+paplay -d "input.loopmix" --volume="${VOLUME_INT:-65536}" "$MATCHING_FILE" &
 PID1=$!
-
-# Store PID for STOP command (append to support multiple instances)
 echo "$PID1" >> "$PID_FILE"
-
-# Wait for process to complete
 wait $PID1
 
-# Clean up our PIDs from the file when done naturally
 if [ -f "$PID_FILE" ]; then
     grep -v -e "^$PID1$" "$PID_FILE" > "$PID_FILE.tmp" 2>/dev/null
     if [ -s "$PID_FILE.tmp" ]; then
