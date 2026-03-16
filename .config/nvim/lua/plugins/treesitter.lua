@@ -76,7 +76,7 @@ return {
       auto_install = true,
     },
     config = function(_, opts)
-      require('nvim-treesitter.config').setup(opts)
+      require('nvim-treesitter').setup(opts)
       vim.treesitter.language.register('ron', 'ron')
     end,
   },
