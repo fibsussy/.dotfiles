@@ -110,17 +110,12 @@ setopt hist_verify             # Verify history expansion
 
 
 
-# Completion system - fast and cached
+# Completion system
 autoload -Uz compinit
 local zcd="${XDG_CACHE_HOME:-$HOME/.cache}/zsh/zcompdump"
-# Only regenerate if older than 24 hours
-if [[ ! -f "$zcd" || -n $(find "$zcd" -mtime +1 2>/dev/null) ]]; then
-    compinit -d "$zcd"
-else
-    compinit -C -d "$zcd"
-fi
-# Compile if needed
-[[ ! -f "$zcd.zwc" || "$zcd" -nt "$zcd.zwc" ]] && zcompile "$zcd" &!
+[[ -f "$zcd" ]] && compinit -C -d "$zcd" || compinit -d "$zcd"
+
+# Keymux completions (generate once with: keymux completion zsh > ~/.zsh/completions/_keymux)
 
 # Completion styling - minimal but functional
 zstyle ':completion:*' completer _complete _approximate
