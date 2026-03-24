@@ -52,9 +52,9 @@ return {
 
   },
 
-  {
-    "malewicz1337/oil-git.nvim",
-    dependencies = { "fibsussy/oil.nvim" },
-  },
+  -- {
+  --   "malewicz1337/oil-git.nvim",
+  --   dependencies = { "fibsussy/oil.nvim" },
+  -- },
 
 }
