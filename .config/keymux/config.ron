@@ -21,10 +21,9 @@
         hold_do_nothing_emits_tap: true,
         test_shouldnt_validate: true,
     ),
-    enabled_keyboards: Some([
-        "362d:0210:0111:0003",
-        "2e3c:c365:0110:0003",
-    ]),
+    enabled_keyboards: [
+        "*",
+    ],
     remaps: {
         KC_A: MT(KC_A, KC_LGUI),
         KC_S: MT(KC_S, KC_LALT),
