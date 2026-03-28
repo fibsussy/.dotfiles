@@ -16,7 +16,7 @@ else
         while true; do IFS= read -rs -k1 key; \
         case \"\$key\" in \
             t) notify-send 'lol hi' ;; \
-            c) fastfetch --logo none | wl-copy && notify-send 'Copied to Clipboard' ;; \
+            c) fastfetch --logo none | dms cl copy && notify-send 'Copied to Clipboard' ;; \
             q|$'\n'|$'\x03') kitty @ close-window --self; exit ;; \
         esac; \
         done; tput cnorm" &

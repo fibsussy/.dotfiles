@@ -23,6 +23,7 @@ return {
 
   {
     "epwalsh/obsidian.nvim",
+    enabled = vim.fn.isdirectory(vim.fn.expand("~/Notes")) == 1,
     version = "*",
     lazy = true,
     ft = "markdown",
