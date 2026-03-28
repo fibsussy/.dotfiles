@@ -23,21 +23,26 @@ return {
 
   {
     "epwalsh/obsidian.nvim",
-    enabled = vim.fn.isdirectory(vim.fn.expand("~/Notes")) == 1,
     version = "*",
     lazy = true,
     ft = "markdown",
     dependencies = {
       "nvim-lua/plenary.nvim",
     },
-    opts = {
-      workspaces = {
-        {
-          name = "Notes",
-          path = vim.fn.expand("~") .. "/Notes",
+    config = function()
+      local notes_path = vim.fn.expand("~/Notes")
+      if vim.fn.isdirectory(notes_path) == 0 then
+        return
+      end
+      require("obsidian").setup({
+        workspaces = {
+          {
+            name = "Notes",
+            path = notes_path,
+          },
         },
-      },
-    },
+      })
+    end,
   },
 
 
