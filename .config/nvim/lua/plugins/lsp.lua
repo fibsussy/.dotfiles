@@ -75,6 +75,7 @@ return {
       "hrsh7th/cmp-nvim-lsp",
       "mason.nvim",
       "mason-lspconfig.nvim",
+      "neovim/nvim-lspconfig",
     },
     config = function()
       -- New 0.11+ way to get capabilities
