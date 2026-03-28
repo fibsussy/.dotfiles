@@ -1,0 +1,8 @@
+logs/
+profiler_data/
+basic/profiles/
+basic/scenes/
+plugin_config/
+plugin_manager/
+user.ini
+global.ini

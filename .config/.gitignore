@@ -1,4 +1,5 @@
 discord/
+VirtualBox/
 mozilla/
 QtProject.conf
 DankMaterialShell/.changelog-*
@@ -16,14 +17,6 @@ GitHub/
 containers/storage.conf
 fish/config.fish
 gh/hosts.yml
-obs-studio/logs/
-obs-studio/profiler_data/
-obs-studio/basic/profiles/
-obs-studio/basic/scenes/
-obs-studio/plugin_config/
-obs-studio/plugin_manager/
-obs-studio/user.ini
-obs-studio/global.ini
 pavucontrol.ini
 pupgui/config.ini
 zsh/.zcompdump

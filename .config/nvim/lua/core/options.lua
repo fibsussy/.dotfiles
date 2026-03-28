@@ -18,7 +18,7 @@ o.wrap = false
 
 o.swapfile = false
 o.backup = false
-o.undodir = os.getenv "HOME" .. "/.vim/undodir"
+o.undodir = (os.getenv "XDG_STATE_HOME" or os.getenv "HOME" .. "/.local/state") .. "/nvim/undo"
 vim.fn.mkdir(o.undodir, "p")
 o.undofile = true
 

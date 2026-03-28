@@ -1,5 +1,6 @@
 gpg_key.asc
 .password-store/
+.config/gnupg/
 
 # Fish shell plugin files and runtime state
 .config/fish/fish_variables*
@@ -23,3 +24,13 @@ gpg_key.asc
 
 # Screenshots
 Pictures/Screenshots/
+
+# Moved runtime/state data
+.config/pulse/
+.config/git-crypt/
+.local/share/cargo/
+.local/share/rustup/
+.local/share/pki/
+.local/share/vim/
+.local/state/
+.cache/nv/

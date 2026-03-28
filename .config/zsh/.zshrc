@@ -6,27 +6,25 @@
 # Disable gitstatus (must be before instant prompt)
 typeset -g POWERLEVEL9K_DISABLE_GITSTATUS=true
 
+# Consolidate p10k cache into subdirectory
+typeset -g POWERLEVEL9K_CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/p10k"
+
 # Enable instant prompt (must be near top)
-if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
-  source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
+if [[ -r "$POWERLEVEL9K_CACHE_DIR/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
+  source "$POWERLEVEL9K_CACHE_DIR/p10k-instant-prompt-${(%):-%n}.zsh"
 fi
 
 
-export XDG_CONFIG_HOME="$HOME/.config"
-export XDG_CACHE_HOME="$HOME/.cache"
-export XDG_DATA_HOME="$HOME/.local/share"
-export XDG_STATE_HOME="$HOME/.local/state"
-
-export RUSTUP_HOME="$XDG_DATA_HOME/rustup"
 export RUSTFLAGS='-W clippy::pedantic -W clippy::nursery -A clippy::unreadable_literal -A clippy::struct_excessive_bools'
-export PYENV_ROOT="$HOME/.pyenv"
+export PYENV_ROOT="$XDG_DATA_HOME/pyenv"
+export MANPAGER='nvim -c "Man!" -c "set buftype=nofile modifiable"'
 export PYENV_VIRTUALENV_DISABLE_PROMPT=1
 export LANG=en_US.UTF-8
 export EDITOR='nvim'
 [[ -n $SSH_CONNECTION ]] && export EDITOR='vim'
 
 path=(
-    $HOME/.cargo/bin
+    $CARGO_HOME/bin
     $PYENV_ROOT/bin
     $HOME/.local/bin
     /usr/local/bin
@@ -35,11 +33,7 @@ path=(
 )
 export PATH
 
-export LESSHISTFILE="${XDG_STATE_HOME}/less/history"
-export PARALLEL_HOME="$XDG_CONFIG_HOME/parallel"
-export WGETRC="${XDG_CONFIG_HOME}/wgetrc"
-export SCREENRC="$XDG_CONFIG_HOME/screen/screenrc"
-export MANPAGER='nvim -c "Man!" -c "set buftype=nofile modifiable"'
+
 
 setopt autocd               # Cd by typing directory name
 setopt interactivecomments  # Allow comments in interactive shells

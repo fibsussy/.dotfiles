@@ -1,10 +1,6 @@
-if [[ -z "$SSH_AUTH_SOCK" ]]; then
-  export SSH_AUTH_SOCK=/run/user/$(id -u)/ssh-agent.socket
-fi
-
 # Source cargo environment if it exists
-if [[ -f "$HOME/.cargo/env" ]]; then
-  . "$HOME/.cargo/env"
+if [[ -f "$CARGO_HOME/env" ]]; then
+  . "$CARGO_HOME/env"
 fi
 
 return 0
