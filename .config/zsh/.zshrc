@@ -247,7 +247,7 @@ function stow_dotfiles {
 [[ -f /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh ]] && \
     source /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
 
-# fzf integration (Ctrl-R only, for speed)
+# fzf integration - load last to ensure binding is not overwritten
 if (( $+commands[fzf] )); then
     __fzf_history__() {
         local selected
@@ -260,6 +260,10 @@ if (( $+commands[fzf] )); then
     zle -N __fzf_history__
     bindkey '^r' __fzf_history__
 fi
+
+# Load theme last
+source /usr/share/zsh-theme-powerlevel10k/powerlevel10k.zsh-theme
+[[ -f $ZDOTDIR/.p10k.zsh ]] && source $ZDOTDIR/.p10k.zsh
 
 # Lazy init tools (only when needed)
 if (( $+commands[pyenv] )) && [[ -f .python-version ]]; then
