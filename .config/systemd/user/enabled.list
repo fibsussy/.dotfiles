@@ -1,3 +1,4 @@
+dms.service
 gamemoded.service
 keymux-niri.service
 p11-kit-server.socket

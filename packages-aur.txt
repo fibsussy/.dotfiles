@@ -1,7 +1,7 @@
+appimagetool-bin
 chameleos
-dms-shell-bin
-dms-shell-bin-debug
 dropbox-cli
+fusion360-proton
 gallery-dl
 gamescope-nvidia
 google-breakpad
@@ -10,10 +10,13 @@ opencode-bin
 quickshell-git
 reshade-shaders-git
 steamcmd
+thorium-browser-bin
 tmux-leap
+tree-sitter-cli-github-bin
 ttf-twemoji
 ttf-twemoji-color
 vkbasalt
 vkpost
 yay-bin-debug
+yt-transcriber
 zsh-theme-powerlevel10k-bin-git

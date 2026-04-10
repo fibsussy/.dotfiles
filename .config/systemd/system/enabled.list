@@ -1,3 +1,4 @@
+actions-runner.service
 bluetooth.service
 cups.path
 cups.service
@@ -8,10 +9,6 @@ keymux.service
 NetworkManager-dispatcher.service
 NetworkManager.service
 NetworkManager-wait-online.service
-nvidia-hibernate.service
-nvidia-resume.service
-nvidia-suspend.service
-nvidia-suspend-then-hibernate.service
 remote-fs.target
 sddm.service
 sshd.service
