@@ -1,7 +1,6 @@
 appimagetool-bin
 chameleos
 dropbox-cli
-fusion360-proton
 gallery-dl
 gamescope-nvidia
 google-breakpad
