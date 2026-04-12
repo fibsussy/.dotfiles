@@ -145,7 +145,15 @@ alias cat='bat'
 alias bat='bat --paging never --style=numbers,header-filename'
 alias v="nvim"
 alias less="$MANPAGER"
-alias paruclean="sudo pacman -Rsn $(pacman -Qdtq 2>/dev/null)"
+pacmanclean() {
+    local orphans
+    orphans=$(pacman -Qdtq 2>/dev/null)
+    if [[ -n "$orphans" ]]; then
+        sudo pacman -Rsn $orphans
+    else
+        echo "No orphan packages found"
+    fi
+}
 alias brb="clear && figlet BRB | lolcat"
 alias sc='systemctl'
 alias scu='systemctl --user'
