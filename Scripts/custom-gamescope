@@ -33,6 +33,7 @@ USE_STEAM=0 # new: --steam option (preserve Steam overlay)
 USE_NTSYNC=0 # new: --ntsync option
 USE_DLSS=0 # new: --dlss option
 USE_HDR=0 # new: --hdr option
+USE_CROSSHAIR=0 # new: --crosshair option
 
 GAME_ARGS=()
 
@@ -69,6 +70,7 @@ while [[ $# -gt 0 ]]; do
     --dlss) USE_DLSS=1 ;;
     --hdr) USE_HDR=1 ;;
     --dry) DRY_RUN=1 ;;
+    --crosshair) USE_CROSSHAIR=1 ;;
     --)
       shift
       GAME_ARGS+=("$@")
@@ -87,6 +89,7 @@ if [[ ${#GAME_ARGS[@]} -eq 0 ]]; then
   echo "  --dlss               Upgrade DLSS to latest version" >&2
   echo "  --hdr                Enable HDR output" >&2
   echo "  --hud[=mode]         Enable MangoHud (default/full/minimal)" >&2
+  echo "  --crosshair          Enable custom crosshair overlay" >&2
   echo "  --vkpost             Enable vkpost (sharpening)" >&2
   echo "  --effects            Enable sharpening + contrast (Recommended)" >&2
   echo "  --effects2           Enable high-contrast mode for saturated games (The Finals, OW)" >&2
@@ -148,6 +151,11 @@ if [[ "$HUD_MODE" != "no_display" ]]; then
   export MANGOHUD=1
 else
   unset MANGOHUD || true
+fi
+
+# Crosshair overlay config (krosshair Vulkan layer)
+if [[ "$USE_CROSSHAIR" -eq 1 ]]; then
+  export KROSSHAIR=1
 fi
 
 # dry-run output
@@ -222,6 +230,9 @@ fi
 [[ -n "$SHARPNESS" ]] && CMD+=(--sharpness "$SHARPNESS")
 [[ -n "$FSR_SHARPNESS" ]] && CMD+=(--fsr-sharpness "$FSR_SHARPNESS")
 [[ -n "$FPS_CAP" ]] && CMD+=(--fps "$FPS_CAP")
+
+# Crosshair overlay uses KROSSHAIR Vulkan layer env vars set above
+
 CMD+=(-- "${GAME_ARGS[@]}")
 
 
