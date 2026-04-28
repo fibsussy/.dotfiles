@@ -1,4 +1,3 @@
-
 config-notification {
     disable-failed
 }
@@ -81,7 +80,6 @@ overview {
 // This line starts waybar, a commonly used bar for Wayland compositors.
 spawn-at-startup "bash" "-c" "wl-paste --watch cliphist store &"
 spawn-at-startup "/usr/lib/mate-polkit/polkit-mate-authentication-agent-1"
-spawn-at-startup "bash" "-c" "while ! dms ipc call ping >/dev/null 2>&1; do sleep 0.1; done; dms ipc call lock lock"
 spawn-at-startup "chameleos"
 environment {
   XDG_CURRENT_DESKTOP "niri"
@@ -138,6 +136,10 @@ binds {
     Mod+O repeat=false { toggle-overview; }
     Mod+Tab repeat=false { toggle-overview; }
     Mod+Shift+Slash { show-hotkey-overlay; }
+
+    Ctrl+Alt+Shift+C {
+        spawn-sh "$HOME/Scripts/obs_ws.sh"
+    }
 
     Shift+F1 { spawn "chamel" "toggle"; }
     Shift+F2 { spawn "chamel" "undo"; }
@@ -204,8 +206,6 @@ binds {
     XF86MonBrightnessDown allow-when-locked=true {
         spawn "dms" "ipc" "call" "brightness" "decrement" "5" "";
     }
-
-    Mod+G { spawn-sh "pkill gammastep &>/dev/null || (gammastep &>/dev/null &)"; }
 
     // === Window Management ===
     Mod+Q repeat=false { close-window; }
@@ -386,3 +386,4 @@ debug {
 include "dms/cursor.kdl"
 include "dms/outputs.kdl"
 include "dms/windowrules.kdl"
+include "dms/binds.kdl"
