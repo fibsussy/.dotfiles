@@ -159,7 +159,7 @@
   ],
   "showWorkspaceIndex": true,
   "showWorkspaceName": false,
-  "showWorkspacePadding": true,
+  "showWorkspacePadding": false,
   "workspaceScrolling": false,
   "showWorkspaceApps": true,
   "workspaceDragReorder": true,
@@ -731,7 +731,7 @@
       "scrollYBehavior": "workspace",
       "scrollEnabled": false,
       "shadowIntensity": 0,
-      "hoverPopouts": true,
+      "hoverPopouts": false,
       "hoverPopoutDelay": 0
     }
   ],

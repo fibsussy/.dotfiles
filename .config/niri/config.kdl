@@ -94,7 +94,7 @@ hotkey-overlay {
 prefer-no-csd
 screenshot-path "~/Pictures/Screenshots/Screenshot from %Y-%m-%d %H-%M-%S.png"
 animations {
-  off
+  // off
   slowdown 1
   workspace-switch {
     duration-ms 50
@@ -158,8 +158,8 @@ binds {
     Mod+T hotkey-overlay-title="Open Terminal" {
         spawn "kitty" "sh" "-c" "tmux-leap goto ~" // || tmux new -A || tmux a || tmux"
     }
-    Mod+Shift+C hotkey-overlay-title="Open Python Interpreter" {
-        spawn "kitty" "sh" "-c" "python -i"
+    Mod+Shift+C hotkey-overlay-title="Open Odds Calculator" {
+        spawn "kitty" "sh" "-c" "cd ~/code/fibsussy/odds && exec $HOME/.local/bin/uv run python launch.py"
     }
     Mod+Space hotkey-overlay-title="Application Launcher" {
         spawn "dms" "ipc" "call" "spotlight" "toggle";
