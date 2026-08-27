@@ -38,17 +38,17 @@ return {
       },
     },
 
-    init = function()
-      vim.api.nvim_create_autocmd("VimEnter", {
-        callback = function()
-          if vim.fn.argc() == 0 then
-            vim.defer_fn(function()
-              require("oil").open()
-            end, 0)
-          end
-        end,
-      })
-    end,
+    -- init = function()
+    --   vim.api.nvim_create_autocmd("VimEnter", {
+    --     callback = function()
+    --       if vim.fn.argc() == 0 then
+    --         vim.defer_fn(function()
+    --           require("oil").open()
+    --         end, 0)
+    --       end
+    --     end,
+    --   })
+    -- end,
 
   },
 

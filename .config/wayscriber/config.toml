@@ -1,3 +1,5 @@
+config_revision = 1
+
 [drawing]
 default_color = "red"
 default_thickness = 3.0
@@ -126,9 +128,14 @@ force_in_light_mode = true
 enabled = true
 
 [ui.toolbar]
+backend = "auto"
 layout_mode = "regular"
 top_pinned = false
 side_pinned = false
+top_minimized = false
+side_minimized = false
+side_active_pane = "draw"
+collapsed_sections = []
 use_icons = true
 scale = 1.0
 show_more_colors = false
@@ -151,6 +158,7 @@ top_offset_y = -6.0
 side_offset = 2.0
 side_offset_x = 0.0
 force_inline = false
+rebind_modifier = "ctrl_shift"
 
 [ui.toolbar.mode_overrides.simple]
 
@@ -160,6 +168,7 @@ force_inline = false
 
 [ui.toolbar.items]
 hidden = ["top.utility.screenshot"]
+shown = []
 
 [ui.toolbar.items.order]
 top_tools = []
@@ -171,6 +180,9 @@ boards = []
 presets = []
 tool_options = []
 sessions = []
+
+[tray]
+icon_style = "auto"
 
 [presenter_mode]
 hide_status_bar = true
@@ -485,7 +497,10 @@ open_context_menu = [
     "Menu",
 ]
 open_configurator = ["F11"]
-toggle_command_palette = ["Ctrl+K"]
+toggle_command_palette = [
+    "Ctrl+K",
+    "Ctrl+Shift+P",
+]
 set_color_red = ["R"]
 set_color_green = ["G"]
 set_color_blue = ["B"]
@@ -494,7 +509,8 @@ set_color_orange = ["O"]
 set_color_pink = ["P"]
 set_color_white = ["W"]
 set_color_black = ["K"]
-capture_full_screen = ["Ctrl+Shift+P"]
+pick_screen_color = ["I"]
+capture_full_screen = ["Ctrl+Alt+F"]
 capture_active_window = ["Ctrl+Shift+O"]
 capture_selection = ["Ctrl+Shift+I"]
 capture_clipboard_full = ["Ctrl+C"]

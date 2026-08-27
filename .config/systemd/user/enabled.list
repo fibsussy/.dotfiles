@@ -2,12 +2,17 @@ app-dev.lizardbyte.app.Sunshine.service
 dms.service
 dropbox.service
 gamemoded.service
+git-maintenance@daily.timer
+git-maintenance@hourly.timer
+git-maintenance@weekly.timer
+gnome-keyring-daemon.socket
 keymux-niri.service
 p11-kit-server.socket
 pipewire-links.service
 pipewire-pulse.socket
 pipewire.socket
 ssh-agent.socket
+udiskie.service
 wireplumber.service
 xdg-user-dirs.service
 xwayland-satellite.service

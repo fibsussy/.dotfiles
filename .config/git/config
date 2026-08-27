@@ -103,6 +103,7 @@
 [maintenance]
 	repo = /home/fib/Code/fibsussy/keymux
 	repo = /home/fib/.dotfiles
+	repo = /mnt/storage0/code/fibsussy/majorpicks
 [filter "lfs"]
 	smudge = git-lfs smudge -- %f
 	process = git-lfs filter-process
