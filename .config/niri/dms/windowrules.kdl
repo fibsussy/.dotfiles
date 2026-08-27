@@ -20,24 +20,18 @@ window-rule {
     draw-border-with-background false
 }
 
-// @id=dms_rule_3 @name=
-window-rule {
-    match app-id="^nm-connection-editor$"
-    default-column-width { proportion 0.5; }
-}
-
 // @id=dms_rule_4 @name=
 window-rule {
     match app-id="^xdg-desktop-portal$"
 }
 
-// @id=dms_rule_5 @name=
+// @id=dms_rule_5 @name=kitty
 window-rule {
     match app-id="kitty"
     draw-border-with-background false
 }
 
-// @id=dms_rule_6 @name=
+// @id=dms_rule_6 @name=firefox
 window-rule {
     match app-id="firefox"
     opacity 1.00
@@ -48,10 +42,9 @@ window-rule {
     match app-id="gamescope"
     match app-id="cs2"
     match app-id="^steam_app_"
-    variable-refresh-rate true
     open-fullscreen true
+    variable-refresh-rate true
     geometry-corner-radius 0
-    clip-to-geometry false
 }
 
 // @id=dms_rule_8 @name=crosshair-overlay
@@ -61,4 +54,16 @@ window-rule {
     border { off; }
     focus-ring { off; }
     draw-border-with-background false
+}
+
+// @id=wr_1786465372332429106 @name=Developer Tools
+window-rule {
+    match app-id="firefox" title="^$"
+    default-column-width { proportion 0.25; }
+}
+
+// @id=wr_1786471368514405522 @name=gimp
+window-rule {
+    match app-id="^gimp$"
+    opacity 1.00
 }

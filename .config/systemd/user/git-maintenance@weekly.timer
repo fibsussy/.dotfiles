@@ -6,7 +6,7 @@
 Description=Optimize Git repositories data
 
 [Timer]
-OnCalendar=Mon 0:27:00
+OnCalendar=Mon 0:33:00
 Persistent=true
 
 [Install]
