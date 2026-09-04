@@ -230,16 +230,24 @@ impl PipeWireManager {
         let loopmix_node = "input.loopmix";
         let repeater_node = "repeater";
 
-        // Handle Komplete mic connections
+        // Handle Komplete mic connections: mic -> miceq_in (EQ input)
         if port.device == "Komplete Audio 1" && port.port_type == "capture" {
             if let Some(komplete_node) = komplete_input_node {
                 let source_port = format!("{}:capture_{}", komplete_node, port.channel);
-                let sink_port1 = format!("{}:playback_3", loopmix_node);
-                let sink_port2 = format!("{}:playback_4", loopmix_node);
+                let eq_port = format!("miceq_in:playback_{}", port.channel);
 
-                self.create_link(&source_port, &sink_port1);
-                self.create_link(&source_port, &sink_port2);
+                self.create_link(&source_port, &eq_port);
             }
+        }
+
+        // Handle miceq_out (EQ output) -> loopmix
+        if port.device == "Mic EQ output" && port.port_type == "output" {
+            let source_port = format!("miceq_out:output_{}", port.channel);
+            let sink_port1 = format!("{}:playback_3", loopmix_node);
+            let sink_port2 = format!("{}:playback_4", loopmix_node);
+
+            self.create_link(&source_port, &sink_port1);
+            self.create_link(&source_port, &sink_port2);
         }
 
         // Handle loopmix monitor connections (only channels 1 and 2)

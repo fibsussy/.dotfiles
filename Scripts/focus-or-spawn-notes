@@ -1,0 +1,13 @@
+#!/bin/bash
+# Focus the Notes nvim window if it exists, otherwise spawn it.
+# Usage: focus-or-spawn-notes
+TITLE="Notes nvim"
+
+wid=$(niri msg --json windows | jq --arg title "$TITLE" -r \
+  '[.[] | select(.title == $title)] | .[0].id // empty')
+
+if [ -n "$wid" ]; then
+  niri msg action focus-window --id "$wid"
+else
+  setsid kitty sh -c 'nvim -u ~/.config/nvim/notepad.vim /tmp/notes.md' &
+fi

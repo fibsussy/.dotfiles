@@ -15,6 +15,7 @@ o.expandtab = true
 o.smartindent = true
 
 o.wrap = false
+o.linebreak = true
 
 -- search
 o.ignorecase = true

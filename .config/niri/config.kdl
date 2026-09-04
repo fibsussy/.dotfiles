@@ -69,6 +69,12 @@ layer-rule {
     place-within-backdrop true
 }
 
+window-rule {
+    match app-id="kitty" title="^Notes nvim$"
+    default-column-width { proportion 0.40; }
+    open-maximized false
+}
+
 overview {
     zoom 0.45
 }
@@ -151,7 +157,7 @@ binds {
     // Once open, wayscriber grabs the keyboard itself, so undo/clear/color/
     // etc. all work via its own shortcuts (Ctrl+Z, E, Escape) with no extra
     // binds needed here. See ~/Scripts/wayscriber-toggle.sh.
-    Shift+Home { spawn-sh "$HOME/Scripts/wayscriber-toggle.sh"; }
+    Home { spawn-sh "$HOME/Scripts/wayscriber-toggle.sh"; }
 
 
     // === Application Launchers ===
@@ -183,7 +189,7 @@ binds {
         spawn "dms" "ipc" "call" "notifications" "toggle";
     }
     Mod+Shift+N hotkey-overlay-title="Notepad" {
-        spawn "dms" "ipc" "call" "notepad" "toggle";
+        spawn-sh "$HOME/Scripts/focus-or-spawn-notes"
     }
 
     // === Security ===
@@ -296,40 +302,59 @@ binds {
     Mod+Ctrl+Shift+WheelScrollDown { move-column-right; }
     Mod+Ctrl+Shift+WheelScrollUp   { move-column-left; }
 
-    // === Numbered Columns: Focus (Mod+1-9 = column nav) ===
-    Mod+1 { focus-column 1; }
-    Mod+2 { focus-column 2; }
-    Mod+3 { focus-column 3; }
-    Mod+4 { focus-column 4; }
-    Mod+5 { focus-column 5; }
-    Mod+6 { focus-column 6; }
-    Mod+7 { focus-column 7; }
-    Mod+8 { focus-column 8; }
-    Mod+9 { focus-column 9; }
+    // === Monitor+Column: Focus (Mod+1-9,0 = cycle monitors, then columns) ===
+    // Keys cycle through monitors first (m1c1, m2c1, m3c1), then advance columns.
+    Mod+1 { spawn-sh "~/Scripts/niri-window-movements.sh focus-monitor-column 1"; }
+    Mod+2 { spawn-sh "~/Scripts/niri-window-movements.sh focus-monitor-column 2"; }
+    Mod+3 { spawn-sh "~/Scripts/niri-window-movements.sh focus-monitor-column 3"; }
+    Mod+4 { spawn-sh "~/Scripts/niri-window-movements.sh focus-monitor-column 4"; }
+    Mod+5 { spawn-sh "~/Scripts/niri-window-movements.sh focus-monitor-column 5"; }
+    Mod+6 { spawn-sh "~/Scripts/niri-window-movements.sh focus-monitor-column 6"; }
+    Mod+7 { spawn-sh "~/Scripts/niri-window-movements.sh focus-monitor-column 7"; }
+    Mod+8 { spawn-sh "~/Scripts/niri-window-movements.sh focus-monitor-column 8"; }
+    Mod+9 { spawn-sh "~/Scripts/niri-window-movements.sh focus-monitor-column 9"; }
+    Mod+0 { spawn-sh "~/Scripts/niri-window-movements.sh focus-monitor-column 10"; }
 
     // === Numbered Columns: Move Inside Workspace (Mod+Shift+1-9) ===
     Mod+Return hotkey-overlay-title="Move with Column 1" {
         spawn-sh "col=$(niri msg focused-window | grep -oP '(?<=column )\\d+') && { [ \"$col\" -eq 1 ] && niri msg action focus-column 2; niri msg action move-column-to-index 1; }"
     }
-    Mod+Shift+1 hotkey-overlay-title="Move with Column 1" { move-column-to-index 1; }
-    Mod+Shift+2 hotkey-overlay-title="Move with Column 2" { move-column-to-index 2; }
-    Mod+Shift+3 hotkey-overlay-title="Move with Column 3" { move-column-to-index 3; }
-    Mod+Shift+4 hotkey-overlay-title="Move with Column 4" { move-column-to-index 4; }
-    Mod+Shift+5 hotkey-overlay-title="Move with Column 5" { move-column-to-index 5; }
-    Mod+Shift+6 hotkey-overlay-title="Move with Column 6" { move-column-to-index 6; }
-    Mod+Shift+7 hotkey-overlay-title="Move with Column 7" { move-column-to-index 7; }
-    Mod+Shift+8 hotkey-overlay-title="Move with Column 8" { move-column-to-index 8; }
-    Mod+Shift+9 hotkey-overlay-title="Move with Column 9" { move-column-to-index 9; }
 
-    // === Numbered Workspaces: Nav (Mod+Ctrl+1-9) ===
-    Mod+Ctrl+1 { focus-monitor "DP-1"; }
-    Mod+Ctrl+2 { focus-monitor "DP-2"; }
-    Mod+Ctrl+3 { focus-monitor "HDMI-A-1"; }
+    // === Monitor+Column: Move (Mod+Shift+1-9,0 = cycle monitors, then columns) ===
+    Mod+Shift+1 { spawn-sh "~/Scripts/niri-window-movements.sh move-window-to-monitor-column 1"; }
+    Mod+Shift+2 { spawn-sh "~/Scripts/niri-window-movements.sh move-window-to-monitor-column 2"; }
+    Mod+Shift+3 { spawn-sh "~/Scripts/niri-window-movements.sh move-window-to-monitor-column 3"; }
+    Mod+Shift+4 { spawn-sh "~/Scripts/niri-window-movements.sh move-window-to-monitor-column 4"; }
+    Mod+Shift+5 { spawn-sh "~/Scripts/niri-window-movements.sh move-window-to-monitor-column 5"; }
+    Mod+Shift+6 { spawn-sh "~/Scripts/niri-window-movements.sh move-window-to-monitor-column 6"; }
+    Mod+Shift+7 { spawn-sh "~/Scripts/niri-window-movements.sh move-window-to-monitor-column 7"; }
+    Mod+Shift+8 { spawn-sh "~/Scripts/niri-window-movements.sh move-window-to-monitor-column 8"; }
+    Mod+Shift+9 { spawn-sh "~/Scripts/niri-window-movements.sh move-window-to-monitor-column 9"; }
+    Mod+Shift+0 { spawn-sh "~/Scripts/niri-window-movements.sh move-window-to-monitor-column 10"; }
 
-    // === Numbered Workspaces: Move Column Across Workspaces (Mod+Ctrl+Shift+1-9) ===
-    Mod+Ctrl+Shift+1 { move-column-to-monitor "DP-1"; }
-    Mod+Ctrl+Shift+2 { move-column-to-monitor "DP-2"; }
-    Mod+Ctrl+Shift+3 { move-column-to-monitor "HDMI-A-1"; }
+    // === Numbered Columns: Focus on Current Monitor (Mod+Ctrl+1-9) ===
+    Mod+Ctrl+1 { focus-column 1; }
+    Mod+Ctrl+2 { focus-column 2; }
+    Mod+Ctrl+3 { focus-column 3; }
+    Mod+Ctrl+4 { focus-column 4; }
+    Mod+Ctrl+5 { focus-column 5; }
+    Mod+Ctrl+6 { focus-column 6; }
+    Mod+Ctrl+7 { focus-column 7; }
+    Mod+Ctrl+8 { focus-column 8; }
+    Mod+Ctrl+9 { focus-column 9; }
+    Mod+Ctrl+0 { focus-column 10; }
+
+    // === Move Column within Monitor (Mod+Ctrl+Shift+1-9,0) ===
+    Mod+Ctrl+Shift+1 { move-column-to-index 1; }
+    Mod+Ctrl+Shift+2 { move-column-to-index 2; }
+    Mod+Ctrl+Shift+3 { move-column-to-index 3; }
+    Mod+Ctrl+Shift+4 { move-column-to-index 4; }
+    Mod+Ctrl+Shift+5 { move-column-to-index 5; }
+    Mod+Ctrl+Shift+6 { move-column-to-index 6; }
+    Mod+Ctrl+Shift+7 { move-column-to-index 7; }
+    Mod+Ctrl+Shift+8 { move-column-to-index 8; }
+    Mod+Ctrl+Shift+9 { move-column-to-index 9; }
+    Mod+Ctrl+Shift+0 { move-column-to-index 10; }
 
     // === Column Management ===
     Mod+BracketLeft  { consume-or-expel-window-left; }

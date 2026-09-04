@@ -23,10 +23,6 @@ binds {
         spawn "dms" "ipc" "call" "dankdash" "wallpaper";
     }
 
-    Mod+Shift+N hotkey-overlay-title="Notepad" {
-      spawn "dms" "ipc" "call" "notepad" "toggle";  
-    }
-    
     Mod+Alt+L hotkey-overlay-title="Lock Screen" { 
         spawn "dms" "ipc" "call" "lock" "lock"; 
     }

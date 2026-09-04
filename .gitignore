@@ -1,26 +1,6 @@
 gpg_key.asc
 .password-store/
-.config/gnupg/
 
-# Fish shell plugin files and runtime state
-.config/fish/fish_variables*
-.config/fish/completions/
-.config/fish/conf.d/
-.config/fish/functions/_tide_*
-.config/fish/functions/_fzf_*
-.config/fish/functions/tide/
-.config/fish/functions/fish_prompt.fish
-.config/fish/functions/fish_mode_prompt.fish
-.config/fish/functions/fzf_configure_bindings.fish
-.config/fish/functions/tide.fish
-
-# GTK runtime files
-.config/gtk-3.0/gtk.css
-.config/gtk-3.0/bookmarks
-.config/gtk-4.0/gtk.css
-
-# btop runtime state
-.config/btop/.btop.log
 
 # Screenshots
 Pictures/Screenshots/
@@ -29,8 +9,6 @@ Pictures/Screenshots/
 *.sav
 
 # Moved runtime/state data
-.config/pulse/
-.config/git-crypt/
 .local/share/cargo/
 .local/share/rustup/
 .local/share/pki/
@@ -42,19 +20,3 @@ Pictures/Screenshots/
 node_modules/
 package-lock.json
 
-# DankMaterialShell plugin manager cache
-.config/DankMaterialShell/plugins/.repos/
-
-# KDE Connect crypto keys
-.config/kdeconnect/privateKey.pem
-.config/kdeconnect/certificate.pem
-
-# Runtime/telemetry state
-.config/google-chrome-for-testing/
-.config/nextjs-nodejs/
-.config/uv/uv-receipt.json
-.config/zsh/.zcalc_history
-
-# Nested AUR/PKGBUILD git clones under niri
-.config/niri/wayscriber/
-.config/niri/wlrctl/
