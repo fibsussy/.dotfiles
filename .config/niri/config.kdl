@@ -60,6 +60,9 @@ workspace "mon1-1" {
 }
 workspace "mon2-1" {
     open-on-output "DP-2"
+    layout {
+        default-column-width { proportion 1.0; }
+    }
 }
 workspace "mon3-2" {
     open-on-output "HDMI-A-1"
@@ -84,13 +87,14 @@ layout {
     }
     default-column-width { proportion 0.50; }
     border {
-        width 1
+        width 2
+        // active-color   "#cc4444"      // Softer red
         active-color   "#808080f5"      // Neutral gray
         inactive-color "#00000090"      // Light gray
         urgent-color   "#cc4444"      // Softer red
     }
     focus-ring {
-        // off
+        off
         width 1
         active-color   "#808080f5"      // Medium gray
         inactive-color "#50505000"      // Dark gray
@@ -113,11 +117,7 @@ layer-rule {
     place-within-backdrop true
 }
 
-window-rule {
-    match app-id="kitty" title="^Notes nvim$"
-    default-column-width { proportion 0.40; }
-    open-maximized false
-}
+
 
 overview {
     zoom 0.45
