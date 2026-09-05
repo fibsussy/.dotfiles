@@ -20,8 +20,52 @@ input {
     }
     warp-mouse-to-focus
     // focus-follows-mouse
-    workspace-auto-back-and-forth
+    // workspace-auto-back-and-forth
     mod-key "Super"
+}
+
+// === Static Workspace Map (Mod+1..0 and Mod+Shift+1..0) ===
+// Named workspaces always exist (even when empty) and are pinned to their
+// primary monitor. Focus/move actions target them by name.
+// Key map:
+//   1  -> monitor 1 (main, first by physical order), workspace 1
+//   2  -> monitor 2, workspace 1
+//   3  -> monitor 3, workspace 1
+//   4-9 -> monitor 1, workspaces 2-7
+//   0  -> monitor 3, workspace 2
+//
+// NOTE: niri inserts named workspaces at index 0 (the top), so workspaces are
+// declared here in REVERSE order per output to make them stack top-to-bottom
+// as monX-1, monX-2, ... (mon1-1 on top).
+workspace "mon1-7" {
+    open-on-output "DP-1"
+}
+workspace "mon1-6" {
+    open-on-output "DP-1"
+}
+workspace "mon1-5" {
+    open-on-output "DP-1"
+}
+workspace "mon1-4" {
+    open-on-output "DP-1"
+}
+workspace "mon1-3" {
+    open-on-output "DP-1"
+}
+workspace "mon1-2" {
+    open-on-output "DP-1"
+}
+workspace "mon1-1" {
+    open-on-output "DP-1"
+}
+workspace "mon2-1" {
+    open-on-output "DP-2"
+}
+workspace "mon3-2" {
+    open-on-output "HDMI-A-1"
+}
+workspace "mon3-1" {
+    open-on-output "HDMI-A-1"
 }
 
 
@@ -143,11 +187,11 @@ binds {
     Mod+Shift+Slash { show-hotkey-overlay; }
 
     Shift+F12 {
-        spawn-sh "$HOME/Scripts/obs_ws.py replay"
+        spawn-sh "$HOME/.config/niri/scripts/obs_ws.py replay"
     }
 
     // MouseRight {
-    //     spawn-sh "$HOME/Scripts/obs_ws.py toggle-recording-with-music"
+    //     spawn-sh "$HOME/.config/niri/scripts/obs_ws.py toggle-recording-with-music"
     // }
 
     // wayscriber one-shot: no standby daemon. Home click-picks a monitor
@@ -156,8 +200,8 @@ binds {
     // is still waiting for a click cancels the pick instead of opening.
     // Once open, wayscriber grabs the keyboard itself, so undo/clear/color/
     // etc. all work via its own shortcuts (Ctrl+Z, E, Escape) with no extra
-    // binds needed here. See ~/Scripts/wayscriber-toggle.sh.
-    Home { spawn-sh "$HOME/Scripts/wayscriber-toggle.sh"; }
+    // binds needed here. See ~/.config/niri/scripts/wayscriber-toggle.sh.
+    Home { spawn-sh "$HOME/.config/niri/scripts/wayscriber-toggle.sh"; }
 
 
     // === Application Launchers ===
@@ -183,13 +227,13 @@ binds {
         spawn "dms" "ipc" "call" "dankdash" "wallpaper";
     }
     Mod+D hotkey-overlay-title="Download Clipboard URL" {
-        spawn-sh "$HOME/Scripts/download.sh --temp --notify";
+        spawn-sh "$HOME/.config/niri/scripts/download.sh --temp --notify";
     }
     Mod+N hotkey-overlay-title="Notification Center" {
         spawn "dms" "ipc" "call" "notifications" "toggle";
     }
     Mod+Shift+N hotkey-overlay-title="Notepad" {
-        spawn-sh "$HOME/Scripts/focus-or-spawn-notes"
+        spawn-sh "$HOME/.config/niri/scripts/focus-or-spawn-notes"
     }
 
     // === Security ===
@@ -273,24 +317,25 @@ binds {
     Mod+Shift+Ctrl+L     { move-column-to-monitor-right; }
 
     // === Workspace Navigation ===
-    Mod+Page_Down      { focus-workspace-down; }
-    Mod+Page_Up        { focus-workspace-up; }
-    Mod+U              { focus-workspace-down; }
-    Mod+I              { focus-workspace-up; }
-    Mod+Shift+Ctrl+U         { move-column-to-workspace-down; }
-    Mod+Shift+Ctrl+I         { move-column-to-workspace-up; }
+    // Cycle only through named workspaces (never create/land on blanks).
+    Mod+Page_Down      { spawn-sh "$HOME/.config/niri/scripts/niri-workspace-cycle.sh next focus"; }
+    Mod+Page_Up        { spawn-sh "$HOME/.config/niri/scripts/niri-workspace-cycle.sh prev focus"; }
+    Mod+U              { spawn-sh "$HOME/.config/niri/scripts/niri-workspace-cycle.sh next focus"; }
+    Mod+I              { spawn-sh "$HOME/.config/niri/scripts/niri-workspace-cycle.sh prev focus"; }
+    Mod+Shift+Ctrl+U         { spawn-sh "$HOME/.config/niri/scripts/niri-workspace-cycle.sh next move"; }
+    Mod+Shift+Ctrl+I         { spawn-sh "$HOME/.config/niri/scripts/niri-workspace-cycle.sh prev move"; }
 
     // === Move Workspaces ===
-    Mod+Shift+Page_Down { move-workspace-down; }
-    Mod+Shift+Page_Up   { move-workspace-up; }
-    Mod+Shift+U         { move-workspace-down; }
-    Mod+Shift+I         { move-workspace-up; }
+    Mod+Shift+Page_Down { spawn-sh "$HOME/.config/niri/scripts/niri-workspace-cycle.sh next move"; }
+    Mod+Shift+Page_Up   { spawn-sh "$HOME/.config/niri/scripts/niri-workspace-cycle.sh prev move"; }
+    Mod+Shift+U         { spawn-sh "$HOME/.config/niri/scripts/niri-workspace-cycle.sh next move"; }
+    Mod+Shift+I         { spawn-sh "$HOME/.config/niri/scripts/niri-workspace-cycle.sh prev move"; }
 
     // === Mouse Wheel Navigation ===
-    Mod+WheelScrollDown      cooldown-ms=150 { focus-workspace-down; }
-    Mod+WheelScrollUp        cooldown-ms=150 { focus-workspace-up; }
-    Mod+Ctrl+WheelScrollDown cooldown-ms=150 { move-column-to-workspace-down; }
-    Mod+Ctrl+WheelScrollUp   cooldown-ms=150 { move-column-to-workspace-up; }
+    Mod+WheelScrollDown      cooldown-ms=150 { spawn-sh "$HOME/.config/niri/scripts/niri-workspace-cycle.sh next focus"; }
+    Mod+WheelScrollUp        cooldown-ms=150 { spawn-sh "$HOME/.config/niri/scripts/niri-workspace-cycle.sh prev focus"; }
+    Mod+Ctrl+WheelScrollDown cooldown-ms=150 { spawn-sh "$HOME/.config/niri/scripts/niri-workspace-cycle.sh next move"; }
+    Mod+Ctrl+WheelScrollUp   cooldown-ms=150 { spawn-sh "$HOME/.config/niri/scripts/niri-workspace-cycle.sh prev move"; }
 
     Mod+WheelScrollRight      { focus-column-right-or-first; }
     Mod+WheelScrollLeft       { focus-column-left-or-last; }
@@ -302,35 +347,34 @@ binds {
     Mod+Ctrl+Shift+WheelScrollDown { move-column-right; }
     Mod+Ctrl+Shift+WheelScrollUp   { move-column-left; }
 
-    // === Monitor+Column: Focus (Mod+1-9,0 = cycle monitors, then columns) ===
-    // Keys cycle through monitors first (m1c1, m2c1, m3c1), then advance columns.
-    Mod+1 { spawn-sh "~/Scripts/niri-window-movements.sh focus-monitor-column 1"; }
-    Mod+2 { spawn-sh "~/Scripts/niri-window-movements.sh focus-monitor-column 2"; }
-    Mod+3 { spawn-sh "~/Scripts/niri-window-movements.sh focus-monitor-column 3"; }
-    Mod+4 { spawn-sh "~/Scripts/niri-window-movements.sh focus-monitor-column 4"; }
-    Mod+5 { spawn-sh "~/Scripts/niri-window-movements.sh focus-monitor-column 5"; }
-    Mod+6 { spawn-sh "~/Scripts/niri-window-movements.sh focus-monitor-column 6"; }
-    Mod+7 { spawn-sh "~/Scripts/niri-window-movements.sh focus-monitor-column 7"; }
-    Mod+8 { spawn-sh "~/Scripts/niri-window-movements.sh focus-monitor-column 8"; }
-    Mod+9 { spawn-sh "~/Scripts/niri-window-movements.sh focus-monitor-column 9"; }
-    Mod+0 { spawn-sh "~/Scripts/niri-window-movements.sh focus-monitor-column 10"; }
+    // === Static Workspaces: Focus (Mod+1-9,0, land on column 1) ===
+    Mod+1 { spawn-sh "$HOME/.config/niri/scripts/niri-workspace-go.sh focus mon1-1"; }
+    Mod+2 { spawn-sh "$HOME/.config/niri/scripts/niri-workspace-go.sh focus mon2-1"; }
+    Mod+3 { spawn-sh "$HOME/.config/niri/scripts/niri-workspace-go.sh focus mon3-1"; }
+    Mod+4 { spawn-sh "$HOME/.config/niri/scripts/niri-workspace-go.sh focus mon1-2"; }
+    Mod+5 { spawn-sh "$HOME/.config/niri/scripts/niri-workspace-go.sh focus mon1-3"; }
+    Mod+6 { spawn-sh "$HOME/.config/niri/scripts/niri-workspace-go.sh focus mon1-4"; }
+    Mod+7 { spawn-sh "$HOME/.config/niri/scripts/niri-workspace-go.sh focus mon1-5"; }
+    Mod+8 { spawn-sh "$HOME/.config/niri/scripts/niri-workspace-go.sh focus mon1-6"; }
+    Mod+9 { spawn-sh "$HOME/.config/niri/scripts/niri-workspace-go.sh focus mon1-7"; }
+    Mod+0 { spawn-sh "$HOME/.config/niri/scripts/niri-workspace-go.sh focus mon3-2"; }
 
-    // === Numbered Columns: Move Inside Workspace (Mod+Shift+1-9) ===
-    Mod+Return hotkey-overlay-title="Move with Column 1" {
-        spawn-sh "col=$(niri msg focused-window | grep -oP '(?<=column )\\d+') && { [ \"$col\" -eq 1 ] && niri msg action focus-column 2; niri msg action move-column-to-index 1; }"
+    // === Numbered Columns: Move Inside Workspace (Mod+Return) ===
+    Mod+Return hotkey-overlay-title="Master Column Toggle" {
+        spawn-sh "$HOME/.config/niri/scripts/niri-column-toggle.sh"
     }
 
-    // === Monitor+Column: Move (Mod+Shift+1-9,0 = cycle monitors, then columns) ===
-    Mod+Shift+1 { spawn-sh "~/Scripts/niri-window-movements.sh move-window-to-monitor-column 1"; }
-    Mod+Shift+2 { spawn-sh "~/Scripts/niri-window-movements.sh move-window-to-monitor-column 2"; }
-    Mod+Shift+3 { spawn-sh "~/Scripts/niri-window-movements.sh move-window-to-monitor-column 3"; }
-    Mod+Shift+4 { spawn-sh "~/Scripts/niri-window-movements.sh move-window-to-monitor-column 4"; }
-    Mod+Shift+5 { spawn-sh "~/Scripts/niri-window-movements.sh move-window-to-monitor-column 5"; }
-    Mod+Shift+6 { spawn-sh "~/Scripts/niri-window-movements.sh move-window-to-monitor-column 6"; }
-    Mod+Shift+7 { spawn-sh "~/Scripts/niri-window-movements.sh move-window-to-monitor-column 7"; }
-    Mod+Shift+8 { spawn-sh "~/Scripts/niri-window-movements.sh move-window-to-monitor-column 8"; }
-    Mod+Shift+9 { spawn-sh "~/Scripts/niri-window-movements.sh move-window-to-monitor-column 9"; }
-    Mod+Shift+0 { spawn-sh "~/Scripts/niri-window-movements.sh move-window-to-monitor-column 10"; }
+    // === Static Workspaces: Move Column (Mod+Shift+1-9,0, land at column 1) ===
+    Mod+Shift+1 { spawn-sh "$HOME/.config/niri/scripts/niri-workspace-go.sh move mon1-1"; }
+    Mod+Shift+2 { spawn-sh "$HOME/.config/niri/scripts/niri-workspace-go.sh move mon2-1"; }
+    Mod+Shift+3 { spawn-sh "$HOME/.config/niri/scripts/niri-workspace-go.sh move mon3-1"; }
+    Mod+Shift+4 { spawn-sh "$HOME/.config/niri/scripts/niri-workspace-go.sh move mon1-2"; }
+    Mod+Shift+5 { spawn-sh "$HOME/.config/niri/scripts/niri-workspace-go.sh move mon1-3"; }
+    Mod+Shift+6 { spawn-sh "$HOME/.config/niri/scripts/niri-workspace-go.sh move mon1-4"; }
+    Mod+Shift+7 { spawn-sh "$HOME/.config/niri/scripts/niri-workspace-go.sh move mon1-5"; }
+    Mod+Shift+8 { spawn-sh "$HOME/.config/niri/scripts/niri-workspace-go.sh move mon1-6"; }
+    Mod+Shift+9 { spawn-sh "$HOME/.config/niri/scripts/niri-workspace-go.sh move mon1-7"; }
+    Mod+Shift+0 { spawn-sh "$HOME/.config/niri/scripts/niri-workspace-go.sh move mon3-2"; }
 
     // === Numbered Columns: Focus on Current Monitor (Mod+Ctrl+1-9) ===
     Mod+Ctrl+1 { focus-column 1; }
@@ -389,7 +433,7 @@ binds {
         spawn-sh "tmp=$(mktemp /tmp/screenshot.XXXXXX.png); niri msg action screenshot-window --path \"$tmp\"; while [ ! -s \"$tmp\" ]; do sleep 0.05; done; satty --filename \"$tmp\"; rm -- \"$tmp\""
     }
     Shift+Print {
-        spawn-sh "$HOME/Scripts/niri-ocr.sh"
+        spawn-sh "$HOME/.config/niri/scripts/niri-ocr.sh"
     }
 
 

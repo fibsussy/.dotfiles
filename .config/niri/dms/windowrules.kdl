@@ -67,3 +67,9 @@ window-rule {
     match app-id="^gimp$"
     opacity 1.00
 }
+
+// @id=dms-floating-windows @name=DMS Floating Windows
+window-rule {
+    match app-id="^com.danklinux.dms$"
+    open-floating true
+}
