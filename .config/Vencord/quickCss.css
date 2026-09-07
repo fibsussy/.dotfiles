@@ -1,0 +1,38 @@
+/*
+ * DMS transparency overlay (Quick CSS)
+ * Applied AFTER the auto-generated DMS theme — DMS is never edited.
+ * When matugen regenerates DMS, the overlay follows the new colors automatically.
+ *
+ * One knob: --dms-alpha  (how opaque the glass is; lower = more see-through).
+ *
+ * Wallpaper-through-window mode (optional):
+ *   Settings -> Vencord -> General -> "Enable window transparency"
+ *   plus a Hyprland windowrule on class ^(vesktop)$ with blur behind it.
+ */
+.theme-dark,
+.theme-light,
+.visual-refresh.theme-dark,
+.visual-refresh.theme-light,
+.visual-refresh .theme-dark,
+.visual-refresh .theme-light {
+    --dms-alpha: 88%;
+
+    /* tier 1 (#181215) — frosted over the app's own background */
+    --chat-background:          color-mix(in srgb, var(--background-base-low) var(--dms-alpha), transparent) !important;
+    --chat-background-default:  color-mix(in srgb, var(--background-base-low) var(--dms-alpha), transparent) !important;
+    --background-primary:       color-mix(in srgb, var(--background-base-low) var(--dms-alpha), transparent) !important;
+    --bg-base-primary:          color-mix(in srgb, var(--background-base-low) var(--dms-alpha), transparent) !important;
+    --home-background:          color-mix(in srgb, var(--background-base-low) var(--dms-alpha), transparent) !important;
+
+    /* tier 2 (#201a1e) */
+    --background-secondary:       color-mix(in srgb, var(--background-base-lower) var(--dms-alpha), transparent) !important;
+    --bg-base-secondary:          color-mix(in srgb, var(--background-base-lower) var(--dms-alpha), transparent) !important;
+    --custom-channel-members-bg:  color-mix(in srgb, var(--background-base-lower) var(--dms-alpha), transparent) !important;
+
+    /* tier 3 (#251e22) */
+    --app-frame-background:       color-mix(in srgb, var(--background-base-lowest) var(--dms-alpha), transparent) !important;
+    --background-tertiary:        color-mix(in srgb, var(--background-base-lowest) var(--dms-alpha), transparent) !important;
+    --background-secondary-alt:   color-mix(in srgb, var(--background-base-lowest) var(--dms-alpha), transparent) !important;
+    --bg-base-tertiary:           color-mix(in srgb, var(--background-base-lowest) var(--dms-alpha), transparent) !important;
+    --__header-bar-background:    color-mix(in srgb, var(--background-base-lowest) var(--dms-alpha), transparent) !important;
+}

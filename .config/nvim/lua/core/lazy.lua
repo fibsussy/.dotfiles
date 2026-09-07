@@ -19,6 +19,12 @@ require("lazy").setup({
   spec = {
     { import = "plugins" },
   },
+  defaults = {
+    cond = function(plugin)
+      local disabled = vim.g.notepad_disabled
+      return not disabled or not vim.tbl_contains(disabled, plugin.name)
+    end,
+  },
   checker = {
     enabled = false,
     notify = false,

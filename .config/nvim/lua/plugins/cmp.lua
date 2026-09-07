@@ -14,6 +14,8 @@ return {
       local cmp = require 'cmp'
       local luasnip = require 'luasnip'
 
+      local ok, lspkind = pcall(require, 'lspkind')
+
       cmp.setup {
         snippet = {
           expand = function(args)
@@ -55,13 +57,13 @@ return {
           { name = 'buffer' },
           { name = 'path' },
         }),
-        formatting = {
-          format = require('lspkind').cmp_format({
+        formatting = ok and {
+          format = lspkind.cmp_format({
             mode = 'symbol_text',
             maxwidth = 50,
             ellipsis_char = '...',
           })
-        },
+        } or nil,
         experimental = {
           ghost_text = true,
         },

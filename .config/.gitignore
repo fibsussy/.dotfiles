@@ -109,3 +109,10 @@ niri/wayscriber/
 niri/wlrctl/
 pulse/
 git-crypt/
+
+# Vesktop runtime state (regenerates every launch — customization lives in Vencord/)
+vesktop/sessionData/
+vesktop/Code Cache/
+vesktop/Crashpad/
+vesktop/Singleton*
+vesktop/state.json

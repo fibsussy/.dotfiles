@@ -51,6 +51,7 @@ x-scheme-handler/https=firefox.desktop
 x-scheme-handler/kdeconnect=kdeconnect-browse.desktop
 x-scheme-handler/tonsite=org.telegram.desktop.desktop
 x-scheme-handler/unknown=firefox.desktop
+x-scheme-handler/discord=vesktop.desktop
 
 [Added Associations]
 inode/directory=yazi.desktop;

@@ -1,9 +1,6 @@
 // DMS Window Rules - Managed by DankMaterialShell
 // Do not edit manually - changes may be overwritten
 
-
-
-
 // @id=dms_rule_0 @name=General
 window-rule {
     opacity 1.00
@@ -77,18 +74,15 @@ window-rule {
     open-floating true
 }
 
-
 // @id=dms_rule_9 @name=General
 window-rule {
     match app-id="kitty" title="^Notes nvim$"
-    default-column-width { proportion 0.40; }
-    open-maximized false
+    default-column-width { proportion 0.4; }
 }
-
 
 // @id=dms_rule_10 @name=General
 window-rule {
-    match app-id=r#"^org\.keepassxc\.KeePassXC$"#
-    match app-id=r#"^org\.gnome\.World\.Secrets$"#
+    match app-id="^org\\.keepassxc\\.KeePassXC$"
+    match app-id="^org\\.gnome\\.World\\.Secrets$"
     block-out-from "screencast"
 }

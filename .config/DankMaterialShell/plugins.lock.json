@@ -1,0 +1,14 @@
+{
+  "lockfileVersion": 1,
+  "plugins": {
+    "dankKDEConnect": {
+      "repo": "https://github.com/AvengeMedia/dms-plugins",
+      "path": "DankKDEConnect",
+      "commit": "f4583449f12920e0a2f16808b00a860c27f0173d"
+    },
+    "extendedNetworkToggle": {
+      "repo": "https://github.com/notherealmarco/dms-plugin-extended-network",
+      "commit": "f58b4b28391eaa6157e9b89faf9837f711315930"
+    }
+  }
+}

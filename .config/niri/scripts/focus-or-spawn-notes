@@ -9,5 +9,5 @@ wid=$(niri msg --json windows | jq --arg title "$TITLE" -r \
 if [ -n "$wid" ]; then
   niri msg action focus-window --id "$wid"
 else
-  setsid kitty sh -c 'nvim -u ~/.config/nvim/notepad.vim /tmp/notes.md' &
+  setsid kitty -o font_size=50 sh -c 'nvim -u ~/.config/nvim/notepad.vim /tmp/notes.md' &
 fi

@@ -57,5 +57,8 @@
   },
   "volumeMixer": {
     "enabled": true
+  },
+  "timeManager": {
+    "enabled": false
   }
 }
