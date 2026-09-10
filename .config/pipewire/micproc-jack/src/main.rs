@@ -753,14 +753,26 @@ fn load_config() -> MicProcConf {
     load_config_at(&config_path())
 }
 
-/// True if an inotify event touches `micproc.toml` itself. Watching the
+/// True if an inotify event is an actual content/existence change to
+/// `micproc.toml` -- NOT merely an access (open/read/close). Watching the
 /// containing DIRECTORY rather than the file (and filtering by name here)
 /// survives editors that save via rename-over-original (vim, and most
 /// "atomic save" tools): those invalidate a watch on the file's own inode,
 /// but the directory watch keeps seeing every event under it regardless of
 /// which inode currently backs the file name.
+///
+/// Excluding `EventKind::Access` is load-bearing, not cosmetic: the reload
+/// this gates itself calls `fs::read_to_string` on the same path, which
+/// generates Access events for that same file. Treating those as
+/// "relevant" (as an earlier version of this function did, checking only
+/// the file name) creates a self-sustaining loop -- reload, which reads
+/// the file, which fires an Access event, which triggers another reload --
+/// observed live as thousands of chain rebuilds per minute, each one
+/// audibly resetting the dynamics/EQ envelope and filter state.
 fn event_touches_config(event: &notify::Event, file_name: &OsStr) -> bool {
-    event.paths.iter().any(|p| p.file_name() == Some(file_name))
+    use notify::EventKind;
+    let is_mutation = matches!(event.kind, EventKind::Modify(_) | EventKind::Create(_) | EventKind::Remove(_));
+    is_mutation && event.paths.iter().any(|p| p.file_name() == Some(file_name))
 }
 
 /// Hot-reloads `micproc.toml` purely on inotify events (via `notify`) --
