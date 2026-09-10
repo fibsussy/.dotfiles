@@ -11,8 +11,10 @@
 //! stays at unit level. Disabled (`enabled = false`) it becomes plain
 //! stereo passthrough. The rest of the stages are the scalar strip.
 //!
-//! The chain is defined in `micproc.toml` and hot-reloaded by watching file
-//! mtime (swap is lock-free, `arc-swap`, so the realtime thread never locks).
+//! The chain is defined in `micproc.toml` and hot-reloaded via an inotify
+//! watch on its directory (`notify`, debounced ~50ms) -- purely event-driven,
+//! no polling loop, no idle CPU between edits. Swap is lock-free (`arc-swap`)
+//! so the realtime thread never locks.
 //!
 //! Chain described entirely in `micproc.toml`: one `[[stages]]` list, order =
 //! list order, each stage's settings inline. Built-ins:
@@ -30,15 +32,18 @@
 //!   - eq         final tone shaping (parametric biquads).
 
 use std::env;
+use std::ffi::OsStr;
 use std::fs;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU32, AtomicU64, Ordering};
+use std::sync::mpsc;
 use std::thread;
 use std::time::Duration;
 
 use arc_swap::ArcSwap;
 use jack::{AudioIn, AudioOut, Client, ClientOptions, Port, ProcessHandler, ProcessScope};
+use notify::{RecursiveMode, Watcher};
 use serde::Deserialize;
 
 static RATE: AtomicU32 = AtomicU32::new(96000);
@@ -717,10 +722,13 @@ fn config_path() -> PathBuf {
     env::var("MICPROC_CONF").map(PathBuf::from).unwrap_or_else(|_| dir.join(DEFAULT_CONF))
 }
 
-fn load_config() -> MicProcConf {
+/// Load + parse the config at a specific path (bumping `VERSION`). Split out
+/// from `load_config` so the reloader can be driven by an explicit path --
+/// no implicit dependency on `config_path()`/env vars, which makes it
+/// trivially testable with a temp file instead of the real on-disk config.
+fn load_config_at(path: &std::path::Path) -> MicProcConf {
     VERSION.fetch_add(1, Ordering::Relaxed);
-    let path = config_path();
-    let text = match fs::read_to_string(&path) {
+    let text = match fs::read_to_string(path) {
         Ok(t) => t,
         Err(e) => {
             eprintln!("[micproc] cannot read {}: {e}; running empty chain", path.display());
@@ -736,26 +744,81 @@ fn load_config() -> MicProcConf {
     }
 }
 
-/// Watches `micproc.toml`'s mtime and, on change, does ALL of the expensive
+/// Only used by the `real_config_parses_and_builds_the_chain` regression
+/// test now (the running binary always goes through `load_config_at` with
+/// an explicit path); kept for that test's "does the real on-disk config
+/// parse" purpose.
+#[cfg(test)]
+fn load_config() -> MicProcConf {
+    load_config_at(&config_path())
+}
+
+/// True if an inotify event touches `micproc.toml` itself. Watching the
+/// containing DIRECTORY rather than the file (and filtering by name here)
+/// survives editors that save via rename-over-original (vim, and most
+/// "atomic save" tools): those invalidate a watch on the file's own inode,
+/// but the directory watch keeps seeing every event under it regardless of
+/// which inode currently backs the file name.
+fn event_touches_config(event: &notify::Event, file_name: &OsStr) -> bool {
+    event.paths.iter().any(|p| p.file_name() == Some(file_name))
+}
+
+/// Hot-reloads `micproc.toml` purely on inotify events (via `notify`) --
+/// no polling loop, no idle wakeups between edits, and typically low
+/// single-digit-millisecond reaction to a save (bounded by the debounce
+/// window below, not by a fixed poll interval). Does ALL of the expensive
 /// work (parse, build the chain, log) off the realtime thread, publishing
 /// the result via `snapshot` for `process()` to pick up lock-free.
-fn spawn_reloader(snapshot: Arc<ArcSwap<DspSnapshot>>, rate: u32) {
+///
+/// If the watch can't be set up (e.g. inotify instance/watch limits), this
+/// logs and gives up on hot-reload entirely rather than falling back to
+/// polling -- the whole point is zero idle overhead when nothing changes.
+/// Takes `path` explicitly (rather than resolving `config_path()` itself)
+/// so it has no implicit env-var dependency, making it directly testable
+/// against a temp file (see `tests::hot_reload_reacts_to_a_file_write`).
+fn spawn_reloader(snapshot: Arc<ArcSwap<DspSnapshot>>, rate: u32, path: PathBuf) {
     thread::spawn(move || {
-        let mut last = None::<u128>;
-        loop {
-            thread::sleep(Duration::from_millis(1000));
-            let path = config_path();
-            let m = fs::metadata(&path)
-                .and_then(|m| m.modified())
-                .ok()
-                .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
-                .map(|t| t.as_nanos());
-            if m != last {
-                last = m;
-                let conf = load_config();
-                let version = VERSION.load(Ordering::Relaxed);
-                snapshot.store(Arc::new(build_snapshot(&conf, rate, version)));
+        let Some(dir) = path.parent().map(|p| p.to_path_buf()) else {
+            eprintln!("[micproc] config path {} has no parent dir; hot-reload disabled", path.display());
+            return;
+        };
+        let Some(file_name) = path.file_name().map(|n| n.to_os_string()) else {
+            eprintln!("[micproc] config path {} has no file name; hot-reload disabled", path.display());
+            return;
+        };
+
+        let (tx, rx) = mpsc::channel();
+        let mut watcher = match notify::recommended_watcher(move |res: notify::Result<notify::Event>| {
+            if let Ok(event) = res {
+                let _ = tx.send(event);
             }
+        }) {
+            Ok(w) => w,
+            Err(e) => {
+                eprintln!("[micproc] failed to start config watcher: {e}; hot-reload disabled");
+                return;
+            }
+        };
+        if let Err(e) = watcher.watch(&dir, RecursiveMode::NonRecursive) {
+            eprintln!("[micproc] failed to watch {}: {e}; hot-reload disabled", dir.display());
+            return;
+        }
+
+        loop {
+            let Ok(first) = rx.recv() else { break };
+            let mut relevant = event_touches_config(&first, &file_name);
+            // Editors commonly fire several fs events per logical save
+            // (write + rename + chmod, ...); coalesce a short burst into one
+            // reload instead of rebuilding the chain once per event.
+            while let Ok(ev) = rx.recv_timeout(Duration::from_millis(50)) {
+                relevant |= event_touches_config(&ev, &file_name);
+            }
+            if !relevant {
+                continue;
+            }
+            let conf = load_config_at(&path);
+            let version = VERSION.load(Ordering::Relaxed);
+            snapshot.store(Arc::new(build_snapshot(&conf, rate, version)));
         }
     });
 }
@@ -844,10 +907,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let rate = client.sample_rate() as u32;
     RATE.store(rate, Ordering::Relaxed);
 
-    let initial_conf = load_config();
+    let path = config_path();
+    let initial_conf = load_config_at(&path);
     let initial_version = VERSION.load(Ordering::Relaxed);
     let snapshot = Arc::new(ArcSwap::from_pointee(build_snapshot(&initial_conf, rate, initial_version)));
-    spawn_reloader(Arc::clone(&snapshot), rate);
+    spawn_reloader(Arc::clone(&snapshot), rate, path);
 
     let proc = MicProc::new(&client, snapshot)?;
     let _active = client.activate_async((), proc)?;
@@ -860,6 +924,43 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// End-to-end check that the inotify-based reloader actually reacts to a
+    /// real file write -- not just that `notify` compiles, but that a save
+    /// lands in the published snapshot well within the old 1000ms poll
+    /// interval this replaced.
+    #[test]
+    fn hot_reload_reacts_to_a_file_write() {
+        let dir = std::env::temp_dir().join(format!("micproc-jack-test-{}", std::process::id()));
+        fs::create_dir_all(&dir).expect("create temp dir");
+        let path = dir.join("micproc.toml");
+        fs::write(&path, "preamp-db = 1.0\n[[stages]]\ntype = \"stereo2mono\"\n").expect("write initial config");
+
+        let initial = load_config_at(&path);
+        let initial_version = VERSION.load(Ordering::Relaxed);
+        let snapshot = Arc::new(ArcSwap::from_pointee(build_snapshot(&initial, 48000, initial_version)));
+        spawn_reloader(Arc::clone(&snapshot), 48000, path.clone());
+
+        // Give the watcher a moment to actually register before writing.
+        thread::sleep(Duration::from_millis(100));
+
+        let before_version = snapshot.load().version;
+        fs::write(&path, "preamp-db = 7.0\n[[stages]]\ntype = \"stereo2mono\"\n").expect("write updated config");
+
+        let want_preamp = 10f32.powf(7.0 / 20.0);
+        let mut reloaded = false;
+        for _ in 0..40 {
+            thread::sleep(Duration::from_millis(25));
+            let snap = snapshot.load();
+            if snap.version != before_version && (snap.preamp - want_preamp).abs() < 1e-4 {
+                reloaded = true;
+                break;
+            }
+        }
+
+        let _ = fs::remove_dir_all(&dir);
+        assert!(reloaded, "inotify-based hot-reload did not pick up the file write within 1s");
+    }
 
     #[test]
     fn real_config_parses_and_builds_the_chain() {

@@ -13,26 +13,54 @@
 //!   ~/Soundboard/play.sh -> the default speaker device
 //!
 //! The routing is described by the `routes()` table, the vmic-monitor rule
-//! and the synth rule. The engine does the rest: every poll it enumerates the
-//! live graph, creates any link a rule declares but that isn't there yet, and
-//! tears down links a rule doesn't declare on ports it owns.
+//! and the synth rule.
 //!
-//! Compiled as a real release binary (was previously run through
-//! `rust-script`); see `systemd/user/pipewire-links.service`.
+//! Purely event-driven: this is a persistent PipeWire client (via the
+//! `pipewire` crate) subscribed to the registry (node/port/link add+remove)
+//! and to the "default" metadata object (default sink changes) -- no
+//! polling loop, no `pw-cli`/`pw-link`/`pactl` subprocess spawns for the
+//! routine path. A burst of registry events (e.g. one app launching, or
+//! startup enumeration) is coalesced by a short debounce timer into a
+//! single route-application pass instead of one per event. Links are
+//! created/destroyed natively (`Core::create_object`/`Registry::destroy_global`)
+//! rather than by shelling out to `pw-link`.
+//!
+//! `--dry-run`: logs every connect/disconnect/vmic-provision/synth-start
+//! decision instead of performing it -- fully read-only against the live
+//! graph, safe to run alongside the real service for diagnosis.
 
-use std::collections::HashSet;
+use pipewire as pw;
+use pw::loop_::Signal;
+use pw::properties::properties;
+use pw::registry::GlobalObject;
+use pw::spa::utils::dict::DictRef;
+use pw::types::ObjectType;
+
+use std::cell::RefCell;
+use std::collections::HashMap;
 use std::process::{Child, ChildStdin, Command, Stdio};
-use std::thread;
-use std::time::Duration;
+use std::rc::Rc;
+use std::time::{Duration, Instant};
 
 // ────────────────────────────────────────────────────────────────────
 // TIMING
 // ────────────────────────────────────────────────────────────────────
 
-const POLL_INTERVAL: Duration = Duration::from_secs(2);
-const STARTUP_DELAY: Duration = Duration::from_secs(3);
-const LINK_ATTEMPTS: u32 = 10;
-const LINK_RETRY_DELAY: Duration = Duration::from_millis(500);
+/// How long to wait after the LAST registry/metadata event before actually
+/// applying routes. Coalesces a burst (e.g. ~125 objects announced at
+/// startup, or several events from one app launching) into one pass instead
+/// of one per event.
+const DEBOUNCE: Duration = Duration::from_millis(50);
+
+/// A just-issued link creation is considered "in flight" (and won't be
+/// re-attempted) for this long, covering the round-trip before the server's
+/// own Link-added event confirms it in `Manager::links`. If creation
+/// silently failed for some reason, the route becomes eligible for a fresh
+/// attempt again after this window -- a small self-healing fallback, not a
+/// real retry loop (the old poll-based version needed retries because it
+/// could race a device's ports still coming up; this version only ever
+/// attempts a route once the ports it needs already exist in the registry).
+const PENDING_LINK_TTL: Duration = Duration::from_secs(2);
 
 // ────────────────────────────────────────────────────────────────────
 // NODE NAMES & THE SYNTH
@@ -64,41 +92,19 @@ const fn dev(node: &'static str, port: &'static str) -> Device {
     Device { node, port }
 }
 
-// Mic input (capture_FL/FR, audio out). The only part of the physical
-// interface the manager touches.
 const MIC_INPUT: Device = dev(NAME_MIC, "capture_");
-
-// The dedicated mic processor (a pw-jack client, micproc-jack): mic enters
-// `in_*`, the processed stream leaves on `out_*`.
 const MICPROC_INPUT: Device = dev(NAME_MICPROC, "in_");
 const MICPROC_OUTPUT: Device = dev(NAME_MICPROC, "out_");
-
-// The "vmic" virtual mic (input.vmic). Its PLAYBACK ports are the app feed —
-// mic + synth land here so applications record them. Its MONITOR ports echo
-// that feed and are what the monitor route taps into the default speaker.
 const VMIC_SINK_IN: Device = dev(NAME_VMIC, "playback_");
 const VMIC_MONITOR: Device = dev(NAME_VMIC, "monitor_");
-
-// The MIDI keyboard's capture port (MIDI out of the keys). PipeWire
-// aggregates every ALSA seq device under one node ("Midi-Bridge"), so match
-// by PORT NAME (the keyboard's ports are named "Oxygen 49 (capture)"), not
-// by node.
 const KEYBOARD_OUT: Device = dev("", "Oxygen");
-
-// The software synth: one JACK node carrying MIDI-in + audio-out.
 const SYNTH_ANY: Device = dev(NAME_SYNTH, "");
 
 // ────────────────────────────────────────────────────────────────────
 // ROUTING TABLE — edit these lines to rewire the machine.
 // ────────────────────────────────────────────────────────────────────
 
-/// A declarative wiring rule. Matching is done on the live graph each poll.
 enum Route {
-    /// Audio-out ports of `src`, keyed by their channel suffix
-    /// (`FL`, `FR`, `1`, ...), point at named audio-in ports of `dst`.
-    /// Additive (`exclusive: false`): nothing extra is torn down.
-    /// Exclusive (`exclusive: true`): anything `src` has into `dst` that
-    /// `map` doesn't declare is pulled.
     Channels {
         src: Device,
         dst: Device,
@@ -107,94 +113,24 @@ enum Route {
     },
 }
 
-/// Plain channel-by-channel map, additive.
 fn pairs(src: Device, dst: Device, map: &'static [(&'static str, &'static str)]) -> Route {
     Route::Channels { src, dst, map, exclusive: false }
 }
 
-/// Channel-by-channel map where `src` owns `dst`'s ports: anything not in
-/// `map` gets disconnected each poll.
 fn pairs_exclusive(src: Device, dst: Device, map: &'static [(&'static str, &'static str)]) -> Route {
     Route::Channels { src, dst, map, exclusive: true }
 }
 
-/// THE ROUTING TABLE. Rewire the machine here.
 fn routes() -> Vec<Route> {
     vec![
-        // Raw mic -> the mic processor. Very standard left-to-left /
-        // right-to-right wiring: capture_FL -> in_L, capture_FR -> in_R.
-        // The micproc processor itself does the mono->stereo conversion, so
-        // no fanning is needed here. Exclusive: nothing else may drive the
-        // processor's inputs.
         pairs_exclusive(MIC_INPUT, MICPROC_INPUT, &[("FL", "in_L"), ("FR", "in_R")]),
-
-        // Processed mic -> the vmic app feed (recorded by apps), also
-        // standard left-to-left / right-to-right. Additive so other sources
-        // could share the feed; the whole lane is what the monitor route taps
-        // into the speakers.
-        pairs(
-            MICPROC_OUTPUT,
-            VMIC_SINK_IN,
-            &[("L", "playback_FL"), ("R", "playback_FR")],
-        ),
+        pairs(MICPROC_OUTPUT, VMIC_SINK_IN, &[("L", "playback_FL"), ("R", "playback_FR")]),
     ]
 }
 
 // ────────────────────────────────────────────────────────────────────
 // PORT MODEL
 // ────────────────────────────────────────────────────────────────────
-
-/// A PipeWire port, referenced by its `device:name` alias.
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
-struct Port {
-    device: String,
-    name: String,
-}
-
-/// Extra facts about a port, gathered while enumerating.
-#[derive(Debug, Clone)]
-struct PortInfo {
-    format: String,   // e.g. "32 bit float mono audio", "8 bit raw midi"
-    direction: String, // "in" | "out"
-}
-
-impl PortInfo {
-    fn kind(&self) -> PortKind {
-        let is_midi = self.format.contains("midi");
-        let out = self.direction == "out";
-        match (is_midi, out) {
-            (true, true) => PortKind::MidiOut,
-            (true, false) => PortKind::MidiIn,
-            (false, true) => PortKind::AudioOut,
-            (false, false) => PortKind::AudioIn,
-        }
-    }
-}
-
-impl Port {
-    fn from_alias(alias: &str) -> Option<Port> {
-        let (device, name) = alias.trim().split_once(':')?;
-        if device.is_empty() || name.is_empty() {
-            return None;
-        }
-        Some(Port {
-            device: device.to_string(),
-            name: name.to_string(),
-        })
-    }
-
-    fn to_alias(&self) -> String {
-        format!("{}:{}", self.device, self.name)
-    }
-
-    /// The part after the last `_` in the port name, e.g. `FL` from
-    /// `capture_FL`, `1` from `monitor_1`. Used as a routing key.
-    fn channel(&self) -> Option<&str> {
-        self.name.rsplit_once('_').map(|(_, ch)| ch)
-    }
-}
-
-type Link = (Port, Port);
 
 /// Which stream kind a port carries.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -205,149 +141,156 @@ enum PortKind {
     MidiIn,
 }
 
+fn port_kind(format: &str, direction: &str) -> PortKind {
+    let is_midi = format.contains("midi");
+    let out = direction == "out";
+    match (is_midi, out) {
+        (true, true) => PortKind::MidiOut,
+        (true, false) => PortKind::MidiIn,
+        (false, true) => PortKind::AudioOut,
+        (false, false) => PortKind::AudioIn,
+    }
+}
+
+/// What the registry told us about one Port global.
+struct PortInfo {
+    node_id: u32,
+    name: String,
+    format: String,
+    direction: String,
+}
+
+/// A port resolved against the current node-name table, for matching
+/// against `Device` patterns and for issuing link create/destroy calls.
+#[derive(Debug, Clone)]
+struct RPort {
+    id: u32,
+    node_id: u32,
+    device: String,
+    name: String,
+}
+
+impl RPort {
+    /// The part after the last `_` in the port name, e.g. `FL` from
+    /// `capture_FL`, `1` from `monitor_1`. Used as a routing key.
+    fn channel(&self) -> Option<&str> {
+        self.name.rsplit_once('_').map(|(_, ch)| ch)
+    }
+}
+
+impl std::fmt::Display for RPort {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}:{}", self.device, self.name)
+    }
+}
+
+fn prop<'a>(props: Option<&'a DictRef>, key: &str) -> Option<&'a str> {
+    props.and_then(|p| p.get(key))
+}
+
 // ────────────────────────────────────────────────────────────────────
-// MANAGER
+// MANAGER — all live state, rebuilt incrementally from registry events.
 // ────────────────────────────────────────────────────────────────────
 
-struct PipeWireManager {
-    ports: Vec<(Port, PortInfo)>,
-    links: HashSet<Link>,
+struct Manager {
+    core: pw::core::CoreRc,
+    registry: pw::registry::RegistryRc,
+    /// `--dry-run`: log every connect/disconnect/vmic-provision decision
+    /// instead of actually issuing it. Read-only against the live graph --
+    /// used to validate this against a real running system before it's ever
+    /// allowed to mutate anything.
+    dry_run: bool,
+
+    nodes: HashMap<u32, String>,
+    ports: HashMap<u32, PortInfo>,
+    /// link global id -> (output port id, input port id).
+    links: HashMap<u32, (u32, u32)>,
+    /// A link create we just issued, not yet confirmed via a registry Link
+    /// event -- see `PENDING_LINK_TTL`.
+    pending_links: HashMap<(u32, u32), Instant>,
+
+    default_sink: Option<String>,
+    link_factory: Option<String>,
+
+    // Kept alive only so the "default" metadata subscription keeps running;
+    // never read directly.
+    _default_metadata: Option<pw::metadata::Metadata>,
+    _default_metadata_listener: Option<pw::metadata::MetadataListener>,
+
     synth: Option<Child>,
     synth_stdin: Option<ChildStdin>,
 }
 
-impl PipeWireManager {
-    fn new() -> Self {
-        PipeWireManager {
-            ports: Vec::new(),
-            links: HashSet::new(),
+impl Manager {
+    fn new(core: pw::core::CoreRc, registry: pw::registry::RegistryRc, dry_run: bool) -> Self {
+        Manager {
+            core,
+            registry,
+            dry_run,
+            nodes: HashMap::new(),
+            ports: HashMap::new(),
+            links: HashMap::new(),
+            pending_links: HashMap::new(),
+            default_sink: None,
+            link_factory: None,
+            _default_metadata: None,
+            _default_metadata_listener: None,
             synth: None,
             synth_stdin: None,
         }
     }
 
-    // ── enumeration ────────────────────────────────────────────────
+    // ── registry event handlers ───────────────────────────────────
 
-    fn refresh(&mut self) {
-        self.ports = Self::enumerate_ports();
-        self.links = Self::existing_links();
-    }
-
-    /// Read every Node and Port object from a SINGLE unfiltered `pw-cli
-    /// list-objects` call (instead of two separate `list-objects Node` /
-    /// `list-objects Port` subprocess spawns every poll) and parse both in
-    /// two passes over the same text. Safe because `node.name` only ever
-    /// appears on Node blocks and `node.id`/`port.name`/`port.alias`/
-    /// `format.dsp`/`port.direction` only ever appear on Port blocks on this
-    /// PipeWire version (verified against the live graph before making this
-    /// change) — each pass's `else if` chain simply ignores lines from
-    /// every other interleaved object type (Client, Link, Device, ...).
-    ///
-    /// Stored as a `Vec`, not a map, because MIDI devices expose both a
-    /// capture and a playback port under the *same* alias (a map keyed by
-    /// alias would silently drop one direction).
-    ///
-    /// Ports are keyed by the canonical `node.name:port.name` pair — the same
-    /// vocabulary `pw-link` uses to connect and to list the graph. Neither
-    /// `port.alias` (built from the node *description*; e.g. filter-chain
-    /// nodes alias as `vmic:` while their node is `input.vmic`)
-    /// nor `object.path` (adapter-generated like `micproc:input_0`) agrees
-    /// with `pw-link`, so the join uses `node.id -> node.name`.
-    fn enumerate_ports() -> Vec<(Port, PortInfo)> {
-        let dump = run_cmd(&["pw-cli", "list-objects"]);
-
-        // Pass 1: node.id -> node.name, from Node blocks.
-        let mut node_names: std::collections::HashMap<String, String> = Default::default();
-        let mut block_id: Option<String> = None;
-        for line in dump.lines() {
-            let t = line.trim();
-            if t.starts_with("id ") && t.contains("type PipeWire:Interface:Node") {
-                if let Some(rest) = t.strip_prefix("id ") {
-                    if let Some(name) = rest.split(',').next() {
-                        block_id = Some(name.trim().to_string());
+    fn on_global(&mut self, obj: &GlobalObject<&DictRef>) {
+        match obj.type_ {
+            ObjectType::Node => {
+                if let Some(name) = prop(obj.props, "node.name") {
+                    self.nodes.insert(obj.id, name.to_string());
+                }
+            }
+            ObjectType::Port => {
+                if let (Some(format), Some(direction)) =
+                    (prop(obj.props, "format.dsp"), prop(obj.props, "port.direction"))
+                {
+                    let node_id = prop(obj.props, "node.id").and_then(|s| s.parse().ok());
+                    let name = prop(obj.props, "port.name").unwrap_or_default();
+                    if let Some(node_id) = node_id {
+                        self.ports.insert(
+                            obj.id,
+                            PortInfo {
+                                node_id,
+                                name: name.to_string(),
+                                format: format.to_string(),
+                                direction: direction.to_string(),
+                            },
+                        );
                     }
                 }
-            } else if let Some(v) = quoted_value(t, "node.name") {
-                if let Some(id) = &block_id {
-                    node_names.insert(id.clone(), v);
+            }
+            ObjectType::Link => {
+                let out_port = prop(obj.props, "link.output.port").and_then(|s| s.parse::<u32>().ok());
+                let in_port = prop(obj.props, "link.input.port").and_then(|s| s.parse::<u32>().ok());
+                if let (Some(o), Some(i)) = (out_port, in_port) {
+                    self.pending_links.remove(&(o, i));
+                    self.links.insert(obj.id, (o, i));
                 }
             }
-        }
-
-        // Pass 2: Port blocks, resolving each port's owning node via
-        // node_names from pass 1.
-        let mut ports = Vec::new();
-        let mut node: Option<String> = None;
-        let mut pname: Option<String> = None;
-        let mut alias: Option<String> = None;
-        let mut format: Option<String> = None;
-        let mut direction: Option<String> = None;
-
-        for line in dump.lines() {
-            let t = line.trim();
-            if t.starts_with("id ") && t.contains("type PipeWire:Interface:Port") {
-                commit_port(
-                    &mut ports,
-                    node.as_ref(),
-                    pname.as_ref(),
-                    alias.as_ref(),
-                    format.as_ref(),
-                    direction.as_ref(),
-                );
-                node = None;
-                pname = None;
-                alias = None;
-                format = None;
-                direction = None;
-            } else if let Some(v) = quoted_value(t, "node.id") {
-                // Owning node (ports have no `node.name` of their own).
-                if let Some(n) = node_names.get(&v) {
-                    node = Some(n.clone());
+            ObjectType::Factory => {
+                if prop(obj.props, "factory.type.name") == Some(ObjectType::Link.to_str()) {
+                    if let Some(name) = prop(obj.props, "factory.name") {
+                        self.link_factory = Some(name.to_string());
+                    }
                 }
-            } else if let Some(v) = quoted_value(t, "port.name") {
-                pname = Some(v);
-            } else if let Some(v) = quoted_value(t, "port.alias") {
-                alias = Some(v);
-            } else if let Some(v) = quoted_value(t, "format.dsp") {
-                format = Some(v);
-            } else if let Some(v) = quoted_value(t, "port.direction") {
-                direction = Some(v);
             }
+            _ => {}
         }
-        commit_port(
-            &mut ports,
-            node.as_ref(),
-            pname.as_ref(),
-            alias.as_ref(),
-            format.as_ref(),
-            direction.as_ref(),
-        );
-
-        ports
     }
 
-    /// Read the current link graph from `pw-link -l`.
-    fn existing_links() -> HashSet<Link> {
-        let out = run_cmd(&["pw-link", "-l"]);
-        let mut links = HashSet::new();
-        let mut current: Option<Port> = None;
-
-        for line in out.lines() {
-            let t = line.trim();
-            if t.starts_with("|->") {
-                if let (Some(src), Some(dst)) = (current.clone(), Port::from_alias(&t[3..])) {
-                    links.insert((src, dst));
-                }
-            } else if t.starts_with("|<-") {
-                if let (Some(src), Some(dst)) = (Port::from_alias(&t[3..]), current.clone()) {
-                    links.insert((src, dst));
-                }
-            } else if !t.is_empty() {
-                current = Port::from_alias(t);
-            }
-        }
-
-        links
+    fn on_global_remove(&mut self, id: u32) {
+        self.nodes.remove(&id);
+        self.ports.remove(&id);
+        self.links.remove(&id);
     }
 
     // ── port queries ───────────────────────────────────────────────
@@ -355,101 +298,99 @@ impl PipeWireManager {
     /// All ports matching a device pattern and stream kind. Matching is
     /// case-insensitive so node names like `fluidsynth`, `FluidSynth` and
     /// `FLUID Synth (pid)` all match the same device pattern.
-    fn ports(&self, d: &Device, kind: PortKind) -> Vec<Port> {
+    fn resolved_ports(&self, d: &Device, kind: PortKind) -> Vec<RPort> {
         let node_q = d.node.to_lowercase();
         let port_q = d.port.to_lowercase();
         self.ports
             .iter()
-            .filter(|(p, info)| {
-                p.device.to_lowercase().contains(&node_q)
-                    && p.name.to_lowercase().contains(&port_q)
-                    && info.kind() == kind
+            .filter_map(|(&id, info)| {
+                let device = self.nodes.get(&info.node_id)?;
+                if !device.to_lowercase().contains(&node_q) || !info.name.to_lowercase().contains(&port_q) {
+                    return None;
+                }
+                if port_kind(&info.format, &info.direction) != kind {
+                    return None;
+                }
+                Some(RPort { id, node_id: info.node_id, device: device.clone(), name: info.name.clone() })
             })
-            .map(|(p, _)| p.clone())
             .collect()
     }
 
-    /// Audio-in playback ports of a single named sink node (the dynamic
-    /// default speaker, resolved per poll from `pactl`).
-    fn sink_inputs(&self, sink_name: &str) -> Vec<Port> {
+    fn sink_inputs(&self, sink_name: &str) -> Vec<RPort> {
         self.ports
             .iter()
-            .filter(|(p, info)| {
-                p.device == sink_name && p.name.starts_with("playback_") && info.kind() == PortKind::AudioIn
+            .filter_map(|(&id, info)| {
+                let device = self.nodes.get(&info.node_id)?;
+                if device != sink_name || !info.name.starts_with("playback_") {
+                    return None;
+                }
+                if port_kind(&info.format, &info.direction) != PortKind::AudioIn {
+                    return None;
+                }
+                Some(RPort { id, node_id: info.node_id, device: device.clone(), name: info.name.clone() })
             })
-            .map(|(p, _)| p.clone())
             .collect()
     }
 
-    // ── link management ────────────────────────────────────────────
+    // ── link management (native create_object / destroy_global) ───
 
-    /// Create `source -> sink` if it does not already exist, retrying while
-    /// ports may still be coming up.
-    fn connect(&mut self, source: &Port, sink: &Port) -> bool {
-        let source_alias = source.to_alias();
-        let sink_alias = sink.to_alias();
-
-        if self.links.contains(&(source.clone(), sink.clone())) {
-            println!("Link already exists: {} -> {}", source_alias, sink_alias);
+    fn link_exists(&mut self, out_id: u32, in_id: u32) -> bool {
+        if self.links.values().any(|&(o, i)| o == out_id && i == in_id) {
             return true;
         }
-
-        for attempt in 1..=LINK_ATTEMPTS {
-            let output = Command::new("pw-link")
-                .args(&[&source_alias, &sink_alias])
-                .output();
-
-            match output {
-                Ok(result) if result.status.success() => {
-                    self.links.insert((source.clone(), sink.clone()));
-                    println!("Created link: {} -> {}", source_alias, sink_alias);
-                    return true;
-                }
-                Ok(result) => {
-                    let stderr = String::from_utf8_lossy(&result.stderr);
-                    if stderr.contains("File exists") {
-                        self.links.insert((source.clone(), sink.clone()));
-                        println!("Link already exists: {} -> {}", source_alias, sink_alias);
-                        return true;
-                    }
-                    if stderr.contains("No such file or directory") {
-                        eprintln!(
-                            "Ports not ready: {} -> {} (attempt {})",
-                            source_alias, sink_alias, attempt
-                        );
-                    } else {
-                        eprintln!(
-                            "Failed to create link: {} -> {} (attempt {}): {}",
-                            source_alias, sink_alias, attempt, stderr.trim()
-                        );
-                    }
-                }
-                Err(e) => {
-                    eprintln!(
-                        "Error running pw-link: {} -> {} (attempt {}): {}",
-                        source_alias, sink_alias, attempt, e
-                    );
-                }
-            }
-
-            if attempt < LINK_ATTEMPTS {
-                thread::sleep(LINK_RETRY_DELAY);
+        match self.pending_links.get(&(out_id, in_id)) {
+            Some(t) if t.elapsed() < PENDING_LINK_TTL => true,
+            _ => {
+                self.pending_links.remove(&(out_id, in_id));
+                false
             }
         }
-
-        false
     }
 
-    /// Remove `source -> sink`, if present. `pw-link -d` is a harmless no-op
-    /// when the pair isn't actually linked, so this tolerates stale targets.
-    fn disconnect(&mut self, source: &Port, sink: &Port) {
-        let source_alias = source.to_alias();
-        let sink_alias = sink.to_alias();
-        let _ = Command::new("pw-link")
-            .args(&["--disconnect", &source_alias, &sink_alias])
-            .output();
-        self.links.remove(&(source.clone(), sink.clone()));
-        println!("Removed link: {} -> {}", source_alias, sink_alias);
+    fn connect(&mut self, source: &RPort, sink: &RPort) {
+        if self.link_exists(source.id, sink.id) {
+            return;
+        }
+        if self.dry_run {
+            // Deliberately NOT marked pending: re-logs every debounce pass
+            // this route is still wanted, which is exactly what makes a
+            // flapping/incorrect decision visible during dry-run.
+            println!("[dry-run] would create link: {source} -> {sink}");
+            return;
+        }
+        let Some(factory) = self.link_factory.clone() else {
+            eprintln!("No link factory discovered yet; can't link {source} -> {sink}");
+            return;
+        };
+        let props = properties! {
+            "link.output.port" => source.id.to_string(),
+            "link.input.port" => sink.id.to_string(),
+            "link.output.node" => source.node_id.to_string(),
+            "link.input.node" => sink.node_id.to_string(),
+            // Persist independently of our local proxy -- we track/destroy
+            // links by id via the registry, not by holding proxies.
+            "object.linger" => "1",
+        };
+        match self.core.create_object::<pw::link::Link>(&factory, &props) {
+            Ok(_link) => {
+                self.pending_links.insert((source.id, sink.id), Instant::now());
+                println!("Created link: {source} -> {sink}");
+            }
+            Err(e) => eprintln!("Failed to create link: {source} -> {sink}: {e}"),
+        }
+    }
+
+    fn disconnect(&mut self, source: &RPort, sink: &RPort) {
+        let id = self.links.iter().find(|(_, &(o, i))| o == source.id && i == sink.id).map(|(&id, _)| id);
+        if let Some(id) = id {
+            if self.dry_run {
+                println!("[dry-run] would remove link: {source} -> {sink}");
+            } else {
+                let _ = self.registry.destroy_global(id);
+                println!("Removed link: {source} -> {sink}");
+            }
+        }
+        self.pending_links.remove(&(source.id, sink.id));
     }
 
     // ── synth lifecycle (on-demand) ────────────────────────────────
@@ -462,9 +403,10 @@ impl PipeWireManager {
         if self.synth_running() {
             return;
         }
-
-        // Careful: if the previous child died while we still hold our handle,
-        // reap it and restart.
+        if self.dry_run {
+            println!("[dry-run] keyboard plugged in; would start {}", NAME_SYNTH);
+            return;
+        }
         if let Some(mut child) = self.synth.take() {
             if child.try_wait().ok().flatten().is_none() {
                 eprintln!("{} died unexpectedly; restarting", NAME_SYNTH);
@@ -474,15 +416,12 @@ impl PipeWireManager {
             let _ = child.wait();
         }
 
-        // Caveat: fluidsynth's interactive shell panics on stdin EOF. As a
-        // service our stdin is /dev/null, so we pipe it and hold the write end
-        // open (`synth_stdin`) to keep it alive.
-        //
-        // JACK driver (`-a jack -o midi.driver=jack`) so the synth appears in
-        // qpwgraph as ONE node ("fluidsynth-midi") with a MIDI-in port and two
-        // audio-out ports — the visible MIDI->audio conversion box. `-r 48000`
-        // matches the PipeWire JACK sample rate. (No `-i`: fluidsynth exits
-        // when stdin isn't a live shell.)
+        // JACK driver (`-a jack -o midi.driver=jack`) so the synth appears
+        // in qpwgraph as ONE node ("fluidsynth-midi") with a MIDI-in port
+        // and two audio-out ports. `-r 48000` matches the PipeWire JACK
+        // sample rate. Stdin is piped and held open (fluidsynth's
+        // interactive shell panics on stdin EOF; no `-i` since it exits
+        // when stdin isn't a live shell).
         let mut child = match Command::new("fluidsynth")
             .args(["-a", "jack", "-r", "48000", "-c", "2", "-g", "1.0"])
             .args(["-o", "midi.driver=jack", SYNTH_SOUNDFONT])
@@ -514,7 +453,6 @@ impl PipeWireManager {
 
     // ── route engine ───────────────────────────────────────────────
 
-    /// Apply the routing table, then the on-demand synth lifecycle.
     fn apply_routes(&mut self) {
         self.ensure_vmic();
         for route in routes() {
@@ -525,20 +463,9 @@ impl PipeWireManager {
         self.unroute_stray_mix_links();
     }
 
-    /// Tap the vmic sink's MONITOR (the whole app feed: processed mic +
-    /// synth) into whatever sink is currently the default speaker, so your
-    /// voice is heard mixed with app audio. Guards:
-    ///   - if the default speaker device IS the vmic itself, do nothing and
-    ///     leave the vmic's connections exactly as they are.
-    ///   - vmic monitor ports may only feed the current default speaker;
-    ///     anything else they're linked into (a stale default, a howlback
-    ///     into micproc's inputs) is pulled.
     fn apply_vmic_monitor_route(&mut self) {
-        let Some(default) = default_sink() else {
-            return;
-        };
+        let Some(default) = self.default_sink.clone() else { return };
         if default.contains(NAME_VMIC) {
-            println!("Default speaker is the vmic itself; leaving its connections alone");
             return;
         }
 
@@ -547,8 +474,7 @@ impl PipeWireManager {
             return;
         }
 
-        // Channel-for-channel: monitor_FL -> <default>:playback_FL, etc.
-        for monitor in self.ports(&VMIC_MONITOR, PortKind::AudioOut) {
+        for monitor in self.resolved_ports(&VMIC_MONITOR, PortKind::AudioOut) {
             let Some(ch) = monitor.channel() else { continue };
             let want = format!("playback_{ch}");
             if let Some(sink) = sinks.iter().find(|s| s.name == want) {
@@ -556,134 +482,121 @@ impl PipeWireManager {
             }
         }
 
-        let stray: Vec<Link> = self
-            .links
-            .iter()
-            .filter(|(src, sink)| {
-                src.device.contains(NAME_VMIC)
+        let stray: Vec<(RPort, RPort)> = {
+            let mut out = Vec::new();
+            for &(out_id, in_id) in self.links.values() {
+                let Some(src) = self.rport(out_id) else { continue };
+                let Some(dst) = self.rport(in_id) else { continue };
+                if src.device.contains(NAME_VMIC)
                     && src.name.starts_with("monitor_")
-                    && !(sink.device == default && sink.name.starts_with("playback_"))
-            })
-            .cloned()
-            .collect();
-        for (src, sink) in stray {
-            self.disconnect(&src, &sink);
+                    && !(dst.device == default && dst.name.starts_with("playback_"))
+                {
+                    out.push((src, dst));
+                }
+            }
+            out
+        };
+        for (src, dst) in stray {
+            self.disconnect(&src, &dst);
         }
     }
 
-    /// Make sure the virtual mic exists for applications to record. The vmic
-    /// filter-chain (pipewire.conf.d/99-vmic.conf) provides a dedicated
-    /// Audio/Source; as a fallback we can provision a Pulse null-sink (single
-    /// node, monitor-only source) so apps always have something to pick.
+    /// Resolve a live port id to an `RPort`, or `None` if it's no longer
+    /// (or not yet) in `self.ports`/`self.nodes`.
+    fn rport(&self, id: u32) -> Option<RPort> {
+        let info = self.ports.get(&id)?;
+        let device = self.nodes.get(&info.node_id)?;
+        Some(RPort { id, node_id: info.node_id, device: device.clone(), name: info.name.clone() })
+    }
+
+    /// Make sure the virtual mic exists for applications to record. The
+    /// vmic filter-chain (pipewire.conf.d/99-vmic.conf) provides it at
+    /// PipeWire startup; as a fallback we can provision a Pulse null-sink so
+    /// apps always have something to pick. This is the one remaining
+    /// subprocess spawn in the routine path, and only actually runs if vmic
+    /// is somehow missing (in practice: never, once 99-vmic.conf is loaded).
     fn ensure_vmic(&mut self) {
-        // `self.ports` was already refreshed this poll from `pw-cli
-        // list-objects` (see `refresh()`, called just before `apply_routes`)
-        // and already contains vmic's ports if the filter-chain node exists
-        // -- checking it here (same substring test the rest of this file
-        // already uses for vmic, e.g. `apply_vmic_monitor_route`) avoids a
-        // redundant `pactl list short sinks` subprocess spawn every poll.
-        let has_vmic = self.ports.iter().any(|(p, _)| p.device.contains(NAME_VMIC));
-        if has_vmic {
+        if self.nodes.values().any(|n| n.contains(NAME_VMIC)) {
             return;
         }
-        let out = run_cmd(&[
-            "pactl",
-            "load-module",
-            "module-null-sink",
-            &format!("sink_name={}", NAME_VMIC),
-        ]);
-        println!("Loaded vmic null-sink: {}", out.trim());
+        if self.dry_run {
+            println!("[dry-run] vmic missing; would provision a Pulse null-sink fallback");
+            return;
+        }
+        let out = Command::new("pactl")
+            .args(["load-module", "module-null-sink", &format!("sink_name={}", NAME_VMIC)])
+            .output();
+        match out {
+            Ok(o) => println!("Loaded vmic null-sink: {}", String::from_utf8_lossy(&o.stdout).trim()),
+            Err(e) => eprintln!("Failed to provision vmic fallback sink: {e}"),
+        }
     }
 
     fn apply_route(&mut self, route: Route) {
         match route {
-            Route::Channels { src, dst, map, exclusive } => {
-                self.route_channels(src, dst, map, exclusive);
-            }
+            Route::Channels { src, dst, map, exclusive } => self.route_channels(src, dst, map, exclusive),
         }
     }
 
-    /// Channel-keyed routing. Both `pairs` and `pairs_exclusive` land here.
-    fn route_channels(
-        &mut self,
-        src: Device,
-        dst: Device,
-        map: &[(&str, &str)],
-        exclusive: bool,
-    ) {
-        let sources = self.ports(&src, PortKind::AudioOut);
-        let sinks = self.ports(&dst, PortKind::AudioIn);
+    fn route_channels(&mut self, src: Device, dst: Device, map: &[(&str, &str)], exclusive: bool) {
+        let sources = self.resolved_ports(&src, PortKind::AudioOut);
+        let sinks = self.resolved_ports(&dst, PortKind::AudioIn);
 
         for source in &sources {
             let Some(ch) = source.channel() else { continue };
-            let intended: Vec<&str> = map
-                .iter()
-                .filter(|(key, _)| key == &ch)
-                .map(|(_, name)| *name)
-                .collect();
+            let intended: Vec<&str> = map.iter().filter(|(key, _)| key == &ch).map(|(_, name)| *name).collect();
             if intended.is_empty() {
                 continue;
             }
-
-            for sink_name in intended.clone() {
+            for sink_name in &intended {
                 if let Some(sink) = sinks.iter().find(|s| &s.name == sink_name) {
                     self.connect(source, sink);
                 }
             }
-
-            // Ownership: this route claims every link `source` has into
-            // `dst`; anything not declared in `map` gets pulled.
             if exclusive {
-                for leak in &sinks {
-                    if !intended.contains(&leak.name.as_str()) {
-                        self.disconnect(source, leak);
-                    }
+                let leaks: Vec<RPort> =
+                    sinks.iter().filter(|s| !intended.contains(&s.name.as_str())).cloned().collect();
+                for leak in leaks {
+                    self.disconnect(source, &leak);
                 }
             }
         }
     }
 
-    /// Anything on the micproc or the vmic nodes that isn't the routing table
-    /// above is stray, so links stay exact even when apps auto-connect:
-    ///   - micproc's inputs belong to the mic alone.
-    ///   - micproc's outputs may reach only the vmic app feed (monitoring is
-    ///     the vmic-monitor route's job).
+    /// Anything on the micproc or the vmic nodes that isn't the routing
+    /// table above is stray, so links stay exact even when apps auto-connect.
     fn unroute_stray_mix_links(&mut self) {
-        let stray: Vec<Link> = self
-            .links
-            .iter()
-            .filter(|(src, sink)| {
+        let stray: Vec<(RPort, RPort)> = {
+            let mut out = Vec::new();
+            for &(out_id, in_id) in self.links.values() {
+                let Some(src) = self.rport(out_id) else { continue };
+                let Some(dst) = self.rport(in_id) else { continue };
+
                 let micproc_out = src.device.contains(NAME_MICPROC) && src.name.starts_with("out_");
-                let to_vmic =
-                    sink.device.contains(NAME_VMIC) && sink.name.starts_with("playback_");
+                let to_vmic = dst.device.contains(NAME_VMIC) && dst.name.starts_with("playback_");
 
-                // micproc inputs: only the mic, on the standard diagonal
-                // (capture_FL -> in_L, capture_FR -> in_R), may drive them.
                 let mic_to_proc = src.device.contains(NAME_MIC)
-                    && sink.device.contains(NAME_MICPROC)
-                    && ((src.name == "capture_FL" && sink.name == "in_L")
-                        || (src.name == "capture_FR" && sink.name == "in_R"));
-                let bad_micproc_in = sink.device.contains(NAME_MICPROC)
-                    && sink.name.starts_with("in_")
-                    && !mic_to_proc;
-
-                // micproc outputs: only the vmic app feed.
+                    && dst.device.contains(NAME_MICPROC)
+                    && ((src.name == "capture_FL" && dst.name == "in_L")
+                        || (src.name == "capture_FR" && dst.name == "in_R"));
+                let bad_micproc_in = dst.device.contains(NAME_MICPROC) && dst.name.starts_with("in_") && !mic_to_proc;
                 let bad_micproc_out = micproc_out && !to_vmic;
 
-                bad_micproc_in || bad_micproc_out
-            })
-            .cloned()
-            .collect();
-
-        for (src, sink) in stray {
-            self.disconnect(&src, &sink);
+                if bad_micproc_in || bad_micproc_out {
+                    out.push((src, dst));
+                }
+            }
+            out
+        };
+        for (src, dst) in stray {
+            self.disconnect(&src, &dst);
         }
     }
 
-    /// Oxygen 49 MIDI -> fluidsynth -> the vmic app feed. The synth runs only
-    /// while the keyboard is plugged in.
+    /// Oxygen 49 MIDI -> fluidsynth -> the vmic app feed. The synth runs
+    /// only while the keyboard is plugged in.
     fn apply_synth_route(&mut self) {
-        let keyboard_plugged = !self.ports(&KEYBOARD_OUT, PortKind::MidiOut).is_empty();
+        let keyboard_plugged = !self.resolved_ports(&KEYBOARD_OUT, PortKind::MidiOut).is_empty();
 
         if !keyboard_plugged {
             if self.synth.is_some() {
@@ -697,20 +610,15 @@ impl PipeWireManager {
             return;
         }
 
-        // MIDI: every keyboard capture port -> the synth's MIDI input.
-        let synth_midi_in = self.ports(&SYNTH_ANY, PortKind::MidiIn).into_iter().next();
+        let synth_midi_in = self.resolved_ports(&SYNTH_ANY, PortKind::MidiIn).into_iter().next();
         if let Some(synth_in) = synth_midi_in {
-            for kb in self.ports(&KEYBOARD_OUT, PortKind::MidiOut) {
+            for kb in self.resolved_ports(&KEYBOARD_OUT, PortKind::MidiOut) {
                 self.connect(&kb, &synth_in);
             }
         }
 
-        // The synth feeds the app-feed vmic, exactly like the mic does. Apps
-        // may record it; it stays off the monitoring path. The single JACK
-        // node names its outputs `left`/`right`; the old PulseAudio layout
-        // (`output_FL`/`output_FR`) is also accepted.
-        let vmic_ins = self.ports(&VMIC_SINK_IN, PortKind::AudioIn);
-        for port in self.ports(&SYNTH_ANY, PortKind::AudioOut) {
+        let vmic_ins = self.resolved_ports(&VMIC_SINK_IN, PortKind::AudioIn);
+        for port in self.resolved_ports(&SYNTH_ANY, PortKind::AudioOut) {
             let dest = match port.name.as_str() {
                 "left" | "output_FL" | "FL" => "playback_FL",
                 "right" | "output_FR" | "FR" => "playback_FR",
@@ -724,74 +632,24 @@ impl PipeWireManager {
         self.unroute_stray_synth_links();
     }
 
-    /// Any link leaving the synth that doesn't land on the vmic app feed is
-    /// stray (nothing should normally do this now that the synth is a JACK
-    /// client, but keep the graph exact anyway).
     fn unroute_stray_synth_links(&mut self) {
-        let stray: Vec<Link> = self
-            .links
-            .iter()
-            .filter(|(src, sink)| {
-                src.device.to_lowercase().contains(&NAME_SYNTH.to_lowercase())
-                    && !(sink
-                        .device
-                        .to_lowercase()
-                        .contains(&NAME_VMIC.to_lowercase())
-                        && sink.name.starts_with("playback_"))
-            })
-            .cloned()
-            .collect();
-
-        for (src, sink) in stray {
-            self.disconnect(&src, &sink);
+        let stray: Vec<(RPort, RPort)> = {
+            let mut out = Vec::new();
+            for &(out_id, in_id) in self.links.values() {
+                let Some(src) = self.rport(out_id) else { continue };
+                let Some(dst) = self.rport(in_id) else { continue };
+                let from_synth = src.device.to_lowercase().contains(&NAME_SYNTH.to_lowercase());
+                let to_vmic_feed = dst.device.to_lowercase().contains(&NAME_VMIC.to_lowercase())
+                    && dst.name.starts_with("playback_");
+                if from_synth && !to_vmic_feed {
+                    out.push((src, dst));
+                }
+            }
+            out
+        };
+        for (src, dst) in stray {
+            self.disconnect(&src, &dst);
         }
-    }
-
-    // ── main loop ──────────────────────────────────────────────────
-
-    fn run(&mut self) {
-        println!("PipeWire Links Manager starting...");
-
-        thread::sleep(STARTUP_DELAY);
-
-        loop {
-            self.refresh();
-            println!("Running connection setup...");
-            self.apply_routes();
-            println!(
-                "Connection setup complete ({} ports, {} links)",
-                self.ports.len(),
-                self.links.len()
-            );
-            thread::sleep(POLL_INTERVAL);
-        }
-    }
-}
-
-// ────────────────────────────────────────────────────────────────────
-// HELPERS
-// ────────────────────────────────────────────────────────────────────
-
-fn run_cmd(args: &[&str]) -> String {
-    let output = Command::new(args[0])
-        .args(&args[1..])
-        .output()
-        .unwrap_or_else(|_| {
-            eprintln!("Failed to run {}", args.join(" "));
-            std::process::exit(1);
-        });
-    String::from_utf8_lossy(&output.stdout).into_owned()
-}
-
-/// Name of the currently-default speaker sink (the `node.name` vocabulary
-/// `pw-link` uses), or `None` if there isn't one worth wiring.
-fn default_sink() -> Option<String> {
-    let out = run_cmd(&["pactl", "get-default-sink"]);
-    let name = out.trim();
-    if name.is_empty() || name == "auto_null" {
-        None
-    } else {
-        Some(name.to_string())
     }
 }
 
@@ -799,50 +657,115 @@ fn is_alive(child: &mut Child) -> bool {
     child.try_wait().ok().flatten().is_none()
 }
 
-/// Pull the quoted value of `key = "value"` from a `pw-cli` line.
-fn quoted_value(line: &str, key: &str) -> Option<String> {
-    let rest = line.strip_prefix(key)?.strip_prefix(" = ")?;
-    let value = rest.trim().trim_matches('"');
-    if value.is_empty() {
-        None
-    } else {
-        Some(value.to_string())
-    }
+/// Pull `"name"` out of a PipeWire metadata JSON value, e.g.
+/// `{"name":"alsa_output...."}` -> `alsa_output....`. Metadata values for
+/// `default.audio.sink` are always this shape in practice; a tiny ad-hoc
+/// extractor keeps this crate free of a JSON dependency for one field.
+fn extract_json_name(value: &str) -> Option<String> {
+    let after_key = &value[value.find("\"name\"")? + 6..];
+    let after_colon = after_key[after_key.find(':')? + 1..].trim_start();
+    let after_quote = after_colon.strip_prefix('"')?;
+    let end = after_quote.find('"')?;
+    Some(after_quote[..end].to_string())
 }
 
-#[allow(clippy::too_many_arguments)]
-fn commit_port(
-    ports: &mut Vec<(Port, PortInfo)>,
-    node: Option<&String>,
-    pname: Option<&String>,
-    alias: Option<&String>,
-    format: Option<&String>,
-    direction: Option<&String>,
-) {
-    if let (Some(format), Some(direction)) = (format, direction) {
-        // Canonical `node.name:port.name` (matches `pw-link`'s vocabulary).
-        // Fall back to `port.alias` when the owning node is unknown. Do NOT
-        // trust `object.path` or adapter names.
-        let key = match (node, pname) {
-            (Some(n), Some(p)) if !n.is_empty() && !p.is_empty() => format!("{}:{}", n, p),
-            _ => match alias {
-                Some(a) => a.clone(),
-                None => String::new(),
-            },
-        };
-        if let Some(port) = Port::from_alias(&key) {
-            ports.push((
-                port,
-                PortInfo {
-                    format: format.clone(),
-                    direction: direction.clone(),
-                },
-            ));
-        }
-    }
-}
+// ────────────────────────────────────────────────────────────────────
+// MAIN — persistent PipeWire client, event-driven.
+// ────────────────────────────────────────────────────────────────────
 
 fn main() {
-    let mut manager = PipeWireManager::new();
-    manager.run();
+    let dry_run = std::env::args().any(|a| a == "--dry-run");
+
+    pw::init();
+
+    // Intentionally leaked: this is the one main loop for the process's
+    // entire lifetime, so a genuine `'static` reference to it (rather than
+    // fighting the borrow checker over a local variable's lexical scope) is
+    // the natural fit -- the OS reclaims it at process exit regardless.
+    let main_loop: &'static pw::main_loop::MainLoopRc =
+        Box::leak(Box::new(pw::main_loop::MainLoopRc::new(None).expect("failed to create PipeWire main loop")));
+
+    let ml = main_loop.clone();
+    let _sig_int = main_loop.loop_().add_signal_local(Signal::INT, move || ml.quit());
+    let ml = main_loop.clone();
+    let _sig_term = main_loop.loop_().add_signal_local(Signal::TERM, move || ml.quit());
+
+    let context = pw::context::ContextRc::new(main_loop, None).expect("failed to create PipeWire context");
+    let core = context.connect_rc(None).expect("failed to connect to PipeWire");
+    let registry = core.get_registry_rc().expect("failed to get PipeWire registry");
+
+    let manager = Rc::new(RefCell::new(Manager::new(core.clone(), registry.clone(), dry_run)));
+
+    // The debounce timer: (re)armed on every registry/metadata event, fires
+    // `apply_routes()` once no further event has arrived for `DEBOUNCE`.
+    let timer_manager = Rc::clone(&manager);
+    let timer: Rc<pw::loop_::TimerSource<'static>> =
+        Rc::new(main_loop.loop_().add_timer(move |_expirations| {
+            timer_manager.borrow_mut().apply_routes();
+        }));
+
+    let registry_weak = registry.downgrade();
+    let manager_for_global = Rc::clone(&manager);
+    let timer_for_global = Rc::clone(&timer);
+    let _registry_listener = registry
+        .add_listener_local()
+        .global(move |obj| {
+            manager_for_global.borrow_mut().on_global(obj);
+
+            // The "default" metadata object needs its own bound listener to
+            // receive property (default sink) changes -- registry `global`
+            // events alone don't carry metadata's internal key/value store.
+            if obj.type_ == ObjectType::Metadata && prop(obj.props, "metadata.name") == Some("default") {
+                if let Some(registry) = registry_weak.upgrade() {
+                    if let Ok(metadata) = registry.bind::<pw::metadata::Metadata, _>(obj) {
+                        let manager_for_prop = Rc::clone(&manager_for_global);
+                        let timer_for_prop = Rc::clone(&timer_for_global);
+                        let listener = metadata
+                            .add_listener_local()
+                            .property(move |_subject, key, _type, value| {
+                                if key == Some("default.audio.sink") {
+                                    let sink = value.and_then(extract_json_name);
+                                    manager_for_prop.borrow_mut().default_sink = sink;
+                                    let _ = timer_for_prop.update_timer(Some(DEBOUNCE), None);
+                                }
+                                0
+                            })
+                            .register();
+                        let mut m = manager_for_global.borrow_mut();
+                        m._default_metadata = Some(metadata);
+                        m._default_metadata_listener = Some(listener);
+                    }
+                }
+            }
+
+            let _ = timer_for_global.update_timer(Some(DEBOUNCE), None);
+        })
+        .global_remove({
+            let manager = Rc::clone(&manager);
+            let timer = Rc::clone(&timer);
+            move |id| {
+                manager.borrow_mut().on_global_remove(id);
+                let _ = timer.update_timer(Some(DEBOUNCE), None);
+            }
+        })
+        .register();
+
+    println!(
+        "PipeWire Links Manager starting (event-driven, no polling){}...",
+        if dry_run { " [DRY RUN -- no links will be created/destroyed]" } else { "" }
+    );
+    main_loop.run();
+
+    // Deliberately no `pw::deinit()` here: this only returns after
+    // `main_loop.quit()` (SIGINT/SIGTERM), and several live objects above
+    // (`_sig_int`/`_sig_term`, `context`, `registry`, `manager`'s metadata
+    // proxy+listener, `timer`, `_registry_listener`) still need to run their
+    // Drop impls -- which make FFI calls back into PipeWire -- AFTER this
+    // point, as `main` returns. Calling `deinit()` before that (as the
+    // `pipewire` crate's own `pw-mon` example does, safely, only because
+    // ITS pipewire objects are scoped to a function that returns before its
+    // `main` calls `deinit()`) segfaults here on exactly that: a `SignalSource`
+    // dropped after the library it calls back into was torn down. Simplest
+    // correct fix for a long-running daemon that only ever exits via
+    // process termination: let the OS reclaim everything instead.
 }

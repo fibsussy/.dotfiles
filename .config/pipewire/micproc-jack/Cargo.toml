@@ -8,6 +8,7 @@ jack = "0.11.4"
 arc-swap = "1"
 serde = { version = "1", features = ["derive"] }
 toml = "0.8"
+notify = { version = "8", default-features = false }
 
 [profile.release]
 lto = "fat"

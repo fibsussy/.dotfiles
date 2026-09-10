@@ -12,3 +12,6 @@ lto = "fat"
 codegen-units = 1
 panic = "abort"
 opt-level = 3
+
+[dependencies]
+pipewire = { version = "0.10.1", features = ["v1_2_0"] }
