@@ -106,8 +106,8 @@ environment {
   XDG_CURRENT_DESKTOP "niri"
   QT_QPA_PLATFORM "wayland"
   ELECTRON_OZONE_PLATFORM_HINT "auto"
-  QT_QPA_PLATFORMTHEME "gtk3"
-  QT_QPA_PLATFORMTHEME_QT6 "gtk3"
+  QT_QPA_PLATFORMTHEME "qt6ct"
+  QT_QPA_PLATFORMTHEME_QT6 "qt6ct"
   TERMINAL "kitty"
 }
 hotkey-overlay {
@@ -119,7 +119,7 @@ screenshot-path "~/Pictures/Screenshots/Screenshot from %Y-%m-%d %H-%M-%S.png"
 
 animations {
   off
-  slowdown 1
+  slowdown 0.5
   workspace-switch {
     duration-ms 50
     curve "cubic-bezier" 0.16 1 0.3 1

@@ -3,15 +3,8 @@
 
 // @id=dms_rule_0 @name=General
 window-rule {
-    opacity 1.00
     geometry-corner-radius 12
     clip-to-geometry true
-}
-
-// @id=dms_rule_1 @name=is-active=false
-window-rule {
-    match is-active=false
-    opacity 0.80
 }
 
 // @id=dms_rule_2 @name=

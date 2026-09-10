@@ -1,3 +1,6 @@
 *.mp3
 *.wav
 KC_*
+
+# Volume state (changes whenever you adjust the soundboard)
+.soundboard.volume

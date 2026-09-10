@@ -8,6 +8,9 @@ Pictures/Screenshots/
 # Game save files that change on every play session
 *.sav
 
+# Wine/Proton prefixes (compatdata) — regenerating runtime state, keep config out
+.local/share/Steam/steamapps/compatdata/*/pfx/
+
 # Moved runtime/state data
 .local/share/cargo/
 .local/share/rustup/

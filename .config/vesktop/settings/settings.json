@@ -254,7 +254,11 @@
             "enabled": false
         },
         "MessageLatency": {
-            "enabled": true
+            "enabled": true,
+            "latency": 2,
+            "detectDiscordKotlin": true,
+            "showMillis": false,
+            "ignoreSelf": false
         },
         "MessageLinkEmbeds": {
             "enabled": false
@@ -518,7 +522,8 @@
             "enabled": false
         },
         "VolumeBooster": {
-            "enabled": false
+            "enabled": true,
+            "multiplier": 5
         },
         "WebKeybinds": {
             "enabled": true,
@@ -582,6 +587,6 @@
         "authenticated": false,
         "url": "https://api.vencord.dev/",
         "settingsSync": false,
-        "settingsSyncVersion": 1788736164220
+        "settingsSyncVersion": 1788920986454
     }
 }

@@ -1,6 +1,5 @@
 discord/
 VirtualBox/
-mozilla/
 thorium/
 QtProject.conf
 DankMaterialShell/.changelog-*
@@ -61,8 +60,8 @@ MangoHud/crosshair.conf
 # Moonlight streaming config
 Moonlight Game Streaming Project/
 
-# DankMaterialShell standalone plugin repo
-DankMaterialShell/plugins/desktopCommand/
+# DankMaterialShell plugins — auto-installed via plugin manager into .repos/
+DankMaterialShell/plugins/
 
 # croc file transfer runtime state
 croc/
@@ -98,9 +97,9 @@ gtk-3.0/gtk.css
 gtk-3.0/bookmarks
 gtk-4.0/gtk.css
 btop/.btop.log
-DankMaterialShell/plugins/.repos/
 kdeconnect/privateKey.pem
 kdeconnect/certificate.pem
+kdeconnect/trusted_devices
 google-chrome-for-testing/
 nextjs-nodejs/
 uv/uv-receipt.json
@@ -108,7 +107,17 @@ zsh/.zcalc_history
 niri/wayscriber/
 niri/wlrctl/
 pulse/
-git-crypt/
+git-crypt
+
+# keepassxc prefs contain a KeeShare private key — regenerate, don't track
+keepassxc/keepassxc.ini
+
+# hypr and blender prefs are unused/stale leftovers
+hypr/
+blender/
+
+# gtk symlinks into the session runtime dir (recreated each login)
+gtk-3.0/assets
 
 # Vesktop runtime state (regenerates every launch — customization lives in Vencord/)
 vesktop/sessionData/
@@ -116,3 +125,39 @@ vesktop/Code Cache/
 vesktop/Crashpad/
 vesktop/Singleton*
 vesktop/state.json
+vesktop/themes
+
+# Firefox profiles — track real config, ignore profile state/runtime data
+mozilla/*
+!mozilla/firefox/
+mozilla/firefox/*
+!mozilla/firefox/profiles.ini
+!mozilla/firefox/*/
+mozilla/firefox/*/*
+!mozilla/firefox/*/user.js
+!mozilla/firefox/*/containers.json
+!mozilla/firefox/*/extensions.ini
+!mozilla/firefox/*/chrome/
+!mozilla/firefox/*/chrome/**
+
+# Zen browser profiles — same philosophy: config in, state out
+zen/*
+!zen/profiles.ini
+!zen/*/
+zen/*/*
+!zen/*/user.js
+!zen/*/containers.json
+!zen/*/extensions.ini
+!zen/*/zen-keyboard-shortcuts.json
+!zen/*/zen-themes.json
+!zen/*/chrome/
+!zen/*/chrome/**
+
+# micproc-jack Rust build artifacts
+pipewire/micproc-jack/target/
+
+# Generated graphviz dump of the pipewire graph
+pipewire/pw.dot
+
+# nvim plugin lockfile (regenerates on plugin updates)
+nvim/lazy-lock.json

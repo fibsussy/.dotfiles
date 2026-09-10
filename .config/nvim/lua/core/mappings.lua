@@ -1,6 +1,6 @@
 vim.keymap.set("n", "<Esc>", "<cmd>nohlsearch<cr>", { desc = "Clear search highlight", silent = true })
 vim.keymap.set("n", "<leader>uc", "<cmd>set cursorline!<cr>", { desc = "Toggle cursorline highlight", silent = true })
-vim.keymap.set("n", "<C-s>", "<cmd>w<cr>", { desc = "Save Buffer", silent = true })
+vim.keymap.set("n", "<C-s>", "<cmd>silent w<cr>", { desc = "Save Buffer", silent = true })
 vim.keymap.set("n", "<C-S-a>", "ggVG", { desc = "Select All Buffer", silent = true })
 vim.keymap.set("n", "<C-c>", "<cmd>%y+<cr>", { desc = "Copy All Buffer", silent = true })
 -- vim.keymap.set("n", "<leader>q", "<cmd>bd!<cr>", { desc = "Close Buffer", silent = true })
@@ -38,8 +38,12 @@ local function visual_move(down)
   end
   
   if down then
+    if end_line == vim.fn.line("$") then
+      vim.fn.append(vim.fn.line("$"), "")
+    end
     vim.cmd(start_line .. "," .. end_line .. "m" .. end_line + 1)
   else
+    if start_line == 1 then return end
     vim.cmd(start_line .. "," .. end_line .. "m" .. (start_line - 2))
   end
   

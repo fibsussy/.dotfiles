@@ -9,5 +9,15 @@ wid=$(niri msg --json windows | jq --arg title "$TITLE" -r \
 if [ -n "$wid" ]; then
   niri msg action focus-window --id "$wid"
 else
-  setsid kitty -o font_size=50 sh -c 'nvim -u ~/.config/nvim/notepad.vim /tmp/notes.md' &
+  setsid kitty -o background="#000000" -o background_opacity="1" -o font_size=50 sh -c 'nvim -u ~/.config/nvim/notepad.vim /tmp/notes.md' &
+  pid=$!
+
+  while :; do
+    wid=$(niri msg --json windows | jq --argjson pid "$pid" -r \
+      '[.[] | select(.pid == $pid)] | .[0].id // empty')
+    [ -n "$wid" ] && break
+    sleep 0.05
+  done
+
+  niri msg action toggle-windowed-fullscreen --id "$wid"
 fi

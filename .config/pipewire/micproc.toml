@@ -1,0 +1,82 @@
+# micproc.toml — the whole mic chain in ONE list. Order = list order.
+# Edit freely; hot-reloaded ~1s, no restart.
+#
+#   - Move a [[stages]] block to change the order.
+#   - Delete a [[stages]] block to drop that stage.
+#   - enabled = false bypasses a stage in place.
+#   - Stage types: "stereo2mono" | "expander" | "compressor" | "gate" | "eq"
+#   - stereo2mono is STAGE 0 (must be the first block): the stereo→mono
+#     boundary conversion. Two inputs are folded to ONE mono lane, the chain
+#     runs, and the mono result is duplicated onto both outputs.
+#       `mode` picks the fold:
+#         peak    per-sample the louder of L/R — best when one input is
+#                 empty: keeps the mic at unit level, no -6 dB average loss
+#         average 0.5*(L+R) standard downmix (halves a mono-on-one-channel
+#                 source)
+#         left    / right  = that channel only (fixes the channel; peak is
+#                 safer if you ever swap inputs)
+#     enabled = false = plain stereo passthrough (no fold, no duplication).
+#   - The gate's `detector` picks which EARLIER stage's level opens it —
+#     keep "expander" so the compressor's makeup gain can't re-open it.
+
+preamp-db = 3.0
+
+[[stages]]
+type = "stereo2mono"
+enabled = true
+mode = "peak"
+
+[[stages]]
+type = "expander"
+# Folds everything below `threshold-db` down by `ratio`, floored at `range-db`
+# (a gentle noise reducer, not a mute hole).
+enabled = true
+threshold-db = -45.0
+ratio = 4.0
+knee-db = 3.0
+range-db = -28.0
+attack-ms = 1.0
+release-ms = 80.0
+
+[[stages]]
+type = "compressor"
+# Brings the voice up to the right area; `makeup-db` is the constant gain
+# applied after reduction.
+enabled = true
+threshold-db = -18.0
+ratio = 3.5
+makeup-db = 0.0
+knee-db = 4.0
+attack-ms = 4.0
+release-ms = 30.0
+
+[[stages]]
+type = "gate"
+# Smart soft gate: hysteresis (opens at `threshold-db`, only closes
+# `hysteresis-db` lower), a hold window (no syllable chopping), floored steep
+# expansion down to `range-db` (soft fade, never a hard mute).
+enabled = true
+threshold-db = -45.0
+ratio = 8.0
+knee-db = 6.0
+range-db = -30.0
+hysteresis-db = 6.0
+hold-ms = 80.0
+attack-ms = 4.0
+release-ms = 70.0
+detector = "expander"
+
+[[stages]]
+type = "eq"
+# Final tone shaping (biquads). One line per band; types: LS (low shelf),
+# PK (peaking/bell), HS (high shelf). `preamp-db` trims after the bands.
+enabled = true
+preamp-db = 10.0
+band = [
+  { type = "LS", freq = 60,    gain-db = -2.9,  q = 0.71 },
+  { type = "PK", freq = 130,   gain-db =  1.7,  q = 2.4 },
+  { type = "PK", freq = 245,   gain-db =  3.1,  q = 1.1 },
+  { type = "PK", freq = 1300,  gain-db = -9.4, q = 4.4 },
+  { type = "HS", freq = 8300,  gain-db =  2.2,  q = 1.3 },
+]
+
