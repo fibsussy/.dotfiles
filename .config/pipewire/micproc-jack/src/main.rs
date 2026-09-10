@@ -80,6 +80,14 @@ struct StageConf {
     knee_db: Option<f32>,
     attack_ms: Option<f32>,
     release_ms: Option<f32>,
+    /// Level-detector smoothing, separate from `attack-ms`/`release-ms`
+    /// (which smooth the resulting GAIN, not the level driving it). Without
+    /// this the threshold comparison reacts to one raw sample at a time,
+    /// which on a fast attack can track individual cycles of a low-pitched
+    /// voice, audible as a gritty/buzzy modulation. Defaults to 3ms if
+    /// unset -- raise it if a stage still sounds grainy, lower it if it
+    /// feels sluggish to real level changes.
+    detector_ms: Option<f32>,
     range_db: Option<f32>,
     makeup_db: Option<f32>,
     hysteresis_db: Option<f32>,
@@ -291,11 +299,29 @@ struct Dynamics {
     release: f32,
     makeup_gain: f32,
     cur_db: f32,
+    /// Level-detector smoothing coefficient (see `StageConf::detector_ms`) --
+    /// separate from `attack`/`release`, which smooth the resulting gain,
+    /// not the level that drives the threshold comparison.
+    detector: f32,
+    detected_db: f32,
 }
 
 impl Dynamics {
     fn new(mode: DynMode) -> Self {
-        Dynamics { mode, enabled: true, threshold_db: -60.0, ratio: 2.0, knee_db: 6.0, floor_db: -24.0, attack: 0.0, release: 0.0, makeup_gain: 1.0, cur_db: 0.0 }
+        Dynamics {
+            mode,
+            enabled: true,
+            threshold_db: -60.0,
+            ratio: 2.0,
+            knee_db: 6.0,
+            floor_db: -24.0,
+            attack: 0.0,
+            release: 0.0,
+            makeup_gain: 1.0,
+            cur_db: 0.0,
+            detector: 1.0,
+            detected_db: -120.0,
+        }
     }
 
     #[inline]
@@ -303,6 +329,15 @@ impl Dynamics {
         if !self.enabled {
             return x * self.makeup_gain;
         }
+
+        // Smooth the LEVEL before comparing it to the threshold -- a raw
+        // instantaneous per-sample value jitters at the input's own
+        // waveform rate, which a fast attack barely averages out (on a low
+        // voice, not even one pitch period), audible as grit/buzz riding
+        // the gain. This is a separate, short, fixed-ish time constant from
+        // the attack/release smoothing applied to the gain below.
+        self.detected_db += (key_db - self.detected_db) * self.detector;
+        let key_db = self.detected_db;
 
         let g = match self.mode {
             // Expander: attenuate below threshold, floored (gentle noise reducer).
@@ -320,11 +355,16 @@ impl Dynamics {
                 };
                 raw.max(self.floor_db)
             }
-            // Compressor: attenuate above threshold.
+            // Compressor: attenuate above threshold. gain = L_out - L_in
+            // where L_out = threshold + d/ratio, i.e. gain = d*(1/ratio - 1)
+            // = -d*(1 - 1/ratio). The missing negation here previously made
+            // this compute a BOOST (e.g. +15 dB for 20 dB over threshold at
+            // a 4:1 ratio) instead of a cut -- confirmed unchanged since the
+            // very first commit that added this file.
             DynMode::Compressor => {
                 let d = key_db - self.threshold_db; // > 0 above threshold
                 let k = self.knee_db;
-                let full = d * (1.0 - 1.0 / self.ratio); // <= 0
+                let full = -d * (1.0 - 1.0 / self.ratio); // <= 0
                 if d <= -k / 2.0 {
                     0.0
                 } else if d >= k / 2.0 {
@@ -336,8 +376,34 @@ impl Dynamics {
             }
         };
 
-        // Smooth: dropping gain is the slow "release"/fade; rising is the fast open.
-        let coeff = if g < self.cur_db { self.release } else { self.attack };
+        // Smooth toward `g`. The two modes have OPPOSITE polarity here:
+        //   Expander: dropping gain = engaging (signal went quiet) -- the
+        //     SLOW phase (release), so a word's tail isn't chopped; rising
+        //     = opening (signal returned) -- the FAST phase (attack), so a
+        //     word's onset isn't clipped. Gate-like semantics.
+        //   Compressor: dropping gain = engaging (signal got LOUD) -- needs
+        //     to be FAST (attack) to catch the transient; rising =
+        //     recovering afterward -- the SLOW phase (release), to avoid
+        //     pumping.
+        // Previously both modes used the expander's mapping unconditionally,
+        // which left the compressor's attack/release effectively swapped
+        // (clamped down slowly, let go quickly -- backwards).
+        let coeff = match self.mode {
+            DynMode::Expander => {
+                if g < self.cur_db {
+                    self.release
+                } else {
+                    self.attack
+                }
+            }
+            DynMode::Compressor => {
+                if g < self.cur_db {
+                    self.attack
+                } else {
+                    self.release
+                }
+            }
+        };
         self.cur_db += (g - self.cur_db) * coeff;
 
         x * from_db(self.cur_db) * self.makeup_gain
@@ -360,6 +426,11 @@ struct Gate {
     was_open: bool,
     held: u32,
     cur_db: f32,
+    /// Level-detector smoothing coefficient (see `StageConf::detector_ms`),
+    /// separate from `attack`/`release` (which smooth the gain, not the
+    /// level driving the open/close decision).
+    detector: f32,
+    detected_db: f32,
 }
 
 impl Gate {
@@ -377,6 +448,8 @@ impl Gate {
             was_open: false,
             held: 0,
             cur_db: 0.0,
+            detector: 1.0,
+            detected_db: -120.0,
         }
     }
 
@@ -385,6 +458,14 @@ impl Gate {
         if !self.enabled {
             return x;
         }
+
+        // Smooth the level before the open/close decision -- a raw
+        // instantaneous sample can spike across `open_db`/`close_db` for a
+        // single sample, which hysteresis+hold already guard against
+        // somewhat, but smoothing the level itself (same rationale as
+        // `Dynamics::run`) avoids feeding that jitter in in the first place.
+        self.detected_db += (key_db - self.detected_db) * self.detector;
+        let key_db = self.detected_db;
 
         // Hysteresis: crossing OPEN opens; the level must fall below CLOSE to
         // start the close sequence.
@@ -543,6 +624,7 @@ fn build_snapshot(conf: &MicProcConf, rate: u32, version: u64) -> DspSnapshot {
                 s.floor_db = sc.range_db.unwrap_or(-24.0);
                 s.attack = one_pole(sc.attack_ms.unwrap_or(1.0), rate);
                 s.release = one_pole(sc.release_ms.unwrap_or(80.0), rate);
+                s.detector = one_pole(sc.detector_ms.unwrap_or(3.0), rate);
                 s.makeup_gain = 1.0;
                 stages.push(Stage::Expander(s));
                 true
@@ -556,6 +638,7 @@ fn build_snapshot(conf: &MicProcConf, rate: u32, version: u64) -> DspSnapshot {
                 s.floor_db = 0.0; // compressors don't gate below
                 s.attack = one_pole(sc.attack_ms.unwrap_or(2.0), rate);
                 s.release = one_pole(sc.release_ms.unwrap_or(120.0), rate);
+                s.detector = one_pole(sc.detector_ms.unwrap_or(3.0), rate);
                 s.makeup_gain = 10f32.powf(sc.makeup_db.unwrap_or(0.0) / 20.0);
                 stages.push(Stage::Compressor(s));
                 true
@@ -571,6 +654,7 @@ fn build_snapshot(conf: &MicProcConf, rate: u32, version: u64) -> DspSnapshot {
                 s.hold_frames = (sc.hold_ms.unwrap_or(80.0) / 1000.0 * rate as f32) as u32;
                 s.attack = one_pole(sc.attack_ms.unwrap_or(3.0), rate);
                 s.release = one_pole(sc.release_ms.unwrap_or(220.0), rate);
+                s.detector = one_pole(sc.detector_ms.unwrap_or(3.0), rate);
                 stages.push(Stage::Gate(s));
                 true
             }
@@ -936,6 +1020,109 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The compressor must CUT gain above threshold (not boost it), engage
+    /// FAST (attack) when the signal gets loud, and recover SLOWLY
+    /// (release) afterward. Catches both the sign bug (was computing a
+    /// boost) and the attack/release swap (was using release to engage and
+    /// attack to recover) in one end-to-end pass.
+    #[test]
+    fn compressor_cuts_fast_and_recovers_slow() {
+        let mut c = Dynamics::new(DynMode::Compressor);
+        c.threshold_db = -20.0;
+        c.ratio = 4.0;
+        c.knee_db = 0.0; // hard knee: isolates the "d >= k/2" branch cleanly
+        c.makeup_gain = 1.0;
+        c.detector = 1.0; // no detector lag, isolate attack/release timing
+        c.attack = one_pole(1.0, 48000); // fast
+        c.release = one_pole(200.0, 48000); // slow
+
+        // 20 dB over threshold at a 4:1 ratio should settle at -15 dB
+        // (L_out - L_in = threshold + d/ratio - (threshold+d) = d*(1/ratio-1)).
+        for _ in 0..240 {
+            // 5ms @ 48kHz
+            c.run(1.0, 0.0);
+        }
+        assert!(c.cur_db < 0.0, "compressor boosted instead of cutting: cur_db={}", c.cur_db);
+        assert!(
+            c.cur_db < -14.0,
+            "compressor should have nearly reached -15 dB within 5ms at a 1ms attack, got {}",
+            c.cur_db
+        );
+
+        // Signal drops back to silence: recovery should be SLOW (200ms
+        // release), so after another 5ms it should have barely moved.
+        for _ in 0..240 {
+            c.run(1.0, -100.0);
+        }
+        assert!(
+            c.cur_db < -10.0,
+            "compressor recovered too fast for a 200ms release after only 5ms, got {}",
+            c.cur_db
+        );
+    }
+
+    /// Regression check: the expander shares `Dynamics::run` with the
+    /// compressor but has the OPPOSITE polarity (opening back up is the
+    /// fast phase, engaging on a quiet signal is the slow phase) -- make
+    /// sure fixing the compressor didn't flip this one by mistake.
+    #[test]
+    fn expander_still_engages_slow_and_opens_fast() {
+        let mut e = Dynamics::new(DynMode::Expander);
+        e.threshold_db = -40.0;
+        e.ratio = 4.0;
+        e.knee_db = 0.0;
+        e.floor_db = -24.0;
+        e.makeup_gain = 1.0;
+        e.detector = 1.0;
+        e.attack = one_pole(1.0, 48000); // fast (opening)
+        e.release = one_pole(200.0, 48000); // slow (engaging)
+
+        // Well below threshold: engages (floored) attenuation, should be SLOW.
+        for _ in 0..240 {
+            e.run(1.0, -80.0);
+        }
+        assert!(
+            e.cur_db > -3.0,
+            "expander should barely have engaged within 5ms at a 200ms release, got {}",
+            e.cur_db
+        );
+
+        // Signal returns above threshold: should open back up FAST.
+        for _ in 0..240 {
+            e.run(1.0, 0.0);
+        }
+        assert!(
+            e.cur_db > -0.5,
+            "expander should have nearly fully opened within 5ms at a 1ms attack, got {}",
+            e.cur_db
+        );
+    }
+
+    /// The level detector must smooth away per-sample jitter instead of
+    /// tracking the raw instantaneous key value -- otherwise a signal
+    /// alternating between loud and silent every single sample (worst-case
+    /// stand-in for a low-pitched voice's waveform swinging within one
+    /// pitch period) keeps the threshold comparison bouncing between the
+    /// two extremes, which is exactly the "twitchy"/gritty failure mode
+    /// this is meant to fix.
+    #[test]
+    fn detector_smooths_alternating_per_sample_levels() {
+        let mut d = Dynamics::new(DynMode::Expander);
+        d.threshold_db = -1000.0; // never triggers gain changes; isolates the detector
+        d.detector = one_pole(3.0, 48000);
+
+        for i in 0..2000 {
+            let key = if i % 2 == 0 { 0.0 } else { -120.0 };
+            d.run(1.0, key);
+        }
+
+        assert!(
+            d.detected_db > -90.0 && d.detected_db < -30.0,
+            "detector should have settled well away from either raw extreme (0 / -120), got {}",
+            d.detected_db
+        );
+    }
 
     /// End-to-end check that the inotify-based reloader actually reacts to a
     /// real file write -- not just that `notify` compiles, but that a save

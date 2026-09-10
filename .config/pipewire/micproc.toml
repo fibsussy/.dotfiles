@@ -1,10 +1,15 @@
 # micproc.toml — the whole mic chain in ONE list. Order = list order.
-# Edit freely; hot-reloaded ~1s, no restart.
+# Edit freely; hot-reloaded near-instantly (inotify), no restart.
 #
 #   - Move a [[stages]] block to change the order.
 #   - Delete a [[stages]] block to drop that stage.
 #   - enabled = false bypasses a stage in place.
 #   - Stage types: "stereo2mono" | "expander" | "compressor" | "gate" | "eq"
+#   - expander/compressor/gate all take `detector-ms` (default 3.0): how
+#     much the LEVEL fed into the threshold comparison is smoothed, separate
+#     from `attack-ms`/`release-ms` (which smooth the resulting gain, not
+#     the level driving it). Raise it if a stage still sounds grainy/gritty
+#     on low voices, lower it if it feels sluggish to real level changes.
 #   - stereo2mono is STAGE 0 (must be the first block): the stereo→mono
 #     boundary conversion. Two inputs are folded to ONE mono lane, the chain
 #     runs, and the mono result is duplicated onto both outputs.
@@ -71,7 +76,7 @@ type = "eq"
 # Final tone shaping (biquads). One line per band; types: LS (low shelf),
 # PK (peaking/bell), HS (high shelf). `preamp-db` trims after the bands.
 enabled = true
-preamp-db = 10.0
+preamp-db = 14.0
 band = [
   { type = "LS", freq = 60,    gain-db = -2.9,  q = 0.71 },
   { type = "PK", freq = 130,   gain-db =  1.7,  q = 2.4 },
