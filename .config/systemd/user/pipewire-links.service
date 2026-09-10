@@ -1,3 +1,7 @@
+# pw-links: declarative graph auto-wiring (routing table + source in
+# ~/.config/pipewire/pw-links/src/main.rs). Compiled as a real release
+# binary (was previously interpreted via rust-script) -- build with
+# `cargo build --release` in that directory.
 [Unit]
 Description=PipeWire automatic links and monitoring
 After=pipewire.service
@@ -6,7 +10,7 @@ PartOf=pipewire.service
 
 [Service]
 Type=simple
-ExecStart=rust-script %h/.config/pipewire/links.rs
+ExecStart=%h/.config/pipewire/pw-links/target/release/pw-links
 Restart=on-failure
 RestartSec=3
 

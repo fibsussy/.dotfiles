@@ -8,3 +8,9 @@ jack = "0.11.4"
 arc-swap = "1"
 serde = { version = "1", features = ["derive"] }
 toml = "0.8"
+
+[profile.release]
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+opt-level = 3

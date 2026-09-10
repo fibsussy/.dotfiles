@@ -1,5 +1,3 @@
-#!/usr/bin/env rust-script
-
 //! PipeWire Links Manager
 //!
 //! Declarative audio/MIDI wiring for this machine:
@@ -18,6 +16,9 @@
 //! and the synth rule. The engine does the rest: every poll it enumerates the
 //! live graph, creates any link a rule declares but that isn't there yet, and
 //! tears down links a rule doesn't declare on ports it owns.
+//!
+//! Compiled as a real release binary (was previously run through
+//! `rust-script`); see `systemd/user/pipewire-links.service`.
 
 use std::collections::HashSet;
 use std::process::{Child, ChildStdin, Command, Stdio};
@@ -40,10 +41,9 @@ const LINK_RETRY_DELAY: Duration = Duration::from_millis(500);
 const NAME_MIC: &str = "Komplete";
 const NAME_MICPROC: &str = "micproc";
 const NAME_VMIC: &str = "vmic";
-const NAME_KEYBOARD: &str = "Oxygen";
-
-// Matches both the synth's audio node ("FluidSynth") and its MIDI-input node
-// ("FLUID Synth (pid)") at once.
+// Matches the synth's single JACK node ("fluidsynth-midi": MIDI-in port +
+// audio-out ports on one node), as well as the old PulseAudio layout
+// ("FluidSynth" audio + "FLUID Synth (pid)" MIDI).
 const NAME_SYNTH: &str = "Synth";
 const SYNTH_SOUNDFONT: &str = "/usr/share/soundfonts/FluidR3_GM.sf2";
 
@@ -79,10 +79,13 @@ const MICPROC_OUTPUT: Device = dev(NAME_MICPROC, "out_");
 const VMIC_SINK_IN: Device = dev(NAME_VMIC, "playback_");
 const VMIC_MONITOR: Device = dev(NAME_VMIC, "monitor_");
 
-// The MIDI keyboard's capture port (audio-out of the keys).
-const KEYBOARD_OUT: Device = dev(NAME_KEYBOARD, "");
+// The MIDI keyboard's capture port (MIDI out of the keys). PipeWire
+// aggregates every ALSA seq device under one node ("Midi-Bridge"), so match
+// by PORT NAME (the keyboard's ports are named "Oxygen 49 (capture)"), not
+// by node.
+const KEYBOARD_OUT: Device = dev("", "Oxygen");
 
-// The software synth: audio-out + MIDI-in when running.
+// The software synth: one JACK node carrying MIDI-in + audio-out.
 const SYNTH_ANY: Device = dev(NAME_SYNTH, "");
 
 // ────────────────────────────────────────────────────────────────────
@@ -126,9 +129,9 @@ fn routes() -> Vec<Route> {
         pairs_exclusive(MIC_INPUT, MICPROC_INPUT, &[("FL", "in_L"), ("FR", "in_R")]),
 
         // Processed mic -> the vmic app feed (recorded by apps), also
-        // standard left-to-left / right-to-right. Additive: micproc's output
-        // sums with the synth on the vmic sink, and the whole feed is what
-        // the monitor route taps into the speakers.
+        // standard left-to-left / right-to-right. Additive so other sources
+        // could share the feed; the whole lane is what the monitor route taps
+        // into the speakers.
         pairs(
             MICPROC_OUTPUT,
             VMIC_SINK_IN,
@@ -230,10 +233,19 @@ impl PipeWireManager {
         self.links = Self::existing_links();
     }
 
-    /// Read every Port object from `pw-cli list-objects Port`. Stored as a
-    /// `Vec`, not a map, because ALSA MIDI devices expose both a capture and a
-    /// playback port under the *same* alias (e.g. Oxygen 49); a map keyed by
-    /// alias would silently drop one direction.
+    /// Read every Node and Port object from a SINGLE unfiltered `pw-cli
+    /// list-objects` call (instead of two separate `list-objects Node` /
+    /// `list-objects Port` subprocess spawns every poll) and parse both in
+    /// two passes over the same text. Safe because `node.name` only ever
+    /// appears on Node blocks and `node.id`/`port.name`/`port.alias`/
+    /// `format.dsp`/`port.direction` only ever appear on Port blocks on this
+    /// PipeWire version (verified against the live graph before making this
+    /// change) — each pass's `else if` chain simply ignores lines from
+    /// every other interleaved object type (Client, Link, Device, ...).
+    ///
+    /// Stored as a `Vec`, not a map, because MIDI devices expose both a
+    /// capture and a playback port under the *same* alias (a map keyed by
+    /// alias would silently drop one direction).
     ///
     /// Ports are keyed by the canonical `node.name:port.name` pair — the same
     /// vocabulary `pw-link` uses to connect and to list the graph. Neither
@@ -242,10 +254,12 @@ impl PipeWireManager {
     /// nor `object.path` (adapter-generated like `micproc:input_0`) agrees
     /// with `pw-link`, so the join uses `node.id -> node.name`.
     fn enumerate_ports() -> Vec<(Port, PortInfo)> {
-        let nodes = run_cmd(&["pw-cli", "list-objects", "Node"]);
+        let dump = run_cmd(&["pw-cli", "list-objects"]);
+
+        // Pass 1: node.id -> node.name, from Node blocks.
         let mut node_names: std::collections::HashMap<String, String> = Default::default();
         let mut block_id: Option<String> = None;
-        for line in nodes.lines() {
+        for line in dump.lines() {
             let t = line.trim();
             if t.starts_with("id ") && t.contains("type PipeWire:Interface:Node") {
                 if let Some(rest) = t.strip_prefix("id ") {
@@ -260,16 +274,16 @@ impl PipeWireManager {
             }
         }
 
-        let out = run_cmd(&["pw-cli", "list-objects", "Port"]);
+        // Pass 2: Port blocks, resolving each port's owning node via
+        // node_names from pass 1.
         let mut ports = Vec::new();
-
         let mut node: Option<String> = None;
         let mut pname: Option<String> = None;
         let mut alias: Option<String> = None;
         let mut format: Option<String> = None;
         let mut direction: Option<String> = None;
 
-        for line in out.lines() {
+        for line in dump.lines() {
             let t = line.trim();
             if t.starts_with("id ") && t.contains("type PipeWire:Interface:Port") {
                 commit_port(
@@ -338,12 +352,18 @@ impl PipeWireManager {
 
     // ── port queries ───────────────────────────────────────────────
 
-    /// All ports matching a device pattern and stream kind.
+    /// All ports matching a device pattern and stream kind. Matching is
+    /// case-insensitive so node names like `fluidsynth`, `FluidSynth` and
+    /// `FLUID Synth (pid)` all match the same device pattern.
     fn ports(&self, d: &Device, kind: PortKind) -> Vec<Port> {
+        let node_q = d.node.to_lowercase();
+        let port_q = d.port.to_lowercase();
         self.ports
             .iter()
             .filter(|(p, info)| {
-                p.device.contains(d.node) && p.name.contains(d.port) && info.kind() == kind
+                p.device.to_lowercase().contains(&node_q)
+                    && p.name.to_lowercase().contains(&port_q)
+                    && info.kind() == kind
             })
             .map(|(p, _)| p.clone())
             .collect()
@@ -457,8 +477,15 @@ impl PipeWireManager {
         // Caveat: fluidsynth's interactive shell panics on stdin EOF. As a
         // service our stdin is /dev/null, so we pipe it and hold the write end
         // open (`synth_stdin`) to keep it alive.
+        //
+        // JACK driver (`-a jack -o midi.driver=jack`) so the synth appears in
+        // qpwgraph as ONE node ("fluidsynth-midi") with a MIDI-in port and two
+        // audio-out ports — the visible MIDI->audio conversion box. `-r 48000`
+        // matches the PipeWire JACK sample rate. (No `-i`: fluidsynth exits
+        // when stdin isn't a live shell.)
         let mut child = match Command::new("fluidsynth")
-            .args(["-a", "pulseaudio", "-g", "1.0", SYNTH_SOUNDFONT])
+            .args(["-a", "jack", "-r", "48000", "-c", "2", "-g", "1.0"])
+            .args(["-o", "midi.driver=jack", SYNTH_SOUNDFONT])
             .stdin(Stdio::piped())
             .stdout(Stdio::null())
             .stderr(Stdio::null())
@@ -487,7 +514,7 @@ impl PipeWireManager {
 
     // ── route engine ───────────────────────────────────────────────
 
-    /// Apply the routing table, then the on-demand synth lifecyle.
+    /// Apply the routing table, then the on-demand synth lifecycle.
     fn apply_routes(&mut self) {
         self.ensure_vmic();
         for route in routes() {
@@ -549,10 +576,13 @@ impl PipeWireManager {
     /// Audio/Source; as a fallback we can provision a Pulse null-sink (single
     /// node, monitor-only source) so apps always have something to pick.
     fn ensure_vmic(&mut self) {
-        let sinks = run_cmd(&["pactl", "list", "short", "sinks"]);
-        let has_vmic = sinks
-            .lines()
-            .any(|l| l.split('\t').nth(1).is_some_and(|n| n.contains(NAME_VMIC)));
+        // `self.ports` was already refreshed this poll from `pw-cli
+        // list-objects` (see `refresh()`, called just before `apply_routes`)
+        // and already contains vmic's ports if the filter-chain node exists
+        // -- checking it here (same substring test the rest of this file
+        // already uses for vmic, e.g. `apply_vmic_monitor_route`) avoids a
+        // redundant `pactl list short sinks` subprocess spawn every poll.
+        let has_vmic = self.ports.iter().any(|(p, _)| p.device.contains(NAME_VMIC));
         if has_vmic {
             return;
         }
@@ -613,45 +643,6 @@ impl PipeWireManager {
         }
     }
 
-    /// Oxygen 49 MIDI -> fluidsynth -> the vmic app feed. The synth runs only
-    /// while the keyboard is plugged in.
-    fn apply_synth_route(&mut self) {
-        let keyboard_plugged = !self.ports(&KEYBOARD_OUT, PortKind::MidiOut).is_empty();
-
-        if !keyboard_plugged {
-            if self.synth.is_some() {
-                self.stop_synth();
-            }
-            return;
-        }
-
-        self.ensure_synth_running();
-        if !self.synth_running() {
-            return;
-        }
-
-        // MIDI: every keyboard capture port -> the synth's MIDI input.
-        let synth_midi_in = self.ports(&SYNTH_ANY, PortKind::MidiIn).into_iter().next();
-        if let Some(synth_in) = synth_midi_in {
-            for kb in self.ports(&KEYBOARD_OUT, PortKind::MidiOut) {
-                self.connect(&kb, &synth_in);
-            }
-        }
-
-        // The synth feeds the app-feed vmic, exactly like the mic does. Apps
-        // may record it; it stays off the monitoring path. (PulseAudio will
-        // auto-send the synth to the default speaker too; the stray cleaner
-        // pulls that and keeps just the vmic feed.)
-        self.route_channels(
-            SYNTH_ANY,
-            VMIC_SINK_IN,
-            &[("FL", "playback_FL"), ("FR", "playback_FR")],
-            /*exclusive=*/ false,
-        );
-
-        self.unroute_stray_synth_links();
-    }
-
     /// Anything on the micproc or the vmic nodes that isn't the routing table
     /// above is stray, so links stay exact even when apps auto-connect:
     ///   - micproc's inputs belong to the mic alone.
@@ -689,15 +680,64 @@ impl PipeWireManager {
         }
     }
 
+    /// Oxygen 49 MIDI -> fluidsynth -> the vmic app feed. The synth runs only
+    /// while the keyboard is plugged in.
+    fn apply_synth_route(&mut self) {
+        let keyboard_plugged = !self.ports(&KEYBOARD_OUT, PortKind::MidiOut).is_empty();
+
+        if !keyboard_plugged {
+            if self.synth.is_some() {
+                self.stop_synth();
+            }
+            return;
+        }
+
+        self.ensure_synth_running();
+        if !self.synth_running() {
+            return;
+        }
+
+        // MIDI: every keyboard capture port -> the synth's MIDI input.
+        let synth_midi_in = self.ports(&SYNTH_ANY, PortKind::MidiIn).into_iter().next();
+        if let Some(synth_in) = synth_midi_in {
+            for kb in self.ports(&KEYBOARD_OUT, PortKind::MidiOut) {
+                self.connect(&kb, &synth_in);
+            }
+        }
+
+        // The synth feeds the app-feed vmic, exactly like the mic does. Apps
+        // may record it; it stays off the monitoring path. The single JACK
+        // node names its outputs `left`/`right`; the old PulseAudio layout
+        // (`output_FL`/`output_FR`) is also accepted.
+        let vmic_ins = self.ports(&VMIC_SINK_IN, PortKind::AudioIn);
+        for port in self.ports(&SYNTH_ANY, PortKind::AudioOut) {
+            let dest = match port.name.as_str() {
+                "left" | "output_FL" | "FL" => "playback_FL",
+                "right" | "output_FR" | "FR" => "playback_FR",
+                _ => continue,
+            };
+            if let Some(sink) = vmic_ins.iter().find(|s| s.name == dest) {
+                self.connect(&port, sink);
+            }
+        }
+
+        self.unroute_stray_synth_links();
+    }
+
     /// Any link leaving the synth that doesn't land on the vmic app feed is
-    /// stray (PulseAudio's automatic default-sink link is the usual culprit).
+    /// stray (nothing should normally do this now that the synth is a JACK
+    /// client, but keep the graph exact anyway).
     fn unroute_stray_synth_links(&mut self) {
         let stray: Vec<Link> = self
             .links
             .iter()
             .filter(|(src, sink)| {
-                src.device.contains(NAME_SYNTH)
-                    && !(sink.device.contains(NAME_VMIC) && sink.name.starts_with("playback_"))
+                src.device.to_lowercase().contains(&NAME_SYNTH.to_lowercase())
+                    && !(sink
+                        .device
+                        .to_lowercase()
+                        .contains(&NAME_VMIC.to_lowercase())
+                        && sink.name.starts_with("playback_"))
             })
             .cloned()
             .collect();

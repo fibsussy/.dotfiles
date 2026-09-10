@@ -133,6 +133,7 @@ impl BiquadType {
     }
 }
 
+#[derive(Clone, Copy)]
 struct Biquad {
     b0: f32,
     b1: f32,
@@ -211,8 +212,54 @@ impl Biquad {
 // DYNAMICS
 // ────────────────────────────────────────────────────────────────────────────
 
+// dB <-> linear gain via IEEE-754 bit tricks + a degree-5 polynomial fit,
+// used in place of libm log10()/powf() on every sample: powf(10.0, x) in
+// particular has no fast path for a constant base and re-derives ln(10) on
+// every call. Error bounds (measured over the practically relevant range,
+// mag 1e-6..=2.0 / dB -140..=20) are ~0.0002 dB for fast_log2 and ~2e-6 dB
+// for fast_exp2 -- both far below anything audible; see the accuracy test
+// in `tests` below.
+const LOG2_TO_DB: f32 = 20.0 / std::f32::consts::LOG2_10;
+const DB_TO_LOG2: f32 = std::f32::consts::LOG2_10 / 20.0;
+
+/// log2(x) for x > 0: exponent via bit-cast, degree-5 polynomial fit of
+/// log2(1+t) on t in [0,1) for the mantissa.
+#[inline]
+fn fast_log2(x: f32) -> f32 {
+    let bits = x.to_bits();
+    let exponent = ((bits >> 23) as i32 & 0xFF) - 127;
+    let mantissa_bits = (bits & 0x007F_FFFF) | (127 << 23);
+    let t = f32::from_bits(mantissa_bits) - 1.0; // in [0, 1)
+    let m = 3.190_813_1e-5
+        + t * (1.441_267_4
+            + t * (-0.705_704_15 + t * (0.408_721_74 + t * (-0.187_722_64 + t * 0.043_428_91))));
+    exponent as f32 + m
+}
+
+/// 2^x: integer/fraction split via `floor`, degree-5 polynomial fit of 2^t
+/// on t in [0,1) for the fractional part, integer part folded straight into
+/// the IEEE-754 exponent bits (no libm call at all).
+#[inline]
+fn fast_exp2(x: f32) -> f32 {
+    let xf = x.floor();
+    let t = x - xf; // in [0, 1)
+    let poly = 0.999_999_77
+        + t * (0.693_156_78
+            + t * (0.240_131_69 + t * (0.055_876_56 + t * (0.008_940_58 + t * 0.001_894_38))));
+    let exponent = (xf as i32 + 127).clamp(0, 255) as u32;
+    poly * f32::from_bits(exponent << 23)
+}
+
+#[inline]
 fn db(x: f32) -> f32 {
-    20.0 * (x.abs() + 1e-8).log10()
+    LOG2_TO_DB * fast_log2(x.abs() + 1e-8)
+}
+
+/// dB -> linear gain, the inverse of `db` -- what every stage used to spell
+/// as `10f32.powf(db / 20.0)`.
+#[inline]
+fn from_db(db: f32) -> f32 {
+    fast_exp2(db * DB_TO_LOG2)
 }
 
 fn one_pole(ms: f32, rate: u32) -> f32 {
@@ -227,6 +274,7 @@ enum DynMode {
 }
 
 /// Smooth-gain dynamics with a cosine soft knee (expander + compressor).
+#[derive(Clone, Copy)]
 struct Dynamics {
     mode: DynMode,
     enabled: bool,
@@ -245,6 +293,7 @@ impl Dynamics {
         Dynamics { mode, enabled: true, threshold_db: -60.0, ratio: 2.0, knee_db: 6.0, floor_db: -24.0, attack: 0.0, release: 0.0, makeup_gain: 1.0, cur_db: 0.0 }
     }
 
+    #[inline]
     fn run(&mut self, x: f32, key_db: f32) -> f32 {
         if !self.enabled {
             return x * self.makeup_gain;
@@ -286,12 +335,13 @@ impl Dynamics {
         let coeff = if g < self.cur_db { self.release } else { self.attack };
         self.cur_db += (g - self.cur_db) * coeff;
 
-        x * 10f32.powf(self.cur_db / 20.0) * self.makeup_gain
+        x * from_db(self.cur_db) * self.makeup_gain
     }
 }
 
 /// The smart soft gate: hysteresis + hold + floored steep expansion, keyed on
 /// a sidechain so a later gain boost can't re-open it.
+#[derive(Clone, Copy)]
 struct Gate {
     enabled: bool,
     open_db: f32,
@@ -325,6 +375,7 @@ impl Gate {
         }
     }
 
+    #[inline]
     fn run(&mut self, x: f32, key_db: f32) -> f32 {
         if !self.enabled {
             return x;
@@ -364,7 +415,7 @@ impl Gate {
         let coeff = if target < self.cur_db { self.release } else { self.attack };
         self.cur_db += (target - self.cur_db) * coeff;
 
-        x * 10f32.powf(self.cur_db / 20.0)
+        x * from_db(self.cur_db)
     }
 }
 
@@ -413,6 +464,7 @@ impl Default for Stereo2Mono {
 }
 
 /// One configured processing stage, in `order`.
+#[derive(Clone)]
 enum Stage {
     Expander(Dynamics),
     Compressor(Dynamics),
@@ -435,9 +487,154 @@ impl Stage {
     }
 }
 
-/// All per-block DSP state for the mono strip.
+/// A fully-built chain, produced OFF the JACK realtime thread by
+/// `build_snapshot` (called from the background config reloader, and once
+/// at startup before the client is activated). Published to the RT thread
+/// via a lock-free `ArcSwap<DspSnapshot>`; `MicDsp::adopt` only clones the
+/// (small) `stages` Vec out of it, so none of the parsing / string matching
+/// / biquad trig / logging in `build_snapshot` ever runs on the audio
+/// thread, even at the moment `micproc.toml` is hot-reloaded.
+struct DspSnapshot {
+    version: u64,
+    preamp: f32,
+    stereo2mono: Stereo2Mono,
+    stages: Vec<Stage>,
+    /// Detector stage index for gate sidechaining (index of the stage whose
+    /// POST output the gate keys on). `None` = gate keys on its own input.
+    gate_det_idx: Option<usize>,
+    gate_idx: usize,
+}
+
+/// Build a full DSP chain from config: parsing, string matching over stage
+/// types, biquad coefficient trig (`sin`/`cos`/`powf`), and the announce
+/// `eprintln!` all happen here. Called only off the realtime thread.
+fn build_snapshot(conf: &MicProcConf, rate: u32, version: u64) -> DspSnapshot {
+    let preamp = 10f32.powf(conf.preamp_db / 20.0);
+    let mut stereo2mono = Stereo2Mono::default();
+
+    let mut stages: Vec<Stage> = Vec::new();
+    let mut kinds: Vec<&str> = Vec::new();
+    let mut gate_det: Vec<Option<String>> = Vec::new();
+
+    for sc in &conf.stages {
+        if sc.ty.as_str() == "stereo2mono" {
+            // Stage 0 — the stereo→mono boundary conversion. Not a
+            // per-sample stage: it's the input fold + output duplication
+            // applied at the frame edge (see the process handler).
+            stereo2mono.enabled = sc.enabled;
+            stereo2mono.fold = FoldMode::parse(sc.mode.as_deref());
+            continue;
+        }
+        if !sc.enabled {
+            continue;
+        }
+        let pushed = match sc.ty.as_str() {
+            "expander" => {
+                let mut s = Dynamics::new(DynMode::Expander);
+                s.enabled = true;
+                s.threshold_db = sc.threshold_db.unwrap_or(-60.0);
+                s.ratio = sc.ratio.unwrap_or(2.0);
+                s.knee_db = sc.knee_db.unwrap_or(6.0);
+                s.floor_db = sc.range_db.unwrap_or(-24.0);
+                s.attack = one_pole(sc.attack_ms.unwrap_or(1.0), rate);
+                s.release = one_pole(sc.release_ms.unwrap_or(80.0), rate);
+                s.makeup_gain = 1.0;
+                stages.push(Stage::Expander(s));
+                true
+            }
+            "compressor" => {
+                let mut s = Dynamics::new(DynMode::Compressor);
+                s.enabled = true;
+                s.threshold_db = sc.threshold_db.unwrap_or(-20.0);
+                s.ratio = sc.ratio.unwrap_or(3.0);
+                s.knee_db = sc.knee_db.unwrap_or(6.0);
+                s.floor_db = 0.0; // compressors don't gate below
+                s.attack = one_pole(sc.attack_ms.unwrap_or(2.0), rate);
+                s.release = one_pole(sc.release_ms.unwrap_or(120.0), rate);
+                s.makeup_gain = 10f32.powf(sc.makeup_db.unwrap_or(0.0) / 20.0);
+                stages.push(Stage::Compressor(s));
+                true
+            }
+            "gate" => {
+                let mut s = Gate::new();
+                s.enabled = true;
+                s.open_db = sc.threshold_db.unwrap_or(-50.0);
+                s.close_db = s.open_db - sc.hysteresis_db.unwrap_or(6.0);
+                s.ratio = sc.ratio.unwrap_or(8.0);
+                s.knee_db = sc.knee_db.unwrap_or(6.0);
+                s.floor_db = sc.range_db.unwrap_or(-30.0);
+                s.hold_frames = (sc.hold_ms.unwrap_or(80.0) / 1000.0 * rate as f32) as u32;
+                s.attack = one_pole(sc.attack_ms.unwrap_or(3.0), rate);
+                s.release = one_pole(sc.release_ms.unwrap_or(220.0), rate);
+                stages.push(Stage::Gate(s));
+                true
+            }
+            "eq" => {
+                let bqs = sc
+                    .band
+                    .clone()
+                    .unwrap_or_default()
+                    .iter()
+                    .filter_map(|b| {
+                        let ty = BiquadType::parse(&b.ty)?;
+                        let mut bq = Biquad::identity();
+                        bq.set(ty, b.freq, b.q.max(0.01), b.gain_db, rate);
+                        Some(bq)
+                    })
+                    .collect::<Vec<_>>();
+                let preamp = 10f32.powf(sc.preamp_db.unwrap_or(0.0) / 20.0);
+                stages.push(Stage::Eq { bqs, preamp });
+                true
+            }
+            other => {
+                eprintln!("[micproc] unknown stage type in stages: {other:?}");
+                false
+            }
+        };
+        if pushed {
+            kinds.push(sc.ty.as_str());
+            gate_det.push(sc.detector.clone());
+        }
+    }
+
+    // Resolve the gate's sidechain detector: it must be a stage type that
+    // runs BEFORE the gate. Default "expander" keys on the (typically)
+    // pre-compressor stage, keeping compressor makeup gain out of the key.
+    let mut gate_idx = 0usize;
+    let mut gate_det_idx = None;
+    for (i, kind) in kinds.iter().enumerate() {
+        if *kind != "gate" {
+            continue;
+        }
+        gate_idx = i;
+        let det = gate_det[i].clone().unwrap_or_else(|| "expander".into());
+        match det.as_str() {
+            "input" => gate_det_idx = None,
+            det => match kinds[..i].iter().rposition(|k| k == &det) {
+                Some(j) => gate_det_idx = Some(j),
+                None => {
+                    eprintln!(
+                        "[micproc] gate detector \"{det}\" not found before the gate; keying on gate input"
+                    );
+                    gate_det_idx = None;
+                }
+            },
+        }
+        break;
+    }
+
+    eprintln!(
+        "[micproc] chain v{version} @ {rate} Hz: preamp {:.1} dB, stereo->mono {} ({stereo2mono:?}), stages {kinds:?}, gate detector {}",
+        conf.preamp_db,
+        if conf.stages.iter().any(|s| s.ty == "stereo2mono") { "configured" } else { "default" },
+        if gate_det_idx.is_some() { "pre-gate stage".to_string() } else { "gate input".to_string() }
+    );
+
+    DspSnapshot { version, preamp, stereo2mono, stages, gate_det_idx, gate_idx }
+}
+
+/// All per-block DSP state for the mono strip -- RT-thread-owned.
 struct MicDsp {
-    rate: u32,
     version: u64,
     preamp: f32,
     stereo2mono: Stereo2Mono,
@@ -451,9 +648,8 @@ struct MicDsp {
 }
 
 impl MicDsp {
-    fn new(rate: u32) -> Self {
+    fn new() -> Self {
         MicDsp {
-            rate,
             version: u64::MAX,
             preamp: 1.0,
             stereo2mono: Stereo2Mono::default(),
@@ -464,136 +660,19 @@ impl MicDsp {
         }
     }
 
-    fn apply(&mut self, conf: &MicProcConf) {
-        self.preamp = 10f32.powf(conf.preamp_db / 20.0);
-
-        let mut stages: Vec<Stage> = Vec::new();
-        let mut kinds: Vec<&str> = Vec::new();
-        let mut gate_det: Vec<Option<String>> = Vec::new();
-
-        for sc in &conf.stages {
-            if sc.ty.as_str() == "stereo2mono" {
-                // Stage 0 — the stereo→mono boundary conversion. Not a
-                // per-sample stage: it's the input fold + output duplication
-                // applied at the frame edge (see the process handler).
-                self.stereo2mono.enabled = sc.enabled;
-                self.stereo2mono.fold = FoldMode::parse(sc.mode.as_deref());
-                continue;
-            }
-            if !sc.enabled {
-                continue;
-            }
-            let pushed = match sc.ty.as_str() {
-                "expander" => {
-                    let mut s = Dynamics::new(DynMode::Expander);
-                    s.enabled = true;
-                    s.threshold_db = sc.threshold_db.unwrap_or(-60.0);
-                    s.ratio = sc.ratio.unwrap_or(2.0);
-                    s.knee_db = sc.knee_db.unwrap_or(6.0);
-                    s.floor_db = sc.range_db.unwrap_or(-24.0);
-                    s.attack = one_pole(sc.attack_ms.unwrap_or(1.0), self.rate);
-                    s.release = one_pole(sc.release_ms.unwrap_or(80.0), self.rate);
-                    s.makeup_gain = 1.0;
-                    stages.push(Stage::Expander(s));
-                    true
-                }
-                "compressor" => {
-                    let mut s = Dynamics::new(DynMode::Compressor);
-                    s.enabled = true;
-                    s.threshold_db = sc.threshold_db.unwrap_or(-20.0);
-                    s.ratio = sc.ratio.unwrap_or(3.0);
-                    s.knee_db = sc.knee_db.unwrap_or(6.0);
-                    s.floor_db = 0.0; // compressors don't gate below
-                    s.attack = one_pole(sc.attack_ms.unwrap_or(2.0), self.rate);
-                    s.release = one_pole(sc.release_ms.unwrap_or(120.0), self.rate);
-                    s.makeup_gain = 10f32.powf(sc.makeup_db.unwrap_or(0.0) / 20.0);
-                    stages.push(Stage::Compressor(s));
-                    true
-                }
-                "gate" => {
-                    let mut s = Gate::new();
-                    s.enabled = true;
-                    s.open_db = sc.threshold_db.unwrap_or(-50.0);
-                    s.close_db = s.open_db - sc.hysteresis_db.unwrap_or(6.0);
-                    s.ratio = sc.ratio.unwrap_or(8.0);
-                    s.knee_db = sc.knee_db.unwrap_or(6.0);
-                    s.floor_db = sc.range_db.unwrap_or(-30.0);
-                    s.hold_frames = (sc.hold_ms.unwrap_or(80.0) / 1000.0 * self.rate as f32) as u32;
-                    s.attack = one_pole(sc.attack_ms.unwrap_or(3.0), self.rate);
-                    s.release = one_pole(sc.release_ms.unwrap_or(220.0), self.rate);
-                    stages.push(Stage::Gate(s));
-                    true
-                }
-                "eq" => {
-                    let bqs = sc
-                        .band
-                        .clone()
-                        .unwrap_or_default()
-                        .iter()
-                        .filter_map(|b| {
-                            let ty = BiquadType::parse(&b.ty)?;
-                            let mut bq = Biquad::identity();
-                            bq.set(ty, b.freq, b.q.max(0.01), b.gain_db, self.rate);
-                            Some(bq)
-                        })
-                        .collect::<Vec<_>>();
-                    let preamp = 10f32.powf(sc.preamp_db.unwrap_or(0.0) / 20.0);
-                    stages.push(Stage::Eq { bqs, preamp });
-                    true
-                }
-                other => {
-                    eprintln!("[micproc] unknown stage type in stages: {other:?}");
-                    false
-                }
-            };
-            if pushed {
-                kinds.push(sc.ty.as_str());
-                gate_det.push(sc.detector.clone());
-            }
-        }
-
-        // Resolve the gate's sidechain detector: it must be a stage type that
-        // runs BEFORE the gate. Default "expander" keys on the (typically)
-        // pre-compressor stage, keeping compressor makeup gain out of the key.
-        let mut gate_idx = 0usize;
-        let mut gate_det_idx = None;
-        for (i, kind) in kinds.iter().enumerate() {
-            if *kind != "gate" {
-                continue;
-            }
-            gate_idx = i;
-            let det = gate_det[i].clone().unwrap_or_else(|| "expander".into());
-            match det.as_str() {
-                "input" => gate_det_idx = None,
-                det => match kinds[..i].iter().rposition(|k| k == &det) {
-                    Some(j) => gate_det_idx = Some(j),
-                    None => {
-                        eprintln!(
-                            "[micproc] gate detector \"{det}\" not found before the gate; keying on gate input"
-                        );
-                        gate_det_idx = None;
-                    }
-                },
-            }
-            break;
-        }
-
-        self.stages = stages;
-        self.gate_idx = gate_idx;
-        self.gate_det_idx = gate_det_idx;
+    /// Adopt a freshly-built snapshot into this RT-thread-owned state. Only
+    /// clones the small prebuilt `Vec<Stage>` and copies scalar fields --
+    /// all the expensive work already happened in `build_snapshot`, off the
+    /// realtime thread. Safe to call from `process()`.
+    #[inline]
+    fn adopt(&mut self, snap: &DspSnapshot) {
+        self.preamp = snap.preamp;
+        self.stereo2mono = snap.stereo2mono;
+        self.stages = snap.stages.clone();
+        self.gate_det_idx = snap.gate_det_idx;
+        self.gate_idx = snap.gate_idx;
         self.stage_out = vec![0.0; self.stages.len()];
-        self.version = VERSION.load(Ordering::Relaxed);
-
-        eprintln!(
-            "[micproc] chain v{} @ {} Hz: preamp {:.1} dB, stereo->mono {} ({:?}), stages {:?}, gate detector {}",
-            self.version,
-            self.rate,
-            conf.preamp_db,
-            if conf.stages.iter().any(|s| s.ty == "stereo2mono") { "configured" } else { "default" },
-            self.stereo2mono,
-            kinds,
-            if gate_det_idx.is_some() { "pre-gate stage".to_string() } else { "gate input".to_string() }
-        );
+        self.version = snap.version;
     }
 
     /// Process one mono sample through the whole chain.
@@ -601,16 +680,23 @@ impl MicDsp {
     fn process(&mut self, x: f32) -> f32 {
         let mut x = x * self.preamp;
         for (i, stage) in self.stages.iter_mut().enumerate() {
-            let key = if matches!(stage, Stage::Gate(_)) {
-                // Soft-gate sidechain: key on a stage BEFORE the compressor (by
-                // default the expander's output), so makeup gain can't lift
-                // residual noise back over the threshold.
-                match self.gate_det_idx {
-                    Some(d) => db(self.stage_out[d]),
-                    None => db(x),
+            // Only Expander/Compressor (keyed on their own input) and Gate
+            // (keyed on a sidechain tap) read `key`; Eq ignores it entirely,
+            // so skip the log2 call for that stage rather than throwing the
+            // result away.
+            let key = match stage {
+                Stage::Gate(_) => {
+                    // Soft-gate sidechain: key on a stage BEFORE the
+                    // compressor (by default the expander's output), so
+                    // makeup gain can't lift residual noise back over the
+                    // threshold.
+                    match self.gate_det_idx {
+                        Some(d) => db(self.stage_out[d]),
+                        None => db(x),
+                    }
                 }
-            } else {
-                db(x)
+                Stage::Eq { .. } => 0.0,
+                _ => db(x),
             };
             x = stage.step(x, key);
             self.stage_out[i] = x;
@@ -650,7 +736,10 @@ fn load_config() -> MicProcConf {
     }
 }
 
-fn spawn_reloader(cfg: Arc<ArcSwap<MicProcConf>>) {
+/// Watches `micproc.toml`'s mtime and, on change, does ALL of the expensive
+/// work (parse, build the chain, log) off the realtime thread, publishing
+/// the result via `snapshot` for `process()` to pick up lock-free.
+fn spawn_reloader(snapshot: Arc<ArcSwap<DspSnapshot>>, rate: u32) {
     thread::spawn(move || {
         let mut last = None::<u128>;
         loop {
@@ -663,7 +752,9 @@ fn spawn_reloader(cfg: Arc<ArcSwap<MicProcConf>>) {
                 .map(|t| t.as_nanos());
             if m != last {
                 last = m;
-                cfg.store(Arc::new(load_config()));
+                let conf = load_config();
+                let version = VERSION.load(Ordering::Relaxed);
+                snapshot.store(Arc::new(build_snapshot(&conf, rate, version)));
             }
         }
     });
@@ -679,11 +770,11 @@ struct MicProc {
     out_l: Port<AudioOut>,
     out_r: Port<AudioOut>,
     dsp: MicDsp,
-    cfg: Arc<ArcSwap<MicProcConf>>,
+    snapshot: Arc<ArcSwap<DspSnapshot>>,
 }
 
 impl MicProc {
-    fn new(client: &Client, cfg: Arc<ArcSwap<MicProcConf>>) -> Result<Self, jack::Error> {
+    fn new(client: &Client, snapshot: Arc<ArcSwap<DspSnapshot>>) -> Result<Self, jack::Error> {
         let in_l = client.register_port("in_L", AudioIn::default())?;
         let in_r = client.register_port("in_R", AudioIn::default())?;
         let out_l = client.register_port("out_L", AudioOut::default())?;
@@ -691,19 +782,21 @@ impl MicProc {
         let rate = client.sample_rate() as u32;
         RATE.store(rate, Ordering::Relaxed);
 
-        let mut dsp = MicDsp::new(rate);
-        let initial = cfg.load_full();
-        dsp.apply(&initial);
+        let mut dsp = MicDsp::new();
+        dsp.adopt(&snapshot.load());
 
-        Ok(MicProc { in_l, in_r, out_l, out_r, dsp, cfg })
+        Ok(MicProc { in_l, in_r, out_l, out_r, dsp, snapshot })
     }
 }
 
 impl ProcessHandler for MicProc {
     fn process(&mut self, _client: &Client, scope: &ProcessScope) -> jack::Control {
-        let cfg = self.cfg.load_full();
-        if VERSION.load(Ordering::Relaxed) != self.dsp.version {
-            self.dsp.apply(&cfg);
+        // Lock-free load; `adopt` on a version change is just a small Vec
+        // clone + scalar copies -- everything expensive already happened on
+        // the background reloader thread that built this snapshot.
+        let snap = self.snapshot.load();
+        if snap.version != self.dsp.version {
+            self.dsp.adopt(&snap);
         }
 
         let n = scope.n_frames() as usize;
@@ -751,10 +844,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let rate = client.sample_rate() as u32;
     RATE.store(rate, Ordering::Relaxed);
 
-    let cfg = Arc::new(ArcSwap::from_pointee(load_config()));
-    spawn_reloader(Arc::clone(&cfg));
+    let initial_conf = load_config();
+    let initial_version = VERSION.load(Ordering::Relaxed);
+    let snapshot = Arc::new(ArcSwap::from_pointee(build_snapshot(&initial_conf, rate, initial_version)));
+    spawn_reloader(Arc::clone(&snapshot), rate);
 
-    let proc = MicProc::new(&client, cfg)?;
+    let proc = MicProc::new(&client, snapshot)?;
     let _active = client.activate_async((), proc)?;
 
     loop {
@@ -773,8 +868,9 @@ mod tests {
         let kinds: Vec<&str> = conf.stages.iter().map(|s| s.ty.as_str()).collect();
         assert_eq!(kinds, vec!["stereo2mono", "expander", "compressor", "gate", "eq"]);
 
-        let mut dsp = MicDsp::new(48000);
-        dsp.apply(&conf);
+        let snap = build_snapshot(&conf, 48000, 1);
+        let mut dsp = MicDsp::new();
+        dsp.adopt(&snap);
 
         // stereo2mono is the boundary conversion, not a per-sample stage.
         assert_eq!(dsp.stages.len(), 4);
@@ -795,5 +891,37 @@ mod tests {
             Stage::Eq { bqs, .. } => assert_eq!(bqs.len(), 5),
             _ => unreachable!(),
         }
+    }
+
+    /// The fast log2/exp2 approximations stand in for libm log10()/powf() on
+    /// every sample; verify their error stays far below anything audible
+    /// over the ranges this DSP actually produces (levels down to -140 dB,
+    /// magnitudes from silence up to a couple dB of headroom).
+    #[test]
+    fn fast_math_matches_std_within_tolerance() {
+        let mut max_log2_db_err = 0.0f32;
+        let mut mag = 1e-6f32;
+        let mut steps = 0u32;
+        while mag <= 2.0 {
+            let got = fast_log2(mag) * LOG2_TO_DB;
+            let want = 20.0 * mag.log10();
+            max_log2_db_err = max_log2_db_err.max((got - want).abs());
+            mag *= 1.001;
+            steps += 1;
+        }
+        assert!(steps > 1000, "sanity: sweep actually ran");
+        assert!(max_log2_db_err < 0.01, "fast_log2-derived dB error too large: {max_log2_db_err}");
+
+        let mut max_exp2_db_err = 0.0f32;
+        let mut d = -140.0f32;
+        while d <= 20.0 {
+            let got = from_db(d);
+            let want = 10f32.powf(d / 20.0);
+            // Compare in dB, not linear, since these are gain multipliers.
+            let err_db = 20.0 * (got / want).log10();
+            max_exp2_db_err = max_exp2_db_err.max(err_db.abs());
+            d += 0.01;
+        }
+        assert!(max_exp2_db_err < 0.001, "fast_exp2 dB error too large: {max_exp2_db_err}");
     }
 }

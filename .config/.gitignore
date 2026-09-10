@@ -150,8 +150,9 @@ zen/*/*
 !zen/*/zen-keyboard-shortcuts.json
 !zen/*/zen-themes.json
 
-# micproc-jack Rust build artifacts
+# micproc-jack / pw-links Rust build artifacts
 pipewire/micproc-jack/target/
+pipewire/pw-links/target/
 
 # Generated graphviz dump of the pipewire graph
 pipewire/pw.dot
